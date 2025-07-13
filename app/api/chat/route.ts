@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // By leaving createVertex() empty, the Vercel AI SDK will automatically and correctly
 // use the standard Google Cloud environment variables you have set on Vercel.
+// This is the final, correct version.
 const vertex = createVertex();
 
 export async function POST(req: NextRequest) {

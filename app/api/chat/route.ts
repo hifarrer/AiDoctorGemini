@@ -5,11 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 // Remove the edge runtime configuration to use the default Node.js runtime
 // export const runtime = 'edge';
 
-// Create a customized Vertex AI provider instance with the location and project ID
-const vertex = createVertex({
-  project: "endless-codex-465716-v9",
-  location: "us-central1",
-});
+// Create a customized Vertex AI provider instance.
+// This will automatically use the GOOGLE_APPLICATION_CREDENTIALS_JSON 
+// environment variable when deployed on Vercel.
+const vertex = createVertex();
 
 export async function POST(req: NextRequest) {
   try {

@@ -5,17 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 // Remove the edge runtime configuration to use the default Node.js runtime
 // export const runtime = 'edge';
 
-export async function POST(req: NextRequest) {
-  console.log("--- API ROUTE V5 (deep logging) ---");
-  try {
-    console.log("Step 1: Initializing Vertex client...");
-    const vertex = createVertex();
-    console.log("Step 2: Vertex client initialized. Parsing request body...");
+// By leaving createVertex() empty, the Vercel AI SDK will automatically and correctly
+// use the standard Google Cloud environment variables you have set on Vercel.
+const vertex = createVertex();
 
-    const body = await req.json();
-    console.log("Step 3: Request body parsed. Destructuring body...");
-    const { messages, image, document } = body;
-    console.log("Step 4: Body destructured. Proceeding with logic...");
+export async function POST(req: NextRequest) {
+  try {
+    const { messages, image, document } = await req.json();
 
     if (!messages) {
       return new NextResponse("Messages are required", { status: 400 });
@@ -65,10 +61,8 @@ export async function POST(req: NextRequest) {
       message: errorMessage,
       cause: errorCause,
       stack: error.stack,
-      fullError: JSON.stringify(error, null, 2)
     });
     
-    // Return a more structured JSON error response
     return NextResponse.json(
       { 
         error: "An internal server error occurred.",

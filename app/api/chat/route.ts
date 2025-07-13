@@ -5,14 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 // Remove the edge runtime configuration to use the default Node.js runtime
 // export const runtime = 'edge';
 
-// Create a customized Vertex AI provider instance.
-// This will automatically use the GOOGLE_APPLICATION_CREDENTIALS_JSON 
-// environment variable when deployed on Vercel.
-const vertex = createVertex();
-
 export async function POST(req: NextRequest) {
-  console.log("--- API ROUTE V3 (with enhanced logging) EXECUTION STARTED ---");
+  console.log("--- API ROUTE V4 (initialization inside try-catch) ---");
   try {
+    // Initialize the Vertex client inside the try block to catch any setup errors.
+    const vertex = createVertex();
+
     // The image and document are now top-level properties in the request body
     const { messages, image, document } = await req.json();
 

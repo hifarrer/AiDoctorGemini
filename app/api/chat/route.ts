@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 const vertex = createVertex();
 
 export async function POST(req: NextRequest) {
+  console.log("--- API ROUTE V3 (with enhanced logging) EXECUTION STARTED ---");
   try {
     // The image and document are now top-level properties in the request body
     const { messages, image, document } = await req.json();

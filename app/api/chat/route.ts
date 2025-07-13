@@ -56,7 +56,24 @@ export async function POST(req: NextRequest) {
     return result.toDataStreamResponse();
 
   } catch (error: any) {
-    console.error("[CHAT_ERROR]", error);
-    return new NextResponse(`Internal error: ${error.message}`, { status: 500 });
+    const errorMessage = error.message || "An unknown error occurred";
+    const errorCause = error.cause ? JSON.stringify(error.cause) : "No cause available";
+
+    console.error("[CHAT_ERROR] Detailed Error:", {
+      message: errorMessage,
+      cause: errorCause,
+      stack: error.stack,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    
+    // Return a more structured JSON error response
+    return NextResponse.json(
+      { 
+        error: "An internal server error occurred.",
+        details: errorMessage,
+        cause: errorCause,
+      }, 
+      { status: 500 }
+    );
   }
 } 

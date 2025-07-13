@@ -34,9 +34,18 @@ export function PublicChat() {
     api: "/api/chat",
     initialMessages,
     onError: (error) => {
-      // Keep error handling for now
-      console.error("Error in useChat hook:", error);
-      toast.error(`An error occurred: ${error.message}`);
+      try {
+        // The error message from the AI SDK is a JSON string.
+        const errorData = JSON.parse(error.message);
+        // Display the detailed error from our custom backend response.
+        const displayMessage = `Error: ${errorData.details || 'An unknown error occurred.'}`;
+        toast.error(displayMessage);
+        console.error("Detailed error from backend:", errorData);
+      } catch (e) {
+        // If parsing fails, fall back to the generic message.
+        toast.error(`An error occurred: ${error.message}`);
+        console.error("Error in useChat hook (could not parse JSON):", error);
+      }
     },
   });
 

@@ -6,13 +6,16 @@ import { NextRequest, NextResponse } from "next/server";
 // export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
-  console.log("--- API ROUTE V4 (initialization inside try-catch) ---");
+  console.log("--- API ROUTE V5 (deep logging) ---");
   try {
-    // Initialize the Vertex client inside the try block to catch any setup errors.
+    console.log("Step 1: Initializing Vertex client...");
     const vertex = createVertex();
+    console.log("Step 2: Vertex client initialized. Parsing request body...");
 
-    // The image and document are now top-level properties in the request body
-    const { messages, image, document } = await req.json();
+    const body = await req.json();
+    console.log("Step 3: Request body parsed. Destructuring body...");
+    const { messages, image, document } = body;
+    console.log("Step 4: Body destructured. Proceeding with logic...");
 
     if (!messages) {
       return new NextResponse("Messages are required", { status: 400 });

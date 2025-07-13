@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Create a customized Vertex AI provider instance.
 // This will automatically use the GOOGLE_APPLICATION_CREDENTIALS_JSON 
 // environment variable when deployed on Vercel.
+// No parameters are needed here.
 const vertex = createVertex();
 
 export async function POST(req: NextRequest) {

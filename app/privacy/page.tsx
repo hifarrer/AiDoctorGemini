@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
                 </p>
                 <h2 className="text-2xl font-bold">2. Log Data</h2>
                 <p>
-                    We want to inform you that whenever you visit our Service, we collect information that your browser sends to us that is called Log Data. This Log Data may include information such as your computer’s Internet Protocol ("IP") address, browser version, pages of our Service that you visit, the time and date of your visit, the time spent on those pages, and other statistics.
+                    We want to inform you that whenever you visit our Service, we collect information that your browser sends to us that is called Log Data. This Log Data may include information such as your computer&apos;s Internet Protocol (&quot;IP&quot;) address, browser version, pages of our Service that you visit, the time and date of your visit, the time spent on those pages, and other statistics.
                 </p>
                 <h2 className="text-2xl font-bold">3. Security</h2>
                 <p>

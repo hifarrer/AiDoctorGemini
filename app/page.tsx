@@ -68,7 +68,7 @@ export default function LandingPage() {
                 </div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Try AI Doctor Now</h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Ask a question below to test the chatbot's capabilities. No registration required.
+                  Ask a question below to test the chatbot&apos;s capabilities. No registration required.
                 </p>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function LandingPage() {
                 <AccordionItem value="item-3">
                   <AccordionTrigger>Is my data secure?</AccordionTrigger>
                   <AccordionContent>
-                    Yes, your privacy is our priority. We are HIPAA compliant. We do not store any personal health information from your conversations. All interactions are anonymous.
+                    Yes, your privacy is our priority. We do not store any personal health information from your conversations. All interactions are anonymous.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-4">
@@ -162,13 +162,13 @@ export default function LandingPage() {
                 <AccordionItem value="item-5">
                   <AccordionTrigger>What AI model does this use?</AccordionTrigger>
                   <AccordionContent>
-                    AI Doctor is powered by Google's Vertex AI advanced Gemini family of models trained with medical data.
+                    AI Doctor is powered by Google&apos;s Vertex AI advanced Gemini family of models trained with medical data.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-6">
                   <AccordionTrigger>Can this AI be fine tuned? </AccordionTrigger>
                   <AccordionContent>
-                    Yes. With Google's Vertex AI, you can fine tune the model to your specific needs and data.
+                    Yes. With Google&apos;s Vertex AI, you can fine tune the model to your specific needs and data.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-7">

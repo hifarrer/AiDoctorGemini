@@ -16,8 +16,8 @@ export default function TermsOfServicePage() {
             <p className="text-gray-500 dark:text-gray-400">Last updated: July 13, 2025</p>
             <div className="space-y-4 text-gray-700 dark:text-gray-300">
                 <p>
-                    Please read these Terms of Service ("Terms", "Terms of Service") carefully before using the AI Doctor
-                    website (the "Service") operated by us.
+                    Please read these Terms of Service (&quot;Terms&quot;, &quot;Terms of Service&quot;) carefully before using the AI Doctor
+                    website (the &quot;Service&quot;) operated by us.
                 </p>
                 <h2 className="text-2xl font-bold">1. Conditions of Use</h2>
                 <p>

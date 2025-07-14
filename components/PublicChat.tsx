@@ -33,6 +33,8 @@ export function PublicChat() {
   const { messages, input, handleInputChange, append, isLoading, setInput } = useChat({
     api: "/api/chat",
     initialMessages,
+    // This onError handler logs the full error object to the console,
+    // which is crucial for debugging client-side issues with the stream.
     onError: (error) => {
       // Log the entire error object to the console to inspect its structure.
       // This will show us exactly what the backend is sending on failure.

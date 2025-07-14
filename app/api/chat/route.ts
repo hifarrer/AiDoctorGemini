@@ -1,76 +1,73 @@
-import { streamText } from "ai";
-import { createVertex } from "@ai-sdk/google-vertex";
-import { NextRequest, NextResponse } from "next/server";
+import { streamText } from 'ai';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { NextResponse } from 'next/server';
 
-// Remove the edge runtime configuration to use the default Node.js runtime
-// export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-// By leaving createVertex() empty, the Vercel AI SDK will automatically and correctly
-// use the standard Google Cloud environment variables you have set on Vercel.
-// This is the final, correct version.
-const vertex = createVertex();
+export async function POST(req: Request) {
+  console.log('API route /api/chat handler started.');
 
-export async function POST(req: NextRequest) {
   try {
-    const { messages, image, document } = await req.json();
+    const { messages } = await req.json();
 
-    if (!messages) {
-      return new NextResponse("Messages are required", { status: 400 });
+    console.log('Checking for required environment variables...');
+    // The AI SDK will automatically use GOOGLE_VERTEX_PROJECT, GOOGLE_VERTEX_LOCATION,
+    // and GOOGLE_APPLICATION_CREDENTIALS_JSON from process.env
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION;
+    const credentials = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+
+    if (!projectId || !location || !credentials) {
+      console.error('Missing one or more required Google Cloud environment variables.');
+      // Log which ones are missing for easier debugging on Vercel
+      if (!projectId) console.error('-> GOOGLE_VERTEX_PROJECT is not set.');
+      if (!location) console.error('-> GOOGLE_VERTEX_LOCATION is not set.');
+      if (!credentials) console.error('-> GOOGLE_APPLICATION_CREDENTIALS_JSON is not set.');
+      
+      return NextResponse.json(
+        { error: 'Server configuration error. See server logs for details.' },
+        { status: 500 },
+      );
     }
+    console.log('All required environment variables seem to be present.');
+
+    console.log('Initializing Vertex AI client via createVertex()...');
+    // By leaving createVertex() empty, the Vercel AI SDK automatically uses the env vars.
+    const vertex = createVertex();
+    console.log('Vertex AI client initialized implicitly.');
     
-    const systemInstruction = "You are an AI assistant for a medical chat application called AI Doctor. Your user is interacting with you through a web interface that already includes a prominent disclaimer about your limitations and the fact that you are not a medical professional. Therefore, you MUST NOT include any additional disclaimers, warnings, or advice to 'consult a medical professional' in your responses. Focus solely on providing the requested information in a concise and helpful manner.";
-
-    // The last message is the user's prompt
-    const userMessage = messages[messages.length - 1];
-
-    // Build the multimodal content array for the Vercel AI SDK
-    const content: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL | string | Buffer }> = [];
-
-    // Only add the text part if there is content
-    if (userMessage.content && userMessage.content.trim() !== "") {
-      content.push({ type: 'text', text: userMessage.content });
-    }
-
-    // Use the top-level image from the request body
-    if (image) {
-      content.push({ type: 'image', image: image as string });
-    }
-
-    // Add the document content if it exists
-    if (document) {
-      const documentHeaderText = `\n\n--- Start of Uploaded PDF ---\n\n${document}\n\n--- End of Uploaded PDF ---\n\n`;
-      content.push({ type: 'text', text: documentHeaderText });
-    }
-
+    console.log('Calling streamText with the model...');
     const result = await streamText({
-      model: vertex("gemini-2.5-pro"),
-      system: systemInstruction,
-      messages: [
-          ...messages.slice(0, -1),
-          // Pass a clean user message with the correctly formatted multimodal content
-          { role: 'user', content }
-      ],
+      model: vertex('gemini-1.5-flash-001'),
+      messages,
     });
+    console.log('Successfully received response from streamText.');
 
     return result.toDataStreamResponse();
 
   } catch (error: any) {
-    const errorMessage = error.message || "An unknown error occurred";
-    const errorCause = error.cause ? JSON.stringify(error.cause) : "No cause available";
+    console.error('!!! An error occurred in the chat API route !!!');
+    console.error('Error Name:', error.name);
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
 
-    console.error("[CHAT_ERROR] Detailed Error:", {
-      message: errorMessage,
-      cause: errorCause,
-      stack: error.stack,
-    });
+    // Some errors have a 'cause' property with more details
+    if (error.cause) {
+        // The cause can be a complex object, stringify it for better logging
+        console.error('Error Cause:', JSON.stringify(error.cause, null, 2));
+    } else {
+        console.error('Error Cause: Not available.');
+    }
     
+    console.error('Full Error Object:', JSON.stringify(error, null, 2));
+
     return NextResponse.json(
-      { 
-        error: "An internal server error occurred.",
-        details: errorMessage,
-        cause: errorCause,
-      }, 
-      { status: 500 }
+      {
+        error: 'An internal server error occurred.',
+        details: error.message,
+      },
+      { status: 500 },
     );
   }
 } 

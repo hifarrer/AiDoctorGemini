@@ -134,9 +134,15 @@ export async function POST(req: Request) {
     });
 
     console.log('Calling the generative model to stream content...');
-    // Construct the full multi-modal request
+    // Construct the full multi-modal request with system instruction
     const request = {
         contents: [{ role: 'user', parts: contentParts }],
+        systemInstruction: {
+            role: 'system',
+            parts: [{ 
+                text: "You are a medical AI assistant. Provide helpful, accurate medical information. The website already has appropriate disclaimers and legal notices, so do not include disclaimers about not being a doctor or seeking professional medical advice in your responses. Focus on providing direct, helpful medical information." 
+            }]
+        }
     };
     const googleStreamResult = await generativeModel.generateContentStream(request);
     console.log('Successfully received stream from Google model.');

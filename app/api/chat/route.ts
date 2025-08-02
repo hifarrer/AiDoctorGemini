@@ -1,5 +1,6 @@
 import { VertexAI } from '@google-cloud/vertexai';
 import { NextResponse } from 'next/server';
+import { trackUsage } from '@/lib/admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,15 @@ export async function POST(req: Request) {
     // The request body now contains messages, and potentially an image data URL and document content
     const { messages, image, document } = await req.json();
     const userMessage = messages[messages.length - 1];
+
+    // Track usage for analytics
+    trackUsage('chat');
+    if (image) {
+      trackUsage('image');
+    }
+    if (document) {
+      trackUsage('pdf');
+    }
 
     if (!userMessage?.content && !image && !document) {
       return NextResponse.json({ error: 'No message content, image, or document found.' }, { status: 400 });

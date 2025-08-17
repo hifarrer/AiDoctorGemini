@@ -169,6 +169,7 @@ export function PublicChat() {
               )}
               <div className={`rounded-lg p-3 max-w-[75%] ${message.role === "user" ? "bg-teal-500 text-white" : "bg-gray-100 dark:bg-gray-800"}`}>
                 {message.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={message.image} alt="user upload" className="rounded-md mb-2 max-w-full h-auto" />
                 )}
                 {message.document && (
@@ -207,6 +208,7 @@ export function PublicChat() {
              {image && (
               <div className="absolute bottom-14 left-0 w-full p-2">
                 <div className="relative inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={image} alt="preview" className="w-20 h-20 rounded-md object-cover" />
                   <button type="button" onClick={() => setImage(null)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                     &times;

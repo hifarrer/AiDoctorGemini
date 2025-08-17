@@ -46,7 +46,7 @@ export default function AdminDashboard() {
           Admin Dashboard
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Manage your application's users and subscription plans
+          Manage your application&apos;s users and subscription plans
         </p>
       </div>
 

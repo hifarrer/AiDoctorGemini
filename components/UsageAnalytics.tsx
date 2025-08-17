@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,11 +33,7 @@ export default function UsageAnalytics() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  useEffect(() => {
-    fetchUsageData();
-  }, []);
-
-  const fetchUsageData = async () => {
+  const fetchUsageData = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -55,7 +51,11 @@ export default function UsageAnalytics() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchUsageData();
+  }, [fetchUsageData]);
 
   const handleDateFilter = () => {
     fetchUsageData();

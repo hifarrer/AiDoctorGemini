@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getSettings, updateSettings } from "@/lib/server/settings";
-import { updatePublicSettings } from "@/app/api/settings/route";
 
 export async function GET() {
   try {
@@ -87,13 +86,7 @@ export async function PUT(request: NextRequest) {
       stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,
     });
 
-    // Update public settings
-    updatePublicSettings({
-      siteName: siteName || updatedSettings.siteName,
-      siteDescription: siteDescription || "Your Personal AI Health Assistant",
-      contactEmail: contactEmail || "",
-      supportEmail: supportEmail || "",
-    });
+    // Note: Public settings are served from /api/settings GET; no direct export call here
 
     return NextResponse.json(
       {

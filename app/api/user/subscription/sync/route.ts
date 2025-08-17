@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       subscription: {
         id: subscription.id,
         status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end,
+        currentPeriodEnd: (subscription as any).current_period_end,
       },
     });
 

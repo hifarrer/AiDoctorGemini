@@ -39,9 +39,8 @@ export async function POST(request: NextRequest) {
 
     // Test the connection with Stripe
     try {
-      const stripe = new (await import('stripe')).default(apiKey, {
-        apiVersion: '2023-10-16',
-      });
+      // Let Stripe SDK use its default API version to avoid type mismatches during builds
+      const stripe = new (await import('stripe')).default(apiKey);
       
       // Test the connection by making a simple API call
       await stripe.paymentMethods.list({ limit: 1 });

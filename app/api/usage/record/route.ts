@@ -17,8 +17,9 @@ export async function POST(request: NextRequest) {
     const { prompts = 1 } = body;
 
     // Record the interaction (no conversation content stored)
+    // Use email as the unique identifier since NextAuth's default session.user has no id by default
     recordInteraction(
-      session.user.id || 'unknown',
+      session.user.email,
       session.user.email,
       prompts
     );

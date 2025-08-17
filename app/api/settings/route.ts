@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSettings, updateSettings } from "@/lib/server/settings";
+import { getSettings } from "@/lib/server/settings";
 
-// Function to update settings (called from admin settings)
-export function updatePublicSettings(newSettings: any) {
-  updateSettings(newSettings);
-}
+// Note: Do not export non-route functions from this file to satisfy Next.js route typing
 
 export async function GET() {
   try {

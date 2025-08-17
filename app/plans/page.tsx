@@ -259,7 +259,7 @@ export default function PlansPage() {
                 Can I cancel my subscription?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
+                Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period.
               </p>
             </div>
           </div>

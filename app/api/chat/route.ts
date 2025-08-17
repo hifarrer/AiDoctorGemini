@@ -1,6 +1,7 @@
 import { VertexAI } from '@google-cloud/vertexai';
 import { NextResponse } from 'next/server';
-import { trackUsage } from '@/lib/admin';
+import { getServerSession } from 'next-auth';
+import { recordInteraction } from '@/lib/server/usage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,13 +45,18 @@ export async function POST(req: Request) {
     const { messages, image, document } = await req.json();
     const userMessage = messages[messages.length - 1];
 
-    // Track usage for analytics
-    trackUsage('chat');
-    if (image) {
-      trackUsage('image');
-    }
-    if (document) {
-      trackUsage('pdf');
+    // Track usage for analytics (HIPAA compliant - no conversation content stored)
+    const session = await getServerSession();
+    if (session?.user?.email) {
+      let prompts = 1; // Base interaction
+      if (image) prompts += 1; // Image analysis
+      if (document) prompts += 1; // Document analysis
+      
+      recordInteraction(
+        session.user.email || 'unknown',
+        session.user.email,
+        prompts
+      );
     }
 
     if (!userMessage?.content && !image && !document) {
@@ -150,7 +156,7 @@ export async function POST(req: Request) {
         systemInstruction: {
             role: 'system',
             parts: [{ 
-                text: "You are a medical AI assistant. Provide helpful, accurate medical information. The website already has appropriate disclaimers and legal notices, so do not include disclaimers about not being a doctor or seeking professional medical advice in your responses. Focus on providing direct, helpful medical information." 
+                text: "You are a medical AI assistant. Provide helpful, accurate medical information in a clear, well-formatted manner using markdown. Use headers (###), bullet points (*), numbered lists, and proper spacing to make information easy to read. The website already has appropriate disclaimers and legal notices, so do not include disclaimers about not being a doctor or seeking professional medical advice in your responses. Focus on providing direct, helpful medical information." 
             }]
         }
     };

@@ -1,33 +1,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
-
-const secret = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'admin-secret-key'
-);
+import { getToken } from 'next-auth/jwt';
 
 export async function middleware(request: NextRequest) {
   // Protect admin routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Allow access to login page
-    if (request.nextUrl.pathname === '/admin/login') {
-      return NextResponse.next();
-    }
-
-    // Check for admin token
-    const token = request.cookies.get('admin-token')?.value;
+    // Check for NextAuth session token
+    const token = await getToken({ 
+      req: request, 
+      secret: process.env.NEXTAUTH_SECRET 
+    });
     
     if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
-    try {
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.role !== 'admin') {
-        return NextResponse.redirect(new URL('/admin/login', request.url));
-      }
-    } catch (error) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+    // Check if user is admin
+    if (token.email !== 'admin@example.com') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
 
@@ -35,6 +25,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match admin routes except login
+  // Match admin routes
   matcher: ['/admin/:path*']
 };

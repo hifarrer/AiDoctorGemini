@@ -1,0 +1,97 @@
+import Stripe from 'stripe';
+
+export function getStripeInstance(): Stripe | null {
+  try {
+    // Dynamic import to avoid fs issues in client components
+    const { getStripeConfig } = require('./server/settings');
+    const config = getStripeConfig();
+
+    console.log('Stripe config loaded:', { 
+      hasSecretKey: !!config.secretKey, 
+      secretKeyLength: config.secretKey?.length,
+      hasPublishableKey: !!config.publishableKey 
+    });
+
+    if (!config.secretKey) {
+      console.error('Stripe secret key not configured');
+      return null;
+    }
+
+    if (config.secretKey === 'sk_test_your_secret_key_here') {
+      console.error('Stripe secret key is still the placeholder value');
+      return null;
+    }
+
+    return new Stripe(config.secretKey, {
+      apiVersion: '2023-10-16',
+    });
+  } catch (error) {
+    console.error('Failed to initialize Stripe:', error);
+    return null;
+  }
+}
+
+// Helper function to create a customer
+export async function createStripeCustomer(email: string, name?: string) {
+  const stripe = getStripeInstance();
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+
+  return await stripe.customers.create({
+    email,
+    name,
+  });
+}
+
+// Helper function to create a subscription
+export async function createStripeSubscription(
+  customerId: string,
+  priceId: string,
+  paymentMethodId?: string
+) {
+  const stripe = getStripeInstance();
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+
+  const subscriptionData: Stripe.SubscriptionCreateParams = {
+    customer: customerId,
+    items: [{ price: priceId }],
+    payment_behavior: 'default_incomplete',
+    payment_settings: { save_default_payment_method: 'on_subscription' },
+    expand: ['latest_invoice.payment_intent'],
+  };
+
+  if (paymentMethodId) {
+    subscriptionData.default_payment_method = paymentMethodId;
+  }
+
+  return await stripe.subscriptions.create(subscriptionData);
+}
+
+// Helper function to create a payment intent
+export async function createPaymentIntent(
+  amount: number,
+  currency: string = 'usd',
+  customerId?: string
+) {
+  const stripe = getStripeInstance();
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+
+  const paymentIntentData: Stripe.PaymentIntentCreateParams = {
+    amount,
+    currency,
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  };
+
+  if (customerId) {
+    paymentIntentData.customer = customerId;
+  }
+
+  return await stripe.paymentIntents.create(paymentIntentData);
+}

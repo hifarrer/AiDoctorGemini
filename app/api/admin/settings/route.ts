@@ -1,104 +1,120 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminConfig, updateAdminPassword, updateSiteSettings } from "@/lib/admin";
-import { jwtVerify } from "jose";
+import { getServerSession } from "next-auth";
+import { getSettings, updateSettings } from "@/lib/server/settings";
+import { updatePublicSettings } from "@/app/api/settings/route";
 
-const secret = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || "admin-secret-key"
-);
-
-async function verifyAdminToken(request: NextRequest) {
+export async function GET() {
   try {
-    const token = request.cookies.get("admin-token")?.value;
-    if (!token) return false;
+    const session = await getServerSession();
 
-    const { payload } = await jwtVerify(token, secret);
-    return payload.role === "admin";
-  } catch {
-    return false;
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const isAdmin = await verifyAdminToken(req);
-    if (!isAdmin) {
+    if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    // Return settings without sensitive info
-    const { password, ...safeConfig } = adminConfig;
-    return NextResponse.json(safeConfig);
+    if (session.user.email !== "admin@example.com") {
+      return NextResponse.json(
+        { message: "Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    const settings = getSettings();
+
+    // Return settings without exposing the actual secrets
+    const safeSettings = {
+      stripeApiKey: settings.stripeSecretKey ? "••••••••••••••••" : "",
+      stripePublishableKey: settings.stripePublishableKey,
+      stripeWebhookSecret: settings.stripeWebhookSecret ? "••••••••••••••••" : "",
+      siteName: settings.siteName,
+      siteDescription: "Your Personal AI Health Assistant",
+      contactEmail: "",
+      supportEmail: "",
+      stripePriceIds: settings.stripePriceIds,
+    };
+
+    return NextResponse.json(safeSettings, { status: 200 });
   } catch (error) {
-    console.error("[ADMIN_GET_SETTINGS_ERROR]", error);
+    console.error("Settings fetch error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { message: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(req);
-    if (!isAdmin) {
+    const session = await getServerSession();
+
+    if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const body = await req.json();
-    const { type, ...data } = body;
-
-    if (type === "password") {
-      const { currentPassword, newPassword } = data;
-      
-      if (currentPassword !== adminConfig.password) {
-        return NextResponse.json(
-          { error: "Current password is incorrect" },
-          { status: 400 }
-        );
-      }
-
-      if (!newPassword || newPassword.length < 6) {
-        return NextResponse.json(
-          { error: "New password must be at least 6 characters" },
-          { status: 400 }
-        );
-      }
-
-      const success = updateAdminPassword(newPassword);
-      if (!success) {
-        return NextResponse.json(
-          { error: "Failed to update password" },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ message: "Password updated successfully" });
-    } else if (type === "site") {
-      const success = updateSiteSettings(data);
-      if (!success) {
-        return NextResponse.json(
-          { error: "Failed to update site settings" },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ message: "Site settings updated successfully" });
-    } else {
+    if (session.user.email !== "admin@example.com") {
       return NextResponse.json(
-        { error: "Invalid update type" },
-        { status: 400 }
+        { message: "Admin access required" },
+        { status: 403 }
       );
     }
-  } catch (error) {
-    console.error("[ADMIN_UPDATE_SETTINGS_ERROR]", error);
+
+    const body = await request.json();
+    const {
+      stripeApiKey,
+      stripePublishableKey,
+      stripeWebhookSecret,
+      siteName,
+      siteDescription,
+      contactEmail,
+      supportEmail,
+      stripePriceIds,
+    } = body;
+
+    // Get current settings
+    const currentSettings = getSettings();
+    
+    // Update settings using the server module
+    const updatedSettings = updateSettings({
+      stripeSecretKey: stripeApiKey !== undefined ? stripeApiKey : currentSettings.stripeSecretKey,
+      stripePublishableKey: stripePublishableKey !== undefined ? stripePublishableKey : currentSettings.stripePublishableKey,
+      stripeWebhookSecret: stripeWebhookSecret !== undefined ? stripeWebhookSecret : currentSettings.stripeWebhookSecret,
+      siteName: siteName !== undefined ? siteName : currentSettings.siteName,
+      stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,
+    });
+
+    // Update public settings
+    updatePublicSettings({
+      siteName: siteName || updatedSettings.siteName,
+      siteDescription: siteDescription || "Your Personal AI Health Assistant",
+      contactEmail: contactEmail || "",
+      supportEmail: supportEmail || "",
+    });
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        message: "Settings updated successfully",
+        settings: {
+          stripeApiKey: updatedSettings.stripeSecretKey ? "••••••••••••••••" : "",
+          stripePublishableKey: updatedSettings.stripePublishableKey,
+          stripeWebhookSecret: updatedSettings.stripeWebhookSecret ? "••••••••••••••••" : "",
+          siteName: updatedSettings.siteName,
+          siteDescription: "Your Personal AI Health Assistant",
+          contactEmail: "",
+          supportEmail: "",
+          stripePriceIds: updatedSettings.stripePriceIds,
+        }
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Settings update error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
       { status: 500 }
     );
   }

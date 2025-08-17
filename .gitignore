@@ -35,4 +35,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts 
+next-env.d.ts
+
+# data files (user data, settings, etc.)
+/data/ 

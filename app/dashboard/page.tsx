@@ -1,23 +1,94 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { PublicChat } from "@/components/PublicChat";
+import { UserProfile } from "@/components/UserProfile";
+import SubscriptionStatus from "@/components/SubscriptionStatus";
+import PlansManagement from "@/components/PlansManagement";
+import Link from "next/link";
 
 export default function DashboardPage() {
+  const [activeSection, setActiveSection] = useState("chat");
+  const [siteName, setSiteName] = useState("AI Doctor");
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.email === "admin@example.com";
+
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setSiteName(data.siteName || "AI Doctor");
+        }
+      } catch (error) {
+        console.error('Error fetching site settings:', error);
+      }
+    };
+
+    fetchSiteSettings();
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-      <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 shadow-md">
-        <div className="flex items-center gap-4">
-          <MountainIcon className="w-8 h-8" />
-          <h1 className="text-xl font-bold">AI Doctor Chat</h1>
-        </div>
-        <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-          <LogOutIcon className="w-6 h-6" />
-        </button>
+             <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 shadow-md">
+         <div className="flex items-center gap-4">
+           <MountainIcon className="w-8 h-8" />
+           <Link href="/" className="hover:opacity-80 transition-opacity">
+             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+               {siteName}
+             </h1>
+           </Link>
+         </div>
+        <nav className="flex items-center gap-4">
+          <button
+            onClick={() => setActiveSection("chat")}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              activeSection === "chat"
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            }`}
+          >
+            Chat
+          </button>
+          <button
+            onClick={() => setActiveSection("profile")}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              activeSection === "profile"
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            }`}
+          >
+            Profile
+          </button>
+          {isAdmin && (
+            <a
+              href="/admin"
+              className="px-4 py-2 rounded-md font-medium transition-colors bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800"
+            >
+              Admin Panel
+            </a>
+          )}
+        </nav>
       </header>
-      <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
-        <div className="w-full max-w-5xl">
-            <PublicChat />
-        </div>
+      <main className="flex-1 overflow-y-auto p-6">
+        {activeSection === "chat" && (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-full max-w-5xl">
+              <PublicChat />
+            </div>
+          </div>
+        )}
+                                               {activeSection === "profile" && (
+                  <div className="flex items-start justify-center min-h-full py-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl">
+                      <UserProfile />
+                      <SubscriptionStatus />
+                      <PlansManagement />
+                    </div>
+                  </div>
+                )}
       </main>
     </div>
   );

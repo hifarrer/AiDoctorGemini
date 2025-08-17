@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { getUsers, updateUser } from "@/lib/server/users";
+import { updateUser, findUserByEmail } from "@/lib/server/users";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -13,20 +13,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if user is admin
-    if (session.user.email !== "admin@example.com") {
-      return NextResponse.json(
-        { message: "Admin access required" },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
-    const { id, email, firstName, plan, isActive } = body;
+    const { email, firstName } = body;
 
     // Find the user in our database
-    const allUsers = getUsers();
-    const user = allUsers.find(u => u.id === id);
+    const user = findUserByEmail(session.user.email);
     
     if (!user) {
       return NextResponse.json(
@@ -36,8 +27,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if the new email is already taken by another user
-    if (email !== user.email) {
-      const emailExists = allUsers.some(u => u.email === email && u.id !== id);
+    if (email !== session.user.email) {
+      const { getUsers } = await import("@/lib/server/users");
+      const allUsers = getUsers();
+      const emailExists = allUsers.some(u => u.email === email && u.id !== user.id);
       if (emailExists) {
         return NextResponse.json(
           { message: "Email already exists" },
@@ -47,11 +40,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user data
-    const updatedUser = updateUser(user.email, {
+    const updatedUser = updateUser(session.user.email, {
       email,
       firstName,
-      plan,
-      isActive,
     });
 
     if (!updatedUser) {
@@ -63,19 +54,17 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(
       { 
-        message: "User updated successfully",
+        message: "Profile updated successfully",
         user: {
           id: updatedUser.id,
           email: updatedUser.email,
           firstName: updatedUser.firstName,
-          plan: updatedUser.plan,
-          isActive: updatedUser.isActive,
         }
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("User update error:", error);
+    console.error("Profile update error:", error);
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

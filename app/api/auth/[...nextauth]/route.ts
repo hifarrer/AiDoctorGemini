@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { users } from "@/lib/users";
+import { findUserByEmail } from "@/lib/server/users";
 
 const handler = NextAuth({
   providers: [
@@ -15,10 +15,19 @@ const handler = NextAuth({
           return null;
         }
 
-        const user = users.find((u) => u.email === credentials.email);
+        const user = findUserByEmail(credentials.email);
 
         if (user && user.password === credentials.password) {
-          return { id: user.id, email: user.email };
+          // Check if user is active
+          if (user.isActive === false) {
+            throw new Error("Account is deactivated. Please contact support.");
+          }
+          
+          return { 
+            id: user.id, 
+            email: user.email,
+            firstName: user.firstName,
+          };
         } else {
           return null;
         }

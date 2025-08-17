@@ -65,4 +65,57 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom markdown styling for chat messages */
+.prose {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  @apply font-semibold text-gray-900 dark:text-white mb-2 mt-4;
+}
+
+.prose h3 {
+  @apply text-lg;
+}
+
+.prose p {
+  @apply mb-3 leading-relaxed;
+}
+
+.prose ul, .prose ol {
+  @apply mb-3 pl-6;
+}
+
+.prose li {
+  @apply mb-1;
+}
+
+.prose ul li {
+  @apply list-disc;
+}
+
+.prose ol li {
+  @apply list-decimal;
+}
+
+.prose strong {
+  @apply font-semibold text-gray-900 dark:text-white;
+}
+
+.prose em {
+  @apply italic;
+}
+
+.prose code {
+  @apply bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono;
+}
+
+.prose pre {
+  @apply bg-gray-100 dark:bg-gray-700 p-3 rounded-lg overflow-x-auto;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic;
 } 

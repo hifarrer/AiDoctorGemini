@@ -7,6 +7,8 @@ import toast, { Toaster } from "react-hot-toast";
 import * as pdfjsLib from "pdfjs-dist";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { recordChatStart } from "@/lib/client/usage";
+import ReactMarkdown from 'react-markdown';
 
 // Configure the worker for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -58,6 +60,11 @@ export function PublicChat() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Record chat session start
+  useEffect(() => {
+    recordChatStart();
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -172,14 +179,22 @@ export function PublicChat() {
                     </div>
                   </div>
                 )}
-                {message.content && <p className="text-sm">{message.content}</p>}
+                {message.content && (
+                  message.role === "assistant" ? (
+                    <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm">{message.content}</p>
+                  )
+                )}
               </div>
             </div>
           ))}
            {isLoading && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 shrink-0 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm">AI</div>
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center space-x-1.5 h-[38px]">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center space-x-1.5">
                   <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
                   <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
                   <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />

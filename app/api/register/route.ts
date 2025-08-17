@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { users } from "@/lib/users";
+import { addUser, findUserByEmail } from "@/lib/server/users";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,13 +13,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already exists
-    if (users.find((u) => u.email === email)) {
+    const existingUser = findUserByEmail(email);
+    if (existingUser) {
       return new NextResponse("User already exists", { status: 400 });
     }
 
     // In a real app, you should hash the password here
-    const newUser = { id: String(users.length + 1), email, password };
-    users.push(newUser);
+    const newUser = {
+      id: Date.now().toString(),
+      email,
+      password,
+      firstName: "",
+      plan: "Free",
+      isActive: true,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+    
+    addUser(newUser);
 
     return NextResponse.json({
       message: "User created successfully",

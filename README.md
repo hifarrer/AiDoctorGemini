@@ -7,10 +7,14 @@ It is built with [Next.js](https://nextjs.org/) and uses [Tailwind CSS](https://
 ## Features
 
 -   User authentication (Sign up, Login)
+-   User profile management (Update email, first name, and password)
+-   Admin dashboard with user and plans management
+-   Subscription plans (Free, Basic, Premium) with feature management
 -   Chat interface for interacting with the AI
 -   Support for text and image-based questions
 -   Real-time responses from the AI
 -   Disclaimer for medical information
+-   **Persistent Data Storage**: User accounts, plans, and settings persist between server restarts
 
 ## Tech Stack
 
@@ -48,10 +52,33 @@ To use the Gemini model, you will need to:
 4.  Download the JSON key for the service account.
 5.  Populate the `GCP_PROJECT_ID`, `GCP_LOCATION`, and `GOOGLE_APPLICATION_CREDENTIALS_JSON` variables in your `.env.local` file.
 
-Then, run the development server:
+Then, initialize the data storage (creates default users, plans, and settings):
+
+```bash
+npm run init-data
+```
+
+Finally, run the development server:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. 
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Admin Access
+
+To access the admin dashboard:
+
+1. Login with the admin account:
+   - Email: `admin@example.com`
+   - Password: `admin123`
+
+2. Click the "Admin Panel" button in the dashboard header
+
+3. Manage users and subscription plans from the admin interface
+
+### Test Accounts
+
+- **Regular User**: `test@example.com` / `password`
+- **Admin User**: `admin@example.com` / `admin123` 

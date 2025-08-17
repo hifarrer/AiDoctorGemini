@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link"
+import { useState, useEffect } from "react"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { PublicChat } from "@/components/PublicChat"
 import { ImageSlider } from "@/components/ImageSlider"
@@ -11,12 +14,30 @@ const sliderImages = [
 ];
 
 export default function LandingPage() {
+  const [siteName, setSiteName] = useState("AI Doctor");
+
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setSiteName(data.siteName || "AI Doctor");
+        }
+      } catch (error) {
+        console.error('Error fetching site settings:', error);
+      }
+    };
+
+    fetchSiteSettings();
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="px-4 lg:px-6 h-14 flex items-center bg-white dark:bg-gray-950 shadow-sm">
         <Link className="flex items-center justify-center" href="#">
           <HeartPulseIcon className="h-6 w-6 text-teal-500" />
-          <span className="sr-only">AI Doctor</span>
+          <span className="sr-only">{siteName}</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="#demo">
@@ -24,6 +45,9 @@ export default function LandingPage() {
           </Link>
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">
             Features
+          </Link>
+          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/plans">
+            Pricing
           </Link>
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="#faq">
             FAQ
@@ -111,6 +135,32 @@ export default function LandingPage() {
                 <p className="text-gray-500 dark:text-gray-400">
                   Your conversations are private. We are HIPAA-compliant and never store personal health information.
                 </p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-teal-50 dark:bg-teal-950/20">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Ready to Get Started?</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+                  Choose the perfect plan for your needs and start your AI health journey today.
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <Link
+                  className="inline-flex h-11 items-center justify-center rounded-md bg-teal-500 px-8 text-sm font-medium text-white shadow transition-colors hover:bg-teal-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-700"
+                  href="/plans"
+                >
+                  View Plans
+                </Link>
+                <Link
+                  className="inline-flex h-11 items-center justify-center rounded-md border border-gray-300 bg-white px-8 text-sm font-medium text-gray-900 shadow transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-700 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
+                  href="/auth/signup"
+                >
+                  Sign Up Free
+                </Link>
               </div>
             </div>
           </div>

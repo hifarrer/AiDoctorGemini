@@ -216,8 +216,9 @@ export async function syncPlanWithStripe(plan: Plan): Promise<Plan> {
   let monthlyPriceId: string | undefined = plan.stripePriceIds?.monthly;
   let yearlyPriceId: string | undefined = plan.stripePriceIds?.yearly;
 
-  monthlyPriceId = await ensureStripePrice(stripe, productId, monthlyCents, 'month');
-  yearlyPriceId = await ensureStripePrice(stripe, productId, yearlyCents, 'year');
+  // At this point, productId is guaranteed to be a string since product.id exists
+  monthlyPriceId = await ensureStripePrice(stripe, productId!, monthlyCents, 'month');
+  yearlyPriceId = await ensureStripePrice(stripe, productId!, yearlyCents, 'year');
 
   // Update plan with Stripe linkage
   const planIndex = plans.findIndex(p => p.id === plan.id);

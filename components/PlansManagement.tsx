@@ -59,7 +59,7 @@ export default function PlansManagement() {
 
     // Don't allow changing to the same plan
     if (currentSubscription?.plan === plan.title) {
-      toast.info(`You are already on the ${plan.title} plan`);
+      toast(`You are already on the ${plan.title} plan`, { icon: 'ℹ️' });
       return;
     }
 

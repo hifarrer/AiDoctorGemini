@@ -3,6 +3,7 @@ import path from 'path';
 
 export interface Settings {
   siteName: string;
+  siteDescription?: string;
   contactEmail?: string;
   supportEmail?: string;
   stripeSecretKey: string;
@@ -43,6 +44,7 @@ function loadSettings(): Settings {
   // Return default settings if file doesn't exist or is corrupted
   return {
     siteName: "AI Doctor Chat",
+    siteDescription: "Your Personal AI Health Assistant",
     contactEmail: "",
     supportEmail: "",
     stripeSecretKey: "",

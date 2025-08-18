@@ -28,7 +28,7 @@ export async function GET() {
       stripePublishableKey: settings.stripePublishableKey,
       stripeWebhookSecret: settings.stripeWebhookSecret ? "••••••••••••••••" : "",
       siteName: settings.siteName,
-      siteDescription: "Your Personal AI Health Assistant",
+      siteDescription: (settings as any).siteDescription || "Your Personal AI Health Assistant",
       contactEmail: settings.contactEmail || "",
       supportEmail: settings.supportEmail || "",
       stripePriceIds: settings.stripePriceIds,
@@ -84,6 +84,10 @@ export async function PUT(request: NextRequest) {
       supportEmail
     });
 
+    const MASK = "••••••••••••••••";
+    const cleanedApiKey = typeof stripeApiKey === 'string' && stripeApiKey.trim() === MASK ? undefined : stripeApiKey;
+    const cleanedWebhook = typeof stripeWebhookSecret === 'string' && stripeWebhookSecret.trim() === MASK ? undefined : stripeWebhookSecret;
+
     // Get current settings
     const currentSettings = getSettings();
     
@@ -96,10 +100,11 @@ export async function PUT(request: NextRequest) {
     
     // Update settings using the server module
     const updateData = {
-      stripeSecretKey: stripeApiKey !== undefined && stripeApiKey !== "" ? stripeApiKey : currentSettings.stripeSecretKey,
+      stripeSecretKey: cleanedApiKey !== undefined && cleanedApiKey !== "" ? cleanedApiKey : currentSettings.stripeSecretKey,
       stripePublishableKey: stripePublishableKey !== undefined && stripePublishableKey !== "" ? stripePublishableKey : currentSettings.stripePublishableKey,
-      stripeWebhookSecret: stripeWebhookSecret !== undefined && stripeWebhookSecret !== "" ? stripeWebhookSecret : currentSettings.stripeWebhookSecret,
+      stripeWebhookSecret: cleanedWebhook !== undefined && cleanedWebhook !== "" ? cleanedWebhook : currentSettings.stripeWebhookSecret,
       siteName: siteName !== undefined && siteName !== "" ? siteName : currentSettings.siteName,
+      siteDescription: siteDescription !== undefined ? siteDescription : (currentSettings as any).siteDescription,
       contactEmail: contactEmail !== undefined ? contactEmail : currentSettings.contactEmail,
       supportEmail: supportEmail !== undefined ? supportEmail : currentSettings.supportEmail,
       stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,

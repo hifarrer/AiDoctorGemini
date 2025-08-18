@@ -74,19 +74,45 @@ export async function PUT(request: NextRequest) {
       stripePriceIds,
     } = body;
 
+    console.log('Received settings update:', {
+      hasStripeApiKey: !!stripeApiKey,
+      stripeApiKeyLength: stripeApiKey?.length,
+      hasStripePublishableKey: !!stripePublishableKey,
+      hasStripeWebhookSecret: !!stripeWebhookSecret,
+      siteName,
+      contactEmail,
+      supportEmail
+    });
+
     // Get current settings
     const currentSettings = getSettings();
     
+    console.log('Current settings:', {
+      hasStripeSecretKey: !!currentSettings.stripeSecretKey,
+      stripeSecretKeyLength: currentSettings.stripeSecretKey?.length,
+      hasStripePublishableKey: !!currentSettings.stripePublishableKey,
+      hasStripeWebhookSecret: !!currentSettings.stripeWebhookSecret
+    });
+    
     // Update settings using the server module
-    const updatedSettings = updateSettings({
-      stripeSecretKey: stripeApiKey !== undefined ? stripeApiKey : currentSettings.stripeSecretKey,
-      stripePublishableKey: stripePublishableKey !== undefined ? stripePublishableKey : currentSettings.stripePublishableKey,
-      stripeWebhookSecret: stripeWebhookSecret !== undefined ? stripeWebhookSecret : currentSettings.stripeWebhookSecret,
-      siteName: siteName !== undefined ? siteName : currentSettings.siteName,
+    const updateData = {
+      stripeSecretKey: stripeApiKey !== undefined && stripeApiKey !== "" ? stripeApiKey : currentSettings.stripeSecretKey,
+      stripePublishableKey: stripePublishableKey !== undefined && stripePublishableKey !== "" ? stripePublishableKey : currentSettings.stripePublishableKey,
+      stripeWebhookSecret: stripeWebhookSecret !== undefined && stripeWebhookSecret !== "" ? stripeWebhookSecret : currentSettings.stripeWebhookSecret,
+      siteName: siteName !== undefined && siteName !== "" ? siteName : currentSettings.siteName,
       contactEmail: contactEmail !== undefined ? contactEmail : currentSettings.contactEmail,
       supportEmail: supportEmail !== undefined ? supportEmail : currentSettings.supportEmail,
       stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,
+    };
+
+    console.log('Updating settings with:', {
+      hasStripeSecretKey: !!updateData.stripeSecretKey,
+      stripeSecretKeyLength: updateData.stripeSecretKey?.length,
+      hasStripePublishableKey: !!updateData.stripePublishableKey,
+      hasStripeWebhookSecret: !!updateData.stripeWebhookSecret
     });
+
+    const updatedSettings = updateSettings(updateData);
 
     // Note: Public settings are served from /api/settings GET; no direct export call here
 

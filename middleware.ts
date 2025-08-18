@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if user is admin
-    if (token.email !== 'admin@example.com') {
+    if (token.email !== 'admin@ai-doctor.info') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }

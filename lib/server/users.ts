@@ -50,7 +50,7 @@ function loadUsers(): User[] {
     },
     {
       id: "2",
-      email: "admin@example.com",
+      email: "admin@ai-doctor.info",
       password: "admin123", // In a real app, this should be a hashed password
       firstName: "Admin",
       plan: "Premium",

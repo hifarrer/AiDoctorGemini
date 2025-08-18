@@ -23,8 +23,8 @@ export default function AdminLayout({
     }
 
     // Check if user is admin (you can modify this logic based on your needs)
-    // For now, we'll check if the email is admin@example.com
-    if (session.user?.email === "admin@example.com") {
+    // For now, we'll check if the email is admin@ai-doctor.info
+if (session.user?.email === "admin@ai-doctor.info") {
       setIsAdmin(true);
     } else {
       router.push("/dashboard");

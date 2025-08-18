@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("chat");
   const [siteName, setSiteName] = useState("AI Doctor");
   const { data: session } = useSession();
-  const isAdmin = session?.user?.email === "admin@example.com";
+  const isAdmin = session?.user?.email === "admin@ai-doctor.info";
 
   useEffect(() => {
     const fetchSiteSettings = async () => {

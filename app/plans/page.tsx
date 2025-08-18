@@ -20,7 +20,7 @@ export default function PlansPage() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await fetch('/api/plans');
+        const response = await fetch('/api/plans', { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           setPlansList(data);

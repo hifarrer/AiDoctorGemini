@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-import { plans } from "@/lib/plans";
+// import removed; plans count will be fetched from API
 import UsageAnalytics from "@/components/UsageAnalytics";
 
 export default function AdminDashboard() {
@@ -26,9 +26,19 @@ export default function AdminDashboard() {
         const usersData = await usersResponse.json();
         setRecentUsers(usersData.slice(0, 5)); // Get first 5 users for recent activity
         
+        // Fetch plans from API to avoid static in-memory fallback
+        let plansCount = 0;
+        try {
+          const plansRes = await fetch('/api/plans', { cache: 'no-store' });
+          if (plansRes.ok) {
+            const plansData = await plansRes.json();
+            plansCount = Array.isArray(plansData) ? plansData.length : 0;
+          }
+        } catch {}
+
         setStats({
           totalUsers: usersData.length,
-          totalPlans: plans.length,
+          totalPlans: plansCount,
           activeUsers: usersData.filter((user: any) => user.isActive !== false).length,
         });
       }

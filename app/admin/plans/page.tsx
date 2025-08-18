@@ -20,7 +20,7 @@ export default function PlansManagement() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch('/api/plans');
+      const res = await fetch('/api/plans', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setPlansList(data);

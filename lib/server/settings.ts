@@ -3,6 +3,8 @@ import path from 'path';
 
 export interface Settings {
   siteName: string;
+  contactEmail?: string;
+  supportEmail?: string;
   stripeSecretKey: string;
   stripePublishableKey: string;
   stripeWebhookSecret?: string;
@@ -41,6 +43,8 @@ function loadSettings(): Settings {
   // Return default settings if file doesn't exist or is corrupted
   return {
     siteName: "AI Doctor Chat",
+    contactEmail: "",
+    supportEmail: "",
     stripeSecretKey: "",
     stripePublishableKey: "",
     stripeWebhookSecret: "",

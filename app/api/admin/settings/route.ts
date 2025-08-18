@@ -29,8 +29,8 @@ export async function GET() {
       stripeWebhookSecret: settings.stripeWebhookSecret ? "••••••••••••••••" : "",
       siteName: settings.siteName,
       siteDescription: "Your Personal AI Health Assistant",
-      contactEmail: "",
-      supportEmail: "",
+      contactEmail: settings.contactEmail || "",
+      supportEmail: settings.supportEmail || "",
       stripePriceIds: settings.stripePriceIds,
     };
 
@@ -83,6 +83,8 @@ export async function PUT(request: NextRequest) {
       stripePublishableKey: stripePublishableKey !== undefined ? stripePublishableKey : currentSettings.stripePublishableKey,
       stripeWebhookSecret: stripeWebhookSecret !== undefined ? stripeWebhookSecret : currentSettings.stripeWebhookSecret,
       siteName: siteName !== undefined ? siteName : currentSettings.siteName,
+      contactEmail: contactEmail !== undefined ? contactEmail : currentSettings.contactEmail,
+      supportEmail: supportEmail !== undefined ? supportEmail : currentSettings.supportEmail,
       stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,
     });
 
@@ -97,8 +99,8 @@ export async function PUT(request: NextRequest) {
           stripeWebhookSecret: updatedSettings.stripeWebhookSecret ? "••••••••••••••••" : "",
           siteName: updatedSettings.siteName,
           siteDescription: "Your Personal AI Health Assistant",
-          contactEmail: "",
-          supportEmail: "",
+          contactEmail: updatedSettings.contactEmail || "",
+          supportEmail: updatedSettings.supportEmail || "",
           stripePriceIds: updatedSettings.stripePriceIds,
         }
       },

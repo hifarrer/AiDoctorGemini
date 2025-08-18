@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest) {
     const { email, firstName } = body;
 
     // Find the user in our database
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     
     if (!user) {
       return NextResponse.json(
@@ -29,8 +29,8 @@ export async function PUT(request: NextRequest) {
     // Check if the new email is already taken by another user
     if (email !== session.user.email) {
       const { getUsers } = await import("@/lib/server/users");
-      const allUsers = getUsers();
-      const emailExists = allUsers.some(u => u.email === email && u.id !== user.id);
+      const allUsers = await getUsers();
+      const emailExists = (allUsers || []).some((u: any) => u.email === email && u.id !== user.id);
       if (emailExists) {
         return NextResponse.json(
           { message: "Email already exists" },
@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user data
-    const updatedUser = updateUser(session.user.email, {
+    const updatedUser = await updateUser(session.user.email, {
       email,
       firstName,
     });

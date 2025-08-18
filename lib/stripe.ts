@@ -23,7 +23,7 @@ export function getStripeInstance(): Stripe | null {
     }
 
     return new Stripe(config.secretKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-07-30.basil',
     });
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);

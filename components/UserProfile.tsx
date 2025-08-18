@@ -31,7 +31,7 @@ export function UserProfile() {
     if (session?.user) {
       setProfileData({
         email: session.user.email || "",
-        firstName: session.user.firstName || "",
+        firstName: (session.user as any).firstName || "",
       });
     }
   }, [session]);

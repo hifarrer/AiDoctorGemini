@@ -66,13 +66,35 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Data Files Setup
+
+**IMPORTANT**: Before running the application, you need to set up the data files:
+
+1. Copy the sample files to create your actual data files:
+   ```bash
+   cp data/users.sample.json data/users.json
+   cp data/settings.sample.json data/settings.json
+   cp data/plans.sample.json data/plans.json
+   cp data/usage.sample.json data/usage.json
+   ```
+
+2. Set your admin password:
+   - Open `data/users.json`
+   - Find the admin user (email: admin@ai-doctor.info)
+   - Change the password from "CHANGE_THIS_PASSWORD" to a secure password
+
+3. Configure Stripe settings (if using subscriptions):
+   - Open `data/settings.json`
+   - Add your Stripe secret key, publishable key, and webhook secret
+   - Add your Stripe price IDs for Basic and Premium plans
+
 ### Admin Access
 
 To access the admin dashboard:
 
 1. Login with the admin account:
-   - Email: `admin@example.com`
-   - Password: `admin123`
+   - Email: `admin@ai-doctor.info`
+   - Password: (the password you set in data/users.json)
 
 2. Click the "Admin Panel" button in the dashboard header
 
@@ -81,4 +103,11 @@ To access the admin dashboard:
 ### Test Accounts
 
 - **Regular User**: `test@example.com` / `password`
-- **Admin User**: `admin@example.com` / `admin123` 
+- **Admin User**: `admin@ai-doctor.info` / (your chosen password)
+
+### Important Notes
+
+- **Data files are NOT tracked by git** to protect user privacy and prevent data loss during deployments
+- User data and admin credentials will persist between server restarts but not between deployments
+- After each deployment, you'll need to set up the admin password and Stripe settings again
+- For production use, consider migrating to a proper database solution 

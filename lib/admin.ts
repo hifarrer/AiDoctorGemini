@@ -143,7 +143,6 @@ export function getAllUsers() {
     id: user.id,
     email: user.email,
     createdAt: user.createdAt || new Date().toISOString(),
-    lastLogin: user.lastLogin || null
   }));
 }
 

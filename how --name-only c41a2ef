@@ -1,0 +1,5 @@
+[33mc41a2ef[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix(admin): add contactEmail and supportEmail fields to settings interface and API
+[33m20e8684[m fix(admin): update hardcoded admin email from admin@example.com to admin@ai-doctor.info across all files
+[33mc520025[m fix(stripe): update API version to 2025-07-30.basil to match current Stripe SDK
+[33m077a8e3[m fix(plans): add non-null assertion for productId in ensureStripePrice calls
+[33mb4bb075[m fix(admin): remove lastLogin property that doesn't exist on User interface

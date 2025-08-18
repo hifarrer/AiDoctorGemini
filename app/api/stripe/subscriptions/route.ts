@@ -111,13 +111,30 @@ export async function POST(request: NextRequest) {
         subscriptionStatus: subscription.status,
       });
 
+      // Extract client secret from the subscription
+      let clientSecret: string | undefined;
+      
+      if (subscription.latest_invoice && typeof subscription.latest_invoice === 'object') {
+        const invoice = subscription.latest_invoice as any;
+        if (invoice.payment_intent && typeof invoice.payment_intent === 'object') {
+          clientSecret = invoice.payment_intent.client_secret;
+        }
+      }
+
+      console.log("Subscription response:", {
+        id: subscription.id,
+        status: subscription.status,
+        hasClientSecret: !!clientSecret,
+        clientSecretLength: clientSecret?.length
+      });
+
       return NextResponse.json(
         {
           message: "Subscription created successfully",
           subscription: {
             id: subscription.id,
             status: subscription.status,
-            clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+            clientSecret: clientSecret,
           }
         },
         { status: 200 }

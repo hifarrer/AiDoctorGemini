@@ -108,6 +108,15 @@ export default function SubscriptionModal({
         throw new Error(message || 'Failed to create subscription');
       }
 
+      if (!subscription.clientSecret) {
+        throw new Error('No client secret received from server. Please try again.');
+      }
+
+      console.log('Confirming payment with client secret:', {
+        hasClientSecret: !!subscription.clientSecret,
+        clientSecretLength: subscription.clientSecret?.length
+      });
+
       // Confirm payment with client secret
       const { error } = await stripe.confirmPayment({
         elements,

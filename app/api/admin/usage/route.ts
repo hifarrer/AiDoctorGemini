@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
-    const stats = getUsageStats(startDate, endDate);
-    const allRecords = getUsageRecords();
+    const stats = await getUsageStats(startDate, endDate);
+    const allRecords = await getUsageRecords();
 
     return NextResponse.json({
       stats,

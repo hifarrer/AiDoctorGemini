@@ -1,15 +1,14 @@
 import Stripe from 'stripe';
 
-export function getStripeInstance(): Stripe | null {
+export async function getStripeInstance(): Promise<Stripe | null> {
   try {
-    // Dynamic import to avoid fs issues in client components
-    const { getStripeConfig } = require('./server/settings');
-    const config = getStripeConfig();
+    const { getStripeConfig } = await import('./server/settings');
+    const config = await getStripeConfig();
 
-    console.log('Stripe config loaded:', { 
-      hasSecretKey: !!config.secretKey, 
+    console.log('Stripe config loaded:', {
+      hasSecretKey: !!config.secretKey,
       secretKeyLength: config.secretKey?.length,
-      hasPublishableKey: !!config.publishableKey 
+      hasPublishableKey: !!config.publishableKey,
     });
 
     if (!config.secretKey) {
@@ -22,9 +21,8 @@ export function getStripeInstance(): Stripe | null {
       return null;
     }
 
-    return new Stripe(config.secretKey, {
-      apiVersion: '2025-07-30.basil',
-    });
+    // Use Stripe SDK default API version for maximum compatibility
+    return new Stripe(config.secretKey);
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);
     return null;
@@ -33,7 +31,7 @@ export function getStripeInstance(): Stripe | null {
 
 // Helper function to create a customer
 export async function createStripeCustomer(email: string, name?: string) {
-  const stripe = getStripeInstance();
+  const stripe = await getStripeInstance();
   if (!stripe) {
     throw new Error('Stripe not configured');
   }
@@ -50,7 +48,7 @@ export async function createStripeSubscription(
   priceId: string,
   paymentMethodId?: string
 ) {
-  const stripe = getStripeInstance();
+  const stripe = await getStripeInstance();
   if (!stripe) {
     throw new Error('Stripe not configured');
   }
@@ -76,7 +74,7 @@ export async function createPaymentIntent(
   currency: string = 'usd',
   customerId?: string
 ) {
-  const stripe = getStripeInstance();
+  const stripe = await getStripeInstance();
   if (!stripe) {
     throw new Error('Stripe not configured');
   }

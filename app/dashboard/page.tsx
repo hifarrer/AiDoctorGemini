@@ -11,6 +11,7 @@ import Link from "next/link";
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("chat");
   const [siteName, setSiteName] = useState("AI Doctor");
+  const [logoUrl, setLogoUrl] = useState<string>("");
   const { data: session } = useSession();
   const isAdmin = session?.user?.email === "admin@ai-doctor.info";
 
@@ -21,6 +22,7 @@ export default function DashboardPage() {
         if (response.ok) {
           const data = await response.json();
           setSiteName(data.siteName || "AI Doctor");
+          setLogoUrl(data.logoUrl || "");
         }
       } catch (error) {
         console.error('Error fetching site settings:', error);
@@ -34,7 +36,12 @@ export default function DashboardPage() {
     <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
              <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 shadow-md">
          <div className="flex items-center gap-4">
-           <MountainIcon className="w-8 h-8" />
+           {logoUrl ? (
+             // eslint-disable-next-line @next/next/no-img-element
+             <img src={logoUrl} alt={siteName} className="h-8 w-auto object-contain" />
+           ) : (
+             <HeartPulseIcon className="w-8 h-8 text-teal-500" />
+           )}
            <Link href="/" className="hover:opacity-80 transition-opacity">
              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                {siteName}
@@ -115,21 +122,11 @@ function LogOutIcon(props: React.SVGProps<SVGSVGElement>) {
     );
   }
   
-  function MountainIcon(props: React.SVGProps<SVGSVGElement>) {
+  function HeartPulseIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
-      <svg
-        {...props}
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        <path d="M3.22 12H9.5l.7-1.5L11.5 12H16" />
       </svg>
-    );
-  } 
+    )
+  }

@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest) {
     const { id, title, description, features, monthlyPrice, yearlyPrice, isActive, isPopular } = body;
 
     // Update plan using the server function
-    const updatedPlan = updatePlan(id, {
+    const updatedPlan = await updatePlan(id, {
       title,
       description,
       features,

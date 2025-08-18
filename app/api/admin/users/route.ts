@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest) {
     const { id, email, firstName, plan, isActive } = body;
 
     // Find the user in our database
-    const allUsers = getUsers();
+    const allUsers = await getUsers();
     const user = allUsers.find(u => u.id === id);
     
     if (!user) {
@@ -47,12 +47,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user data
-    const updatedUser = updateUser(user.email, {
+    const updatedUser = await updateUser(user.email, {
       email,
       firstName,
       plan,
       isActive,
-    });
+    } as any);
 
     if (!updatedUser) {
       return NextResponse.json(

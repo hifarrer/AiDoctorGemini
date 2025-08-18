@@ -4,7 +4,7 @@ import { getPlans } from "@/lib/server/plans";
 export async function GET() {
   try {
     // Return only active plans
-    const activePlans = getPlans().filter(plan => plan.isActive);
+    const activePlans = (await getPlans()).filter(plan => plan.isActive);
     
     return NextResponse.json(activePlans, { status: 200 });
   } catch (error) {

@@ -15,6 +15,7 @@ interface Settings {
   siteDescription: string;
   contactEmail: string;
   supportEmail: string;
+  logoUrl?: string;
   stripePriceIds?: {
     basic: {
       monthly: string;
@@ -36,6 +37,7 @@ export default function SettingsPage() {
     siteDescription: "Your Personal AI Health Assistant",
     contactEmail: "",
     supportEmail: "",
+    logoUrl: "",
     stripePriceIds: {
       basic: {
         monthly: "",
@@ -65,6 +67,7 @@ export default function SettingsPage() {
             siteDescription: data.siteDescription || "Your Personal AI Health Assistant",
             contactEmail: data.contactEmail || "",
             supportEmail: data.supportEmail || "",
+            logoUrl: data.logoUrl || "",
             stripePriceIds: {
               basic: {
                 monthly: data.stripePriceIds?.basic?.monthly || "",
@@ -340,6 +343,31 @@ export default function SettingsPage() {
                 }
                 className="mt-1"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="logoUrl">Logo URL</Label>
+              <Input
+                id="logoUrl"
+                type="url"
+                placeholder="https://..."
+                value={settings.logoUrl || ""}
+                onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })}
+                className="mt-1"
+              />
+              {settings.logoUrl && (
+                <div className="mt-3">
+                  <div className="relative w-40 h-12">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={settings.logoUrl}
+                      alt="Logo preview"
+                      className="object-contain w-full h-full"
+                    />
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Use a transparent PNG/SVG if possible. The image will be scaled responsively.</p>
             </div>
 
             <div>

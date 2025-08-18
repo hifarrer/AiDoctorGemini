@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return NextResponse.json(
         { message: "User not found" },
@@ -36,11 +36,11 @@ export async function PUT(request: NextRequest) {
     
     // If switching to Free plan, clear subscription data
     if (plan === 'Free') {
-      updates.subscriptionId = undefined;
-      updates.subscriptionStatus = 'active';
+      updates.subscriptionId = undefined as any;
+      updates.subscriptionStatus = 'canceled';
     }
 
-    const updatedUser = updateUser(session.user.email, updates);
+    const updatedUser = await updateUser(session.user.email, updates);
     if (!updatedUser) {
       return NextResponse.json(
         { message: "Failed to update plan" },

@@ -15,6 +15,7 @@ const sliderImages = [
 
 export default function LandingPage() {
   const [siteName, setSiteName] = useState("AI Doctor");
+  const [logoUrl, setLogoUrl] = useState<string>("");
 
   useEffect(() => {
     const fetchSiteSettings = async () => {
@@ -23,6 +24,7 @@ export default function LandingPage() {
         if (response.ok) {
           const data = await response.json();
           setSiteName(data.siteName || "AI Doctor");
+          setLogoUrl(data.logoUrl || "");
         }
       } catch (error) {
         console.error('Error fetching site settings:', error);
@@ -36,7 +38,12 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="px-4 lg:px-6 h-14 flex items-center bg-white dark:bg-gray-950 shadow-sm">
         <Link className="flex items-center justify-center" href="#">
-          <HeartPulseIcon className="h-6 w-6 text-teal-500" />
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={siteName} className="h-8 w-auto object-contain" />
+          ) : (
+            <HeartPulseIcon className="h-6 w-6 text-teal-500" />
+          )}
           <span className="sr-only">{siteName}</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { plans, Plan } from "@/lib/plans";
+import { Plan } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +9,26 @@ import { Textarea } from "@/components/ui/textarea";
 import toast from "react-hot-toast";
 
 export default function PlansManagement() {
-  const [plansList, setPlansList] = useState<Plan[]>(plans);
+  const [plansList, setPlansList] = useState<Plan[]>([]);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [newFeature, setNewFeature] = useState("");
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch('/api/plans');
+      if (res.ok) {
+        const data = await res.json();
+        setPlansList(data);
+      }
+    } catch (e) {
+      console.error('Failed to load plans', e);
+    }
+  };
 
   const handleEditPlan = (plan: Plan) => {
     setEditingPlan({ ...plan });
@@ -32,12 +48,7 @@ export default function PlansManagement() {
       });
 
       if (response.ok) {
-        // Update local state
-        setPlansList(prev => 
-          prev.map(plan => 
-            plan.id === editingPlan.id ? editingPlan : plan
-          )
-        );
+        await fetchPlans();
         toast.success("Plan updated successfully!");
         setIsEditing(false);
         setEditingPlan(null);
@@ -90,9 +101,7 @@ export default function PlansManagement() {
       });
 
       if (response.ok) {
-        setPlansList(prev => 
-          prev.map(p => p.id === planId ? updatedPlan : p)
-        );
+        await fetchPlans();
         toast.success(`Plan ${updatedPlan.isActive ? 'activated' : 'deactivated'} successfully!`);
       } else {
         toast.error("Failed to update plan status");

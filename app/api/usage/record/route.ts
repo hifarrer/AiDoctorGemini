@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Record the interaction (no conversation content stored)
     // Use email as the unique identifier since NextAuth's default session.user has no id by default
-    recordInteraction(
+    await recordInteraction(
       session.user.email,
       session.user.email,
       prompts

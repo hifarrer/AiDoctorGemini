@@ -3,7 +3,7 @@ import { getSettings } from "@/lib/server/settings";
 
 export async function GET() {
   try {
-    const settings = getSettings();
+    const settings = await getSettings();
     
     if (!settings.stripePublishableKey) {
       return NextResponse.json(

@@ -90,7 +90,34 @@ export default function SubscriptionModal({
         throw new Error(submitError.message);
       }
 
-      // Create subscription
+      // 1) Create a SetupIntent to collect and confirm a payment method on localhost reliably
+      const siRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
+      if (!siRes.ok) {
+        throw new Error('Failed to initialize payment setup.');
+      }
+      const { clientSecret: setupClientSecret } = await siRes.json();
+      if (!setupClientSecret) {
+        throw new Error('No setup client secret received from server.');
+      }
+
+      const setupResult = await stripe.confirmSetup({
+        elements,
+        clientSecret: setupClientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard?subscription=success`,
+        },
+        redirect: 'if_required',
+      });
+      if (setupResult.error) {
+        throw new Error(setupResult.error.message || 'Failed to confirm payment method');
+      }
+
+      const paymentMethodId = (setupResult.setupIntent as any)?.payment_method;
+      if (!paymentMethodId) {
+        throw new Error('No payment method returned by Stripe.');
+      }
+
+      // 2) Create subscription on server with the confirmed payment method
       const response = await fetch('/api/stripe/subscriptions', {
         method: 'POST',
         headers: {
@@ -99,6 +126,7 @@ export default function SubscriptionModal({
         body: JSON.stringify({
           planId: plan.id,
           billingCycle,
+          paymentMethodId,
         }),
       });
 
@@ -108,27 +136,19 @@ export default function SubscriptionModal({
         throw new Error(message || 'Failed to create subscription');
       }
 
-      if (!subscription.clientSecret) {
-        throw new Error('No client secret received from server. Please try again.');
-      }
-
-      console.log('Confirming payment with client secret:', {
-        hasClientSecret: !!subscription.clientSecret,
-        clientSecretLength: subscription.clientSecret?.length
-      });
-
-      // Confirm payment with client secret
-      const { error } = await stripe.confirmPayment({
-        elements,
-        clientSecret: subscription.clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/dashboard?subscription=success`,
-        },
-        redirect: 'if_required',
-      });
-
-      if (error) {
-        throw new Error(error.message);
+      // If Stripe still requires payment confirmation, confirm using the returned client secret
+      if (subscription?.clientSecret) {
+        const { error } = await stripe.confirmPayment({
+          elements,
+          clientSecret: subscription.clientSecret,
+          confirmParams: {
+            return_url: `${window.location.origin}/dashboard?subscription=success`,
+          },
+          redirect: 'if_required',
+        });
+        if (error) {
+          throw new Error(error.message);
+        }
       }
 
       toast.success('Subscription created successfully!');

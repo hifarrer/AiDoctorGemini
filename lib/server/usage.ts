@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export interface UsageRecord {
   id: string;
@@ -10,123 +9,70 @@ export interface UsageRecord {
   prompts: number;
 }
 
-const USAGE_FILE_PATH = path.join(process.cwd(), 'data', 'usage.json');
-
-function ensureDataDirectory() {
-  const dataDir = path.dirname(USAGE_FILE_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+export async function getUsageRecords() {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase.from('usage_records').select('*').order('date');
+  if (error) throw error;
+  return data || [];
 }
 
-function loadUsage(): UsageRecord[] {
-  try {
-    ensureDataDirectory();
-    if (fs.existsSync(USAGE_FILE_PATH)) {
-      const data = fs.readFileSync(USAGE_FILE_PATH, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error loading usage data:', error);
-  }
-  return [];
+export async function getUserUsage(userEmail: string, startDate?: string, endDate?: string) {
+  const supabase = getSupabaseServerClient();
+  let query = supabase.from('usage_records').select('*').eq('user_email', userEmail);
+  if (startDate) query = query.gte('date', startDate);
+  if (endDate) query = query.lte('date', endDate);
+  const { data, error } = await query.order('date');
+  if (error) throw error;
+  return data || [];
 }
 
-function saveUsage(usage: UsageRecord[]) {
-  try {
-    ensureDataDirectory();
-    fs.writeFileSync(USAGE_FILE_PATH, JSON.stringify(usage, null, 2));
-  } catch (error) {
-    console.error('Error saving usage data:', error);
-  }
-}
-
-let usageRecords: UsageRecord[] = loadUsage();
-
-export function getUsageRecords(): UsageRecord[] {
-  return usageRecords;
-}
-
-export function getUserUsage(userEmail: string, startDate?: string, endDate?: string): UsageRecord[] {
-  let filtered = usageRecords.filter(record => record.userEmail === userEmail);
-  
-  if (startDate) {
-    filtered = filtered.filter(record => record.date >= startDate);
-  }
-  
-  if (endDate) {
-    filtered = filtered.filter(record => record.date <= endDate);
-  }
-  
-  return filtered;
-}
-
-export function recordInteraction(userId: string, userEmail: string, prompts: number = 1): void {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-  
-  // Find existing record for today
-  const existingIndex = usageRecords.findIndex(
-    record => record.userEmail === userEmail && record.date === today
-  );
-  
-  if (existingIndex !== -1) {
-    // Update existing record
-    usageRecords[existingIndex].interactions += 1;
-    usageRecords[existingIndex].prompts += prompts;
+export async function recordInteraction(userId: string, userEmail: string, prompts: number = 1): Promise<void> {
+  const supabase = getSupabaseServerClient();
+  const today = new Date().toISOString().split('T')[0];
+  // Upsert daily row
+  const { data: existing } = await supabase
+    .from('usage_records')
+    .select('*')
+    .eq('user_email', userEmail)
+    .eq('date', today)
+    .single();
+  if (existing) {
+    await supabase
+      .from('usage_records')
+      .update({
+        interactions: existing.interactions + 1,
+        prompts: existing.prompts + prompts,
+      })
+      .eq('id', existing.id);
   } else {
-    // Create new record
-    const newRecord: UsageRecord = {
-      id: Date.now().toString(),
-      userId,
-      userEmail,
+    await supabase.from('usage_records').insert({
+      user_id: userId,
+      user_email: userEmail,
       date: today,
       interactions: 1,
       prompts,
-    };
-    usageRecords.push(newRecord);
+    });
   }
-  
-  saveUsage(usageRecords);
 }
 
-export function getUsageStats(startDate?: string, endDate?: string) {
-  let filtered = usageRecords;
-  
-  if (startDate) {
-    filtered = filtered.filter(record => record.date >= startDate);
-  }
-  
-  if (endDate) {
-    filtered = filtered.filter(record => record.date <= endDate);
-  }
-  
-  const totalInteractions = filtered.reduce((sum, record) => sum + record.interactions, 0);
-  const totalPrompts = filtered.reduce((sum, record) => sum + record.prompts, 0);
-  const uniqueUsers = new Set(filtered.map(record => record.userEmail)).size;
-  
-  // Group by date for chart data
-  const dailyStats = filtered.reduce((acc, record) => {
-    if (!acc[record.date]) {
-      acc[record.date] = { interactions: 0, prompts: 0, users: new Set() };
-    }
-    acc[record.date].interactions += record.interactions;
-    acc[record.date].prompts += record.prompts;
-    acc[record.date].users.add(record.userEmail);
+export async function getUsageStats(startDate?: string, endDate?: string) {
+  const records = await getUsageRecords();
+  const filtered = records.filter((r: any) => (!startDate || r.date >= startDate) && (!endDate || r.date <= endDate));
+  const totalInteractions = filtered.reduce((sum: number, r: any) => sum + r.interactions, 0);
+  const totalPrompts = filtered.reduce((sum: number, r: any) => sum + r.prompts, 0);
+  const uniqueUsers = new Set(filtered.map((r: any) => r.user_email)).size;
+  const dailyStats = filtered.reduce((acc: any, r: any) => {
+    if (!acc[r.date]) acc[r.date] = { interactions: 0, prompts: 0, users: new Set<string>() };
+    acc[r.date].interactions += r.interactions;
+    acc[r.date].prompts += r.prompts;
+    acc[r.date].users.add(r.user_email);
     return acc;
   }, {} as Record<string, { interactions: number; prompts: number; users: Set<string> }>);
-  
-  // Convert to chart-friendly format
-  const chartData = Object.entries(dailyStats).map(([date, stats]) => ({
+  const chartData = Object.entries(dailyStats).map(([date, stats]: any) => ({
     date,
     interactions: stats.interactions,
     prompts: stats.prompts,
     uniqueUsers: stats.users.size,
-  })).sort((a, b) => a.date.localeCompare(b.date));
-  
-  return {
-    totalInteractions,
-    totalPrompts,
-    uniqueUsers,
-    chartData,
-  };
+  })).sort((a: any, b: any) => a.date.localeCompare(b.date));
+  return { totalInteractions, totalPrompts, uniqueUsers, chartData };
 }

@@ -5,14 +5,15 @@ import { getSettings } from "@/lib/server/settings";
 
 export async function GET() {
   try {
-    const settings = getSettings();
+    const settings = await getSettings();
     
     // Return only public settings (no sensitive data)
     const publicSettings = {
       siteName: settings.siteName,
-      siteDescription: "Your Personal AI Health Assistant",
-      contactEmail: "",
-      supportEmail: "",
+      siteDescription: settings.siteDescription || "Your Personal AI Health Assistant",
+      contactEmail: settings.contactEmail || "",
+      supportEmail: settings.supportEmail || "",
+      logoUrl: (settings as any).logoUrl || "",
     };
 
     return NextResponse.json(publicSettings, { status: 200 });

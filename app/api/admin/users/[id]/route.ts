@@ -27,7 +27,7 @@ export async function DELETE(
     const { id } = params;
 
     // Find the user in our database
-    const user = findUserById(id);
+    const user = await findUserById(id);
     
     if (!user) {
       return NextResponse.json(
@@ -37,7 +37,7 @@ export async function DELETE(
     }
 
     // Delete user
-    const success = deleteUser(user.email);
+    const success = await deleteUser(user.email);
     if (!success) {
       return NextResponse.json(
         { message: "Failed to delete user" },

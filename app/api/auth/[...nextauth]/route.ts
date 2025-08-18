@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { findUserByEmail } from "@/lib/server/users";
+import { findUserByEmail, updateUser } from "@/lib/server/users";
+import bcrypt from "bcryptjs";
 
 const handler = NextAuth({
   providers: [
@@ -15,9 +16,30 @@ const handler = NextAuth({
           return null;
         }
 
-        const user = findUserByEmail(credentials.email);
+        const user = await findUserByEmail(credentials.email);
 
-        if (user && user.password === credentials.password) {
+        if (user) {
+          const stored = user.password || "";
+          const isHash = stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$");
+
+          let valid = false;
+          if (isHash) {
+            valid = await bcrypt.compare(credentials.password, stored);
+          } else {
+            // Fallback for legacy plaintext; if it matches, upgrade to hash
+            valid = stored === credentials.password;
+            if (valid) {
+              try {
+                const newHash = await bcrypt.hash(credentials.password, 10);
+                await updateUser(user.email, { password: newHash } as any);
+              } catch {}
+            }
+          }
+
+          if (!valid) {
+            return null;
+          }
+
           // Check if user is active
           if (user.isActive === false) {
             throw new Error("Account is deactivated. Please contact support.");

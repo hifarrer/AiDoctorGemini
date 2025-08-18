@@ -1,11 +1,11 @@
-import fs from 'fs';
-import path from 'path';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export interface Settings {
   siteName: string;
   siteDescription?: string;
   contactEmail?: string;
   supportEmail?: string;
+  logoUrl?: string;
   stripeSecretKey: string;
   stripePublishableKey: string;
   stripeWebhookSecret?: string;
@@ -21,72 +21,60 @@ export interface Settings {
   };
 }
 
-const SETTINGS_FILE_PATH = path.join(process.cwd(), 'data', 'settings.json');
-
-function ensureDataDirectory() {
-  const dataDir = path.dirname(SETTINGS_FILE_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+export async function getSettings(): Promise<Settings> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+  if (error || !data) {
+    return {
+      siteName: 'AI Doctor Chat',
+      siteDescription: 'Your Personal AI Health Assistant',
+      contactEmail: '',
+      supportEmail: '',
+      logoUrl: '',
+      stripeSecretKey: '',
+      stripePublishableKey: '',
+      stripeWebhookSecret: '',
+      stripePriceIds: { basic: { monthly: '', yearly: '' }, premium: { monthly: '', yearly: '' } },
+    };
   }
-}
-
-function loadSettings(): Settings {
-  try {
-    ensureDataDirectory();
-    if (fs.existsSync(SETTINGS_FILE_PATH)) {
-      const data = fs.readFileSync(SETTINGS_FILE_PATH, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error loading settings:', error);
-  }
-  
-  // Return default settings if file doesn't exist or is corrupted
+  const priceIds = (data.stripe_price_ids as any) || {};
   return {
-    siteName: "AI Doctor Chat",
-    siteDescription: "Your Personal AI Health Assistant",
-    contactEmail: "",
-    supportEmail: "",
-    stripeSecretKey: "",
-    stripePublishableKey: "",
-    stripeWebhookSecret: "",
+    siteName: data.site_name || 'AI Doctor Chat',
+    siteDescription: data.site_description || 'Your Personal AI Health Assistant',
+    contactEmail: data.contact_email || '',
+    supportEmail: data.support_email || '',
+    logoUrl: data.logo_url || '',
+    stripeSecretKey: data.stripe_secret_key || '',
+    stripePublishableKey: data.stripe_publishable_key || '',
+    stripeWebhookSecret: data.stripe_webhook_secret || '',
     stripePriceIds: {
-      basic: {
-        monthly: "",
-        yearly: "",
-      },
-      premium: {
-        monthly: "",
-        yearly: "",
-      },
+      basic: { monthly: priceIds?.basic?.monthly || '', yearly: priceIds?.basic?.yearly || '' },
+      premium: { monthly: priceIds?.premium?.monthly || '', yearly: priceIds?.premium?.yearly || '' },
     },
   };
 }
 
-function saveSettings(settings: Settings) {
-  try {
-    ensureDataDirectory();
-    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2));
-  } catch (error) {
-    console.error('Error saving settings:', error);
-  }
-}
-
-let settings: Settings = loadSettings();
-
-export function getSettings(): Settings {
-  return settings;
-}
-
-export function updateSettings(updates: Partial<Settings>) {
-  settings = { ...settings, ...updates };
-  saveSettings(settings);
-  return settings;
-}
-
-export function getStripeConfig() {
-  return {
-    secretKey: settings.stripeSecretKey,
-    publishableKey: settings.stripePublishableKey,
+export async function updateSettings(updates: Partial<Settings>) {
+  const supabase = getSupabaseServerClient();
+  const payload: any = {
+    site_name: updates.siteName,
+    site_description: updates.siteDescription,
+    contact_email: updates.contactEmail,
+    support_email: updates.supportEmail,
+    logo_url: updates.logoUrl,
+    stripe_secret_key: updates.stripeSecretKey,
+    stripe_publishable_key: updates.stripePublishableKey,
+    stripe_webhook_secret: updates.stripeWebhookSecret,
+    stripe_price_ids: updates.stripePriceIds as any,
   };
+  // Remove undefined to avoid overwriting with null
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  const { data, error } = await supabase.from('settings').upsert({ id: 1, ...payload }).select('*').single();
+  if (error) throw error;
+  return getSettings();
+}
+
+export async function getStripeConfig() {
+  const s = await getSettings();
+  return { secretKey: s.stripeSecretKey, publishableKey: s.stripePublishableKey };
 }

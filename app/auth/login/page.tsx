@@ -35,7 +35,7 @@ export default function LoginPage() {
     <div className="flex items-center min-h-screen px-4">
       <div className="w-full max-w-sm mx-auto">
         <div className="text-center">
-          <MountainIcon className="w-8 h-8 mx-auto" />
+          <HeartPulseIcon className="w-8 h-8 mx-auto text-teal-500" />
           <h1 className="text-3xl font-bold mt-2">Welcome Back</h1>
           <p className="text-gray-500 dark:text-gray-400">
             Enter your email below to login to your account
@@ -106,21 +106,11 @@ export default function LoginPage() {
   );
 }
 
-function MountainIcon(props: React.SVGProps<SVGSVGElement>) {
+function HeartPulseIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      <path d="M3.22 12H9.5l.7-1.5L11.5 12H16" />
     </svg>
-  );
-} 
+  )
+}

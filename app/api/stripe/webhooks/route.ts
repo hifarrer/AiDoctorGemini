@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripeInstance } from "@/lib/stripe";
 import { getSettings } from "@/lib/server/settings";
-import { updateUser, findUserByEmail } from "@/lib/server/users";
+import { updateUser, findUserByEmail, getUsers } from "@/lib/server/users";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const stripe = getStripeInstance();
+  const stripe = await getStripeInstance();
   if (!stripe) {
     return NextResponse.json(
       { message: "Stripe not configured" },
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Verify webhook signature using secret from admin settings
-    const webhookSecret = getSettings().stripeWebhookSecret || process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = (await getSettings()).stripeWebhookSecret || process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
       console.warn('STRIPE_WEBHOOK_SECRET not configured, skipping signature verification');
       event = JSON.parse(body);
@@ -81,22 +81,20 @@ async function handleSubscriptionCreated(subscription: any) {
   console.log('Subscription created:', subscription.id);
   
   // Find user by customer ID
-  const { getUsers } = await import("@/lib/server/users");
-  const allUsers = getUsers();
+  const allUsers = await getUsers();
   const user = allUsers.find(u => u.stripeCustomerId === subscription.customer);
   if (user) {
-    updateUser(user.email, {
+    await updateUser(user.email, {
       subscriptionId: subscription.id,
       subscriptionStatus: subscription.status,
-    });
+    } as any);
   }
 }
 
 async function handleSubscriptionUpdated(subscription: any) {
   console.log('Subscription updated:', subscription.id);
   
-  const { getUsers } = await import("@/lib/server/users");
-  const allUsers = getUsers();
+  const allUsers = await getUsers();
   
   // Try to find user by customer ID first, then by subscription ID
   let user = allUsers.find(u => u.stripeCustomerId === subscription.customer);
@@ -105,9 +103,9 @@ async function handleSubscriptionUpdated(subscription: any) {
   }
   
   if (user) {
-    updateUser(user.email, {
+    await updateUser(user.email, {
       subscriptionStatus: subscription.status,
-    });
+    } as any);
     console.log(`Updated user ${user.email} subscription status to ${subscription.status}`);
   } else {
     console.log(`No user found for subscription ${subscription.id}`);
@@ -117,8 +115,7 @@ async function handleSubscriptionUpdated(subscription: any) {
 async function handleSubscriptionDeleted(subscription: any) {
   console.log('Subscription deleted:', subscription.id);
   
-  const { getUsers } = await import("@/lib/server/users");
-  const allUsers = getUsers();
+  const allUsers = await getUsers();
   
   // Try to find user by customer ID first, then by subscription ID
   let user = allUsers.find(u => u.stripeCustomerId === subscription.customer);
@@ -127,11 +124,11 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
   
   if (user) {
-    updateUser(user.email, {
+    await updateUser(user.email, {
       subscriptionId: undefined,
       subscriptionStatus: 'canceled',
       plan: 'Free', // Downgrade to free plan
-    });
+    } as any);
     console.log(`Updated user ${user.email} subscription to canceled`);
   } else {
     console.log(`No user found for subscription ${subscription.id}`);
@@ -141,25 +138,23 @@ async function handleSubscriptionDeleted(subscription: any) {
 async function handlePaymentSucceeded(invoice: any) {
   console.log('Payment succeeded:', invoice.id);
   
-  const { getUsers } = await import("@/lib/server/users");
-  const allUsers = getUsers();
+  const allUsers = await getUsers();
   const user = allUsers.find(u => u.stripeCustomerId === invoice.customer);
   if (user) {
-    updateUser(user.email, {
+    await updateUser(user.email, {
       subscriptionStatus: 'active',
-    });
+    } as any);
   }
 }
 
 async function handlePaymentFailed(invoice: any) {
   console.log('Payment failed:', invoice.id);
   
-  const { getUsers } = await import("@/lib/server/users");
-  const allUsers = getUsers();
+  const allUsers = await getUsers();
   const user = allUsers.find(u => u.stripeCustomerId === invoice.customer);
   if (user) {
-    updateUser(user.email, {
+    await updateUser(user.email, {
       subscriptionStatus: 'past_due',
-    });
+    } as any);
   }
 }

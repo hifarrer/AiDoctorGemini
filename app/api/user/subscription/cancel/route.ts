@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return NextResponse.json(
         { message: "User not found" },
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cancel subscription in Stripe
-    const stripe = getStripeInstance();
+    const stripe = await getStripeInstance();
     if (stripe) {
       try {
         await stripe.subscriptions.update(subscriptionId, {
@@ -55,8 +55,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update user status
-    const updatedUser = updateUser(session.user.email, { subscriptionStatus: 'canceled' });
+    // Update user: set plan to Free, clear subscription, mark canceled
+    const updatedUser = await updateUser(session.user.email, {
+      plan: 'Free',
+      subscriptionId: undefined as any,
+      subscriptionStatus: 'canceled',
+    } as any);
     if (!updatedUser) {
       return NextResponse.json(
         { message: "Failed to update subscription status" },

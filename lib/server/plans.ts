@@ -1,138 +1,80 @@
-import fs from 'fs';
-import path from 'path';
 import { Plan } from '../plans';
 import { getStripeInstance } from '../stripe';
-import { getSettings } from './settings';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
-// Path to the JSON file for persistent storage
-const PLANS_FILE_PATH = path.join(process.cwd(), 'data', 'plans.json');
+function rowToPlan(row: any): Plan {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    features: row.features || [],
+    monthlyPrice: Number(row.monthly_price || 0),
+    yearlyPrice: Number(row.yearly_price || 0),
+    isActive: !!row.is_active,
+    stripeProductId: row.stripe_product_id || undefined,
+    stripePriceIds: row.stripe_price_ids || undefined,
+  } as any;
+}
 
-// Ensure the data directory exists
-function ensureDataDirectory() {
-  const dataDir = path.dirname(PLANS_FILE_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+function planToRow(updates: Partial<Plan>): any {
+  return {
+    title: updates.title,
+    description: updates.description,
+    features: updates.features as any,
+    monthly_price: updates.monthlyPrice as any,
+    yearly_price: updates.yearlyPrice as any,
+    is_active: updates.isActive as any,
+    stripe_product_id: updates.stripeProductId as any,
+    stripe_price_ids: updates.stripePriceIds as any,
+  };
+}
+
+export async function getPlans(): Promise<Plan[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase.from('plans').select('*').order('monthly_price');
+  if (error) throw error;
+  return (data || []).map(rowToPlan);
+}
+
+export async function addPlan(plan: Plan): Promise<Plan> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase.from('plans').insert(planToRow(plan)).select('*').single();
+  if (error) throw error;
+  return rowToPlan(data);
+}
+
+export async function updatePlan(id: string, updates: Partial<Plan>): Promise<Plan | null> {
+  const supabase = getSupabaseServerClient();
+  const payload = planToRow(updates);
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  let query = supabase.from('plans').update(payload);
+  if (isUuid) {
+    query = query.eq('id', id);
+  } else if (updates.title) {
+    query = query.eq('title', updates.title);
+  } else {
+    // As a last resort, try numeric cast fallback on monthly_price to avoid crash (no-op selector)
+    // but return null to signal not found/invalid id
+    return null;
   }
+  const { data, error } = await query.select('*').single();
+  if (error) throw error;
+  return data ? rowToPlan(data) : null;
 }
 
-// Load plans from JSON file
-function loadPlans(): Plan[] {
-  try {
-    ensureDataDirectory();
-    if (fs.existsSync(PLANS_FILE_PATH)) {
-      const data = fs.readFileSync(PLANS_FILE_PATH, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error loading plans:', error);
-  }
-  
-  // Return default plans if file doesn't exist or is corrupted
-  return [
-    {
-      id: "1",
-      title: "Free",
-      description: "Perfect for getting started",
-      features: [
-        "5 AI consultations per month",
-        "Basic health information",
-        "Email support",
-        "Standard response time"
-      ],
-      monthlyPrice: 0,
-      yearlyPrice: 0,
-      isActive: true,
-      isPopular: false,
-    },
-    {
-      id: "2",
-      title: "Basic",
-      description: "Great for regular users",
-      features: [
-        "50 AI consultations per month",
-        "Priority health information",
-        "Image analysis (5 per month)",
-        "Email & chat support",
-        "Faster response time",
-        "Health history tracking"
-      ],
-      monthlyPrice: 9.99,
-      yearlyPrice: 99.99,
-      isActive: true,
-      isPopular: true,
-    },
-    {
-      id: "3",
-      title: "Premium",
-      description: "For healthcare professionals",
-      features: [
-        "Unlimited AI consultations",
-        "Advanced health analysis",
-        "Unlimited image analysis",
-        "Priority support",
-        "Fastest response time",
-        "Advanced health tracking",
-        "Custom health reports",
-        "API access"
-      ],
-      monthlyPrice: 29.99,
-      yearlyPrice: 299.99,
-      isActive: true,
-      isPopular: false,
-    },
-  ];
+export async function deletePlan(id: string): Promise<boolean> {
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.from('plans').delete().eq('id', id);
+  if (error) throw error;
+  return true;
 }
 
-// Save plans to JSON file
-function savePlans(plans: Plan[]) {
-  try {
-    ensureDataDirectory();
-    fs.writeFileSync(PLANS_FILE_PATH, JSON.stringify(plans, null, 2));
-  } catch (error) {
-    console.error('Error saving plans:', error);
-  }
+export async function findPlanById(id: string): Promise<Plan | undefined> {
+  const supabase = getSupabaseServerClient();
+  const { data } = await supabase.from('plans').select('*').eq('id', id).single();
+  return data ? rowToPlan(data) : undefined;
 }
-
-// Initialize plans array
-let plans: Plan[] = loadPlans();
-
-// Export functions to manage plans
-export function getPlans(): Plan[] {
-  return plans;
-}
-
-export function addPlan(plan: Plan) {
-  plans.push(plan);
-  savePlans(plans);
-}
-
-export function updatePlan(id: string, updates: Partial<Plan>) {
-  const planIndex = plans.findIndex(p => p.id === id);
-  if (planIndex !== -1) {
-    plans[planIndex] = { ...plans[planIndex], ...updates };
-    // Persist first
-    savePlans(plans);
-    return plans[planIndex];
-  }
-  return null;
-}
-
-export function deletePlan(id: string) {
-  const planIndex = plans.findIndex(p => p.id === id);
-  if (planIndex !== -1) {
-    plans.splice(planIndex, 1);
-    savePlans(plans);
-    return true;
-  }
-  return false;
-}
-
-export function findPlanById(id: string): Plan | undefined {
-  return plans.find(p => p.id === id);
-}
-
-// Export the plans array for backward compatibility
-export { plans };
 
 // --- Stripe Sync Helpers ---
 
@@ -177,11 +119,8 @@ async function ensureStripePrice(stripe: any, productId: string, unitAmountCents
 }
 
 export async function syncPlanWithStripe(plan: Plan): Promise<Plan> {
-  const stripe = getStripeInstance();
-  if (!stripe) {
-    // Stripe not configured; return plan unchanged
-    return plan;
-  }
+  const stripe = await getStripeInstance();
+  if (!stripe) return plan;
 
   // Ensure product
   let productId = plan.stripeProductId;
@@ -193,49 +132,35 @@ export async function syncPlanWithStripe(plan: Plan): Promise<Plan> {
     product = await findStripeProductByPlanId(stripe, plan.id);
   }
   if (!product) {
-    product = await stripe.products.create({
-      name: plan.title,
-      active: plan.isActive,
-      metadata: { planId: plan.id },
-    });
+    product = await stripe.products.create({ name: plan.title, active: plan.isActive, metadata: { planId: plan.id } });
   } else {
-    // Keep product in sync
     const updates: any = {};
     if (product.name !== plan.title) updates.name = plan.title;
     if (!!product.active !== !!plan.isActive) updates.active = !!plan.isActive;
-    if (Object.keys(updates).length) {
-      product = await stripe.products.update(product.id, updates);
-    }
+    if (Object.keys(updates).length) product = await stripe.products.update(product.id, updates);
   }
   productId = product.id;
 
   // Ensure prices
   const monthlyCents = Math.round((plan.monthlyPrice || 0) * 100);
   const yearlyCents = Math.round((plan.yearlyPrice || 0) * 100);
+  const monthlyPriceId = await ensureStripePrice(stripe, productId!, monthlyCents, 'month');
+  const yearlyPriceId = await ensureStripePrice(stripe, productId!, yearlyCents, 'year');
 
-  let monthlyPriceId: string | undefined = plan.stripePriceIds?.monthly;
-  let yearlyPriceId: string | undefined = plan.stripePriceIds?.yearly;
-
-  // At this point, productId is guaranteed to be a string since product.id exists
-  monthlyPriceId = await ensureStripePrice(stripe, productId!, monthlyCents, 'month');
-  yearlyPriceId = await ensureStripePrice(stripe, productId!, yearlyCents, 'year');
-
-  // Update plan with Stripe linkage
-  const planIndex = plans.findIndex(p => p.id === plan.id);
-  if (planIndex !== -1) {
-    plans[planIndex] = {
-      ...plans[planIndex],
-      stripeProductId: productId,
-      stripePriceIds: { monthly: monthlyPriceId, yearly: yearlyPriceId },
-    };
-    savePlans(plans);
-    return plans[planIndex];
-  }
-  return plan;
+  // Persist to Supabase
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('plans')
+    .update({ stripe_product_id: productId, stripe_price_ids: { monthly: monthlyPriceId, yearly: yearlyPriceId } })
+    .eq('id', plan.id)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return rowToPlan(data);
 }
 
 export async function syncPlanWithStripeById(id: string): Promise<Plan | null> {
-  const plan = findPlanById(id);
+  const plan = await findPlanById(id);
   if (!plan) return null;
   return await syncPlanWithStripe(plan);
 }

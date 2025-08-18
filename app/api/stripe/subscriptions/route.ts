@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the plan
-    const plan = findPlanById(planId);
+    const plan = await findPlanById(planId);
     if (!plan) {
       return NextResponse.json(
         { message: "Plan not found" },
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the user
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return NextResponse.json(
         { message: "User not found" },
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         customerId = customer.id;
         
         // Update user with Stripe customer ID
-        updateUser(session.user.email, { stripeCustomerId: customerId });
+        await updateUser(session.user.email, { stripeCustomerId: customerId } as any);
       } catch (error) {
         console.error("Error creating Stripe customer:", error);
         return NextResponse.json(
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     let priceId = billingCycle === 'yearly' ? plan.stripePriceIds?.yearly : plan.stripePriceIds?.monthly;
     if (!priceId) {
       try {
-        const settings = getSettings();
+        const settings = await getSettings();
         const cycleKey = billingCycle === 'yearly' ? 'yearly' : 'monthly';
         const titleLower = (plan.title || '').toLowerCase();
         const isPremium = titleLower.includes('premium');
@@ -105,21 +105,44 @@ export async function POST(request: NextRequest) {
       console.log("Subscription created successfully:", subscription.id);
 
       // Update user's plan
-      updateUser(session.user.email, {
+      await updateUser(session.user.email, {
         plan: plan.title,
         subscriptionId: subscription.id,
         subscriptionStatus: subscription.status,
-      });
+      } as any);
 
-      // Extract client secret from the subscription
+      // Extract client secret from the subscription or payment intent
       let clientSecret: string | undefined;
-      
-      if (subscription.latest_invoice && typeof subscription.latest_invoice === 'object') {
-        const invoice = subscription.latest_invoice as any;
-        if (invoice.payment_intent && typeof invoice.payment_intent === 'object') {
-          clientSecret = invoice.payment_intent.client_secret;
+      try {
+        const stripe = await (await import('@/lib/stripe')).getStripeInstance();
+        const latest = (subscription as any).latest_invoice;
+        if (stripe && latest) {
+          if (typeof latest === 'string') {
+            const inv = await stripe.invoices.retrieve(latest, { expand: ['payment_intent'] });
+            const pi = (inv as any).payment_intent;
+            if (pi && typeof pi === 'object') clientSecret = pi.client_secret;
+            if (!clientSecret && typeof pi === 'string') {
+              const intent = await stripe.paymentIntents.retrieve(pi);
+              clientSecret = intent.client_secret || clientSecret;
+            }
+          } else if (typeof latest === 'object') {
+            const pi = (latest as any).payment_intent;
+            if (pi && typeof pi === 'object') clientSecret = pi.client_secret;
+            if (!clientSecret && typeof pi === 'string') {
+              const intent = await stripe.paymentIntents.retrieve(pi);
+              clientSecret = intent.client_secret || clientSecret;
+            }
+          }
         }
-      }
+        // Fallback: check pending_setup_intent for setups-only flows
+        if (!clientSecret && (subscription as any).pending_setup_intent) {
+          const si = (subscription as any).pending_setup_intent;
+          if (stripe) {
+            const setup = typeof si === 'string' ? await stripe.setupIntents.retrieve(si) : si;
+            clientSecret = (setup as any).client_secret || clientSecret;
+          }
+        }
+      } catch {}
 
       console.log("Subscription response:", {
         id: subscription.id,

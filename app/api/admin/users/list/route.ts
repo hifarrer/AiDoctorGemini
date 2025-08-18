@@ -21,10 +21,10 @@ export async function GET() {
       );
     }
 
-    const users = getUsers();
+    const users = await getUsers();
     
     // Return users without sensitive data like passwords
-    const safeUsers = users.map(user => ({
+    const safeUsers = (users || []).map(user => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,

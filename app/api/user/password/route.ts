@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { updateUser, findUserByEmail } from "@/lib/server/users";
+import bcrypt from "bcryptjs";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function PUT(request: NextRequest) {
     const { currentPassword, newPassword } = body;
 
     // Find the user in our database
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     
     if (!user) {
       return NextResponse.json(
@@ -27,7 +28,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify current password
-    if (user.password !== currentPassword) {
+    const stored = user.password || "";
+    const isHash = stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$");
+    const currentOk = isHash ? await bcrypt.compare(currentPassword, stored) : stored === currentPassword;
+    if (!currentOk) {
       return NextResponse.json(
         { message: "Current password is incorrect" },
         { status: 400 }
@@ -35,7 +39,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update password
-    const updatedUser = updateUser(session.user.email, { password: newPassword });
+    const newHash = await bcrypt.hash(newPassword, 10);
+    const updatedUser = await updateUser(session.user.email, { password: newHash } as any);
     if (!updatedUser) {
       return NextResponse.json(
         { message: "Failed to update password" },

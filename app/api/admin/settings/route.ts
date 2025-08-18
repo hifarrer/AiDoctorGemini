@@ -20,7 +20,7 @@ export async function GET() {
       );
     }
 
-    const settings = getSettings();
+    const settings = await getSettings();
 
     // Return settings without exposing the actual secrets
     const safeSettings = {
@@ -71,6 +71,7 @@ export async function PUT(request: NextRequest) {
       siteDescription,
       contactEmail,
       supportEmail,
+      logoUrl,
       stripePriceIds,
     } = body;
 
@@ -89,7 +90,7 @@ export async function PUT(request: NextRequest) {
     const cleanedWebhook = typeof stripeWebhookSecret === 'string' && stripeWebhookSecret.trim() === MASK ? undefined : stripeWebhookSecret;
 
     // Get current settings
-    const currentSettings = getSettings();
+    const currentSettings = await getSettings();
     
     console.log('Current settings:', {
       hasStripeSecretKey: !!currentSettings.stripeSecretKey,
@@ -107,6 +108,7 @@ export async function PUT(request: NextRequest) {
       siteDescription: siteDescription !== undefined ? siteDescription : (currentSettings as any).siteDescription,
       contactEmail: contactEmail !== undefined ? contactEmail : currentSettings.contactEmail,
       supportEmail: supportEmail !== undefined ? supportEmail : currentSettings.supportEmail,
+      logoUrl: logoUrl !== undefined ? logoUrl : (currentSettings as any).logoUrl,
       stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,
     };
 
@@ -117,7 +119,7 @@ export async function PUT(request: NextRequest) {
       hasStripeWebhookSecret: !!updateData.stripeWebhookSecret
     });
 
-    const updatedSettings = updateSettings(updateData);
+    const updatedSettings = await updateSettings(updateData);
 
     // Note: Public settings are served from /api/settings GET; no direct export call here
 
@@ -129,9 +131,10 @@ export async function PUT(request: NextRequest) {
           stripePublishableKey: updatedSettings.stripePublishableKey,
           stripeWebhookSecret: updatedSettings.stripeWebhookSecret ? "••••••••••••••••" : "",
           siteName: updatedSettings.siteName,
-          siteDescription: "Your Personal AI Health Assistant",
+          siteDescription: (updatedSettings as any).siteDescription || "Your Personal AI Health Assistant",
           contactEmail: updatedSettings.contactEmail || "",
           supportEmail: updatedSettings.supportEmail || "",
+          logoUrl: (updatedSettings as any).logoUrl || "",
           stripePriceIds: updatedSettings.stripePriceIds,
         }
       },

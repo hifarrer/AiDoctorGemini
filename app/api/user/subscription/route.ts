@@ -13,7 +13,7 @@ export async function GET() {
       );
     }
 
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return NextResponse.json(
         { message: "User not found" },

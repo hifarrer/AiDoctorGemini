@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = findUserByEmail(session.user.email);
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return NextResponse.json(
         { message: "User not found" },
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = getStripeInstance();
+    const stripe = await getStripeInstance();
     if (!stripe) {
       return NextResponse.json(
         { message: "Stripe not configured" },
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     if (subscriptions.data.length === 0) {
       // No active subscription found, update user to Free plan
-      updateUser(user.email, {
+      await updateUser(user.email, {
         subscriptionId: undefined,
         subscriptionStatus: 'canceled',
         plan: 'Free',
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const subscription = subscriptions.data[0];
     
     // Update user with current subscription status
-    updateUser(user.email, {
+    await updateUser(user.email, {
       subscriptionId: subscription.id,
       subscriptionStatus: subscription.status,
       plan: subscription.status === 'active' ? user.plan : 'Free', // Keep current plan if active

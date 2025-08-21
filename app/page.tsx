@@ -33,7 +33,7 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [settingsRes, faqRes, heroRes, chatbotRes] = await Promise.all([
+        const [settingsRes, faqRes, heroRes] = await Promise.all([
           fetch('/api/settings'),
           fetch('/api/faq', { cache: 'no-store' }),
           fetch('/api/landing/hero', { cache: 'no-store' }),

@@ -6,7 +6,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { PublicChat } from "@/components/PublicChat"
 import { ImageSlider } from "@/components/ImageSlider"
 
-const sliderImages = [
+const defaultSliderImages = [
   '/images/aidoc1.png',
   '/images/aidoc2.png',
   '/images/aidoc3.png',
@@ -16,22 +16,72 @@ const sliderImages = [
 export default function LandingPage() {
   const [siteName, setSiteName] = useState("AI Doctor");
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
+  const [heroTitle, setHeroTitle] = useState<string>("Your Personal AI Health Assistant");
+  const [heroSubtitle, setHeroSubtitle] = useState<string>("Get instant, reliable answers to your medical questions. AI Doctor understands both text and images to provide you with the best possible assistance.");
+  const [sliderImages, setSliderImages] = useState<string[]>(defaultSliderImages);
+  const [chatTitle, setChatTitle] = useState<string>("Try AI Doctor Now");
+  const [chatSubtitle, setChatSubtitle] = useState<string>("Ask a question below to test the chatbot's capabilities. No registration required.");
+  const [featuresTitle, setFeaturesTitle] = useState<string>("Your Personal Health Companion");
+  const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("Providing intelligent, secure, and accessible health information right at your fingertips.");
+  const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([
+    { id: '1', title: 'Natural Language Understanding', description: 'Ask questions in plain English and get easy-to-understand answers from our advanced AI.', icon: 'message' },
+    { id: '2', title: 'Image Analysis', description: 'Upload images of symptoms, and our AI will provide relevant, helpful information.', icon: 'image' },
+    { id: '3', title: 'Secure & Anonymous', description: 'Your conversations are private. We are HIPAA-compliant and never store personal health information.', icon: 'shield' },
+  ]);
 
   useEffect(() => {
-    const fetchSiteSettings = async () => {
+    const fetchAll = async () => {
       try {
-        const response = await fetch('/api/settings');
-        if (response.ok) {
-          const data = await response.json();
+        const [settingsRes, faqRes, heroRes, chatbotRes] = await Promise.all([
+          fetch('/api/settings'),
+          fetch('/api/faq', { cache: 'no-store' }),
+          fetch('/api/landing/hero', { cache: 'no-store' }),
+        ]);
+        // Fetch chatbot section separately to avoid failing all
+        const chatbotFetch = fetch('/api/landing/chatbot', { cache: 'no-store' }).catch(() => null);
+        const featuresFetch = fetch('/api/landing/features', { cache: 'no-store' }).catch(() => null);
+        if (settingsRes.ok) {
+          const data = await settingsRes.json();
           setSiteName(data.siteName || "AI Doctor");
           setLogoUrl(data.logoUrl || "");
         }
+        if (faqRes.ok) {
+          const items = await faqRes.json();
+          setFaqs(Array.isArray(items) ? items : []);
+        }
+        if (heroRes.ok) {
+          const hero = await heroRes.json();
+          if (hero && (hero.title || hero.subtitle || hero.images)) {
+            if (hero.title) setHeroTitle(hero.title);
+            if (typeof hero.subtitle === 'string') setHeroSubtitle(hero.subtitle);
+            if (Array.isArray(hero.images) && hero.images.length > 0) setSliderImages(hero.images);
+          }
+        }
+        const cr = await chatbotFetch;
+        if (cr && cr.ok) {
+          const chat = await cr.json();
+          if (chat && (chat.title || chat.subtitle)) {
+            if (chat.title) setChatTitle(chat.title);
+            if (typeof chat.subtitle === 'string') setChatSubtitle(chat.subtitle);
+          }
+        }
+        const fr = await featuresFetch;
+        if (fr && fr.ok) {
+          const fd = await fr.json();
+          if (fd?.section) {
+            if (fd.section.title) setFeaturesTitle(fd.section.title);
+            if (typeof fd.section.subtitle === 'string') setFeaturesSubtitle(fd.section.subtitle);
+          }
+          if (Array.isArray(fd?.items)) {
+            setFeatures(fd.items.map((it: any) => ({ id: it.id, title: it.title, description: it.description || '', icon: it.icon || undefined })));
+          }
+        }
       } catch (error) {
-        console.error('Error fetching site settings:', error);
+        console.error('Error fetching landing data:', error);
       }
     };
-
-    fetchSiteSettings();
+    fetchAll();
   }, []);
 
   return (
@@ -76,12 +126,8 @@ export default function LandingPage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-teal-900 dark:text-teal-100">
-                    Your Personal AI Health Assistant
-                  </h1>
-                  <p className="max-w-[600px] text-gray-600 md:text-xl dark:text-gray-400">
-                    Get instant, reliable answers to your medical questions. AI Doctor understands both text and images to provide you with the best possible assistance.
-                  </p>
+                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-teal-900 dark:text-teal-100">{heroTitle}</h1>
+                  <p className="max-w-[600px] text-gray-600 md:text-xl dark:text-gray-400">{heroSubtitle}</p>
                 </div>
               </div>
               <div className="flex items-center justify-center">
@@ -94,13 +140,9 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-teal-100 px-3 py-1 text-sm text-teal-800 dark:bg-teal-900/20 dark:text-teal-200">
-                  Live Demo
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Try AI Doctor Now</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Ask a question below to test the chatbot&apos;s capabilities. No registration required.
-                </p>
+                <div className="inline-block rounded-lg bg-teal-100 px-3 py-1 text-sm text-teal-800 dark:bg-teal-900/20 dark:text-teal-200">Live Demo</div>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">{chatTitle}</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">{chatSubtitle}</p>
               </div>
             </div>
             <div className="mx-auto max-w-5xl py-12">
@@ -115,34 +157,24 @@ export default function LandingPage() {
                 <div className="inline-block rounded-lg bg-teal-100 px-3 py-1 text-sm text-teal-800 dark:bg-teal-900/20 dark:text-teal-200">
                   Key Features
                 </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Your Personal Health Companion</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Providing intelligent, secure, and accessible health information right at your fingertips.
-                </p>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">{featuresTitle}</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">{featuresSubtitle}</p>
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-12 py-12 lg:grid-cols-3">
-              <div className="grid gap-4 text-center">
-                <MessageCircleIcon className="h-12 w-12 mx-auto text-teal-500" />
-                <h3 className="text-xl font-bold">Natural Language Understanding</h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Ask questions in plain English and get easy-to-understand answers from our advanced AI.
-                </p>
-              </div>
-              <div className="grid gap-4 text-center">
-                <ImageIcon className="h-12 w-12 mx-auto text-teal-500" />
-                <h3 className="text-xl font-bold">Image Analysis</h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Upload images of symptoms, and our AI will provide relevant, helpful information.
-                </p>
-              </div>
-              <div className="grid gap-4 text-center">
-                <ShieldCheckIcon className="h-12 w-12 mx-auto text-teal-500" />
-                <h3 className="text-xl font-bold">Secure & Anonymous</h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Your conversations are private. We are HIPAA-compliant and never store personal health information.
-                </p>
-              </div>
+              {features.map((f) => (
+                <div key={f.id} className="grid gap-4 text-center">
+                  {f.icon === 'image' ? (
+                    <ImageIcon className="h-12 w-12 mx-auto text-teal-500" />
+                  ) : f.icon === 'shield' ? (
+                    <ShieldCheckIcon className="h-12 w-12 mx-auto text-teal-500" />
+                  ) : (
+                    <MessageCircleIcon className="h-12 w-12 mx-auto text-teal-500" />
+                  )}
+                  <h3 className="text-xl font-bold">{f.title}</h3>
+                  <p className="text-gray-500 dark:text-gray-400">{f.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -183,63 +215,18 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="mx-auto max-w-3xl py-12">
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Is AI Doctor a replacement for a real doctor?</AccordionTrigger>
-                  <AccordionContent>
-                    No. AI Doctor is an informational tool and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>What can this AI do?</AccordionTrigger>
-                  <AccordionContent>
-                   This AI can: <br />
-                   Analyze xray, CT scan, MRI, and other medical images. <br />
-                   Analyze medical reports and documents. <br />
-                   Provide information about medical conditions. <br />
-                   Provide information about treatments. <br />
-                   Provide information about medications. <br />
-                   Provide information about symptoms. <br />
-                   Provide information about tests. <br />
-                   Provide information about procedures. <br />
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Is my data secure?</AccordionTrigger>
-                  <AccordionContent>
-                    Yes, your privacy is our priority. We do not store any personal health information from your conversations. All interactions are anonymous.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-4">
-                  <AccordionTrigger>What kind of questions can I ask?</AccordionTrigger>
-                  <AccordionContent>
-                    You can ask general medical questions, inquire about symptoms, or get information about conditions and treatments. You can also upload images for analysis, such as a photo of a skin rash.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-5">
-                  <AccordionTrigger>What AI model does this use?</AccordionTrigger>
-                  <AccordionContent>
-                    AI Doctor is powered by Google&apos;s Vertex AI advanced Gemini family of models trained with medical data.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-6">
-                  <AccordionTrigger>Can this AI be fine tuned? </AccordionTrigger>
-                  <AccordionContent>
-                    Yes. With Google&apos;s Vertex AI, you can fine tune the model to your specific needs and data.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-7">
-                  <AccordionTrigger>What about the compliance? </AccordionTrigger>
-                  <AccordionContent>
-                    This solution was designed with compliance in mind. Technology is compliant in the following ways: <br />
-                    - (Code)HIPAA compliant <br />
-                    - (Hosting)SOC 2 Type 2 compliant <br />
-                    - (Hosting)PCI DSS compliant <br />
-                    - (Hosting)ISO 27001 compliant <br />
-                    - (Hosting)EU-U.S. DPF <br />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+              {faqs.length === 0 ? (
+                <div className="text-gray-500 dark:text-gray-400 text-center">No FAQs yet.</div>
+              ) : (
+                <Accordion type="single" collapsible className="w-full">
+                  {faqs.map((f, idx) => (
+                    <AccordionItem key={f.id} value={`item-${idx + 1}`}>
+                      <AccordionTrigger>{f.question}</AccordionTrigger>
+                      <AccordionContent>{f.answer}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
             </div>
           </div>
         </section>

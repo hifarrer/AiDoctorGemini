@@ -58,3 +58,89 @@ create table if not exists usage_records (
 create index if not exists usage_user_date_idx on usage_records(user_email, date);
 
 
+-- FAQs table for landing page Frequently Asked Questions
+create table if not exists faqs (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  answer text not null,
+  order_index integer not null default 0,
+  is_active boolean not null default true,
+  updated_at timestamptz
+);
+
+create index if not exists idx_faqs_order on faqs(order_index);
+create index if not exists idx_faqs_active on faqs(is_active);
+
+-- Landing page: hero section content
+create table if not exists landing_hero (
+  id int primary key default 1,
+  title text not null,
+  subtitle text,
+  images text[] not null,
+  updated_at timestamptz
+);
+
+insert into landing_hero (id, title, subtitle, images)
+values (
+  1,
+  'Your Personal AI Health Assistant',
+  'Get instant, reliable answers to your medical questions. AI Doctor understands both text and images to provide you with the best possible assistance.',
+  array['/images/aidoc1.png','/images/aidoc2.png','/images/aidoc3.png','/images/aidoc4.png']
+)
+on conflict (id) do nothing;
+
+-- Landing page: chatbot (demo) section content
+create table if not exists landing_chatbot (
+  id int primary key default 1,
+  title text not null,
+  subtitle text,
+  updated_at timestamptz
+);
+
+insert into landing_chatbot (id, title, subtitle)
+values (
+  1,
+  'Try AI Doctor Now',
+  'Ask a question below to test the chatbot''s capabilities. No registration required.'
+)
+on conflict (id) do nothing;
+
+-- Landing page: key features section
+create table if not exists landing_features_section (
+  id int primary key default 1,
+  title text not null,
+  subtitle text,
+  updated_at timestamptz
+);
+
+insert into landing_features_section (id, title, subtitle)
+values (
+  1,
+  'Your Personal Health Companion',
+  'Providing intelligent, secure, and accessible health information right at your fingertips.'
+)
+on conflict (id) do nothing;
+
+create table if not exists landing_features_items (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  icon text, -- e.g., 'message' | 'image' | 'shield'
+  order_index int not null default 0,
+  is_active boolean not null default true,
+  updated_at timestamptz
+);
+
+create index if not exists idx_features_items_order on landing_features_items(order_index);
+create index if not exists idx_features_items_active on landing_features_items(is_active);
+
+-- Seed default 3 items if table empty
+insert into landing_features_items (title, description, icon, order_index, is_active)
+select * from (
+  values
+    ('Natural Language Understanding', 'Ask questions in plain English and get easy-to-understand answers from our advanced AI.', 'message', 1, true),
+    ('Image Analysis', 'Upload images of symptoms, and our AI will provide relevant, helpful information.', 'image', 2, true),
+    ('Secure & Anonymous', 'Your conversations are private. We are HIPAA-compliant and never store personal health information.', 'shield', 3, true)
+) as v(title, description, icon, order_index, is_active)
+where not exists (select 1 from landing_features_items);
+

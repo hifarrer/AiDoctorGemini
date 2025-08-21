@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 
 interface LandingHero {
 	id: number;
@@ -15,14 +16,16 @@ export default function AdminLandingPage() {
 	const defaultImages = ["/images/aidoc1.png","/images/aidoc2.png","/images/aidoc3.png","/images/aidoc4.png"];
 	const makeDefaultHero = (): LandingHero => ({ id: 1, title: defaultTitle, subtitle: defaultSubtitle, images: defaultImages });
 
-	const [hero, setHero] = useState<LandingHero | null>(makeDefaultHero());
+	const [hero, setHero] = useState<LandingHero | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [chatTitle, setChatTitle] = useState<string>("");
+	const [chatSubtitle, setChatSubtitle] = useState<string>("");
+	const [featuresTitle, setFeaturesTitle] = useState<string>("");
+	const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
+	const [features, setFeatures] = useState<Array<{ id?: string; title: string; description: string; icon?: string; order_index?: number; is_active?: boolean }>>([]);
+	const [isSaving, setIsSaving] = useState(false);
+
 	const isValid = useMemo(() => !!hero && (hero.title || "").trim().length > 0 && Array.isArray(hero.images) && hero.images.length >= 1, [hero]);
-    const [chatTitle, setChatTitle] = useState<string>("Try AI Doctor Now");
-    const [chatSubtitle, setChatSubtitle] = useState<string>("Ask a question below to test the chatbot's capabilities. No registration required.");
-    const [featuresTitle, setFeaturesTitle] = useState<string>("Your Personal Health Companion");
-    const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("Providing intelligent, secure, and accessible health information right at your fingertips.");
-    const [features, setFeatures] = useState<Array<{ id?: string; title: string; description: string; icon?: string; order_index?: number; is_active?: boolean }>>([]);
 
     const ICON_OPTIONS: Array<{ value: string; label: string }> = [
         { value: 'message', label: 'Message' },
@@ -54,110 +57,174 @@ export default function AdminLandingPage() {
     };
 
 	useEffect(() => {
-		loadHero();
-		loadChatbot();
-		loadFeatures();
+		loadAllData();
 	}, []);
 
-	async function loadHero() {
+	async function loadAllData() {
 		setLoading(true);
 		try {
-			const res = await fetch("/api/landing/hero", { cache: "no-store" });
-			if (res.ok) {
-				const data = await res.json();
-				if (data && (data.title || data.subtitle || data.images)) {
+			// Load all data in parallel
+			const [heroRes, chatbotRes, featuresRes] = await Promise.all([
+				fetch("/api/landing/hero"),
+				fetch("/api/landing/chatbot"),
+				fetch("/api/landing/features")
+			]);
+
+			// Handle hero data
+			if (heroRes.ok) {
+				const heroData = await heroRes.json();
+				if (heroData && (heroData.title || heroData.subtitle || heroData.images)) {
 					setHero({
 						id: 1,
-						title: data.title || defaultTitle,
-						subtitle: typeof data.subtitle === 'string' ? data.subtitle : defaultSubtitle,
-						images: Array.isArray(data.images) && data.images.length > 0 ? data.images : defaultImages,
+						title: heroData.title || "",
+						subtitle: heroData.subtitle || "",
+						images: Array.isArray(heroData.images) && heroData.images.length > 0 ? heroData.images : [],
 					});
 				} else {
 					setHero(makeDefaultHero());
 				}
 			}
+
+			// Handle chatbot data
+			if (chatbotRes.ok) {
+				const chatbotData = await chatbotRes.json();
+				if (chatbotData && (chatbotData.title || chatbotData.subtitle)) {
+					setChatTitle(chatbotData.title || "");
+					setChatSubtitle(chatbotData.subtitle || "");
+				} else {
+					setChatTitle("Try AI Doctor Now");
+					setChatSubtitle("Ask a question below to test the chatbot's capabilities. No registration required.");
+				}
+			}
+
+			// Handle features data
+			if (featuresRes.ok) {
+				const featuresData = await featuresRes.json();
+				if (featuresData?.section) {
+					setFeaturesTitle(featuresData.section.title || "Your Personal Health Companion");
+					setFeaturesSubtitle(typeof featuresData.section.subtitle === 'string' ? featuresData.section.subtitle : "Providing intelligent, secure, and accessible health information right at your fingertips.");
+				} else {
+					setFeaturesTitle("Your Personal Health Companion");
+					setFeaturesSubtitle("Providing intelligent, secure, and accessible health information right at your fingertips.");
+				}
+				if (Array.isArray(featuresData?.items)) setFeatures(featuresData.items);
+			}
+		} catch (error) {
+			console.error("Error loading data:", error);
 		} finally {
 			setLoading(false);
 		}
 	}
 
-	async function loadChatbot() {
+	async function saveHero() {
+		if (!hero) return;
+		setIsSaving(true);
 		try {
-			const res = await fetch("/api/landing/chatbot", { cache: "no-store" });
+			const res = await fetch("/api/landing/hero", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(hero),
+			});
 			if (res.ok) {
-				const data = await res.json();
-				if (data && (data.title || data.subtitle)) {
-					if (data.title) setChatTitle(data.title);
-					if (typeof data.subtitle === 'string') setChatSubtitle(data.subtitle);
-				}
+				toast.success("Hero section saved successfully!");
+			} else {
+				toast.error("Failed to save hero section");
 			}
-		} catch {}
+		} catch (error) {
+			toast.error("An error occurred while saving hero section");
+		} finally {
+			setIsSaving(false);
+		}
 	}
 
 	async function saveChatbot() {
-		await fetch("/api/landing/chatbot", {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ title: chatTitle, subtitle: chatSubtitle }),
-		});
-		await loadChatbot();
-	}
-
-	async function loadFeatures() {
+		setIsSaving(true);
 		try {
-			const res = await fetch('/api/landing/features', { cache: 'no-store' });
+			const res = await fetch("/api/landing/chatbot", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ title: chatTitle, subtitle: chatSubtitle }),
+			});
 			if (res.ok) {
-				const data = await res.json();
-				if (data?.section) {
-					if (data.section.title) setFeaturesTitle(data.section.title);
-					if (typeof data.section.subtitle === 'string') setFeaturesSubtitle(data.section.subtitle);
-				}
-				if (Array.isArray(data?.items)) setFeatures(data.items);
+				toast.success("Chatbot section saved successfully!");
+			} else {
+				toast.error("Failed to save chatbot section");
 			}
-		} catch {}
+		} catch (error) {
+			toast.error("An error occurred while saving chatbot section");
+		} finally {
+			setIsSaving(false);
+		}
 	}
 
 	async function saveFeaturesSection() {
-		await fetch('/api/landing/features', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: featuresTitle, subtitle: featuresSubtitle }) });
-		await loadFeatures();
+		setIsSaving(true);
+		try {
+			const res = await fetch('/api/landing/features', { 
+				method: 'PUT', 
+				headers: { 'Content-Type': 'application/json' }, 
+				body: JSON.stringify({ title: featuresTitle, subtitle: featuresSubtitle }) 
+			});
+			if (res.ok) {
+				toast.success("Features section saved successfully!");
+			} else {
+				toast.error("Failed to save features section");
+			}
+		} catch (error) {
+			toast.error("An error occurred while saving features section");
+		} finally {
+			setIsSaving(false);
+		}
 	}
 
 	async function addFeature() {
-		const res = await fetch('/api/landing/features', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'New Feature', description: '', icon: 'message' }) });
-		if (res.ok) await loadFeatures();
+		try {
+			const res = await fetch('/api/landing/features', { 
+				method: 'POST', 
+				headers: { 'Content-Type': 'application/json' }, 
+				body: JSON.stringify({ title: 'New Feature', description: '', icon: 'message' }) 
+			});
+			if (res.ok) {
+				const newFeature = await res.json();
+				setFeatures(prev => [...prev, newFeature]);
+				toast.success("Feature added successfully!");
+			} else {
+				toast.error("Failed to add feature");
+			}
+		} catch (error) {
+			toast.error("An error occurred while adding feature");
+		}
 	}
 
 	async function updateFeature(item: any) {
 		if (!item?.id) return;
-		await fetch('/api/landing/features', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
-		await loadFeatures();
+		try {
+			const res = await fetch('/api/landing/features', { 
+				method: 'PATCH', 
+				headers: { 'Content-Type': 'application/json' }, 
+				body: JSON.stringify(item) 
+			});
+			if (res.ok) {
+				toast.success("Feature updated successfully!");
+			} else {
+				toast.error("Failed to update feature");
+			}
+		} catch (error) {
+			toast.error("An error occurred while updating feature");
+		}
 	}
 
 	async function deleteFeature(id: string) {
-		await fetch(`/api/landing/features?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-		await loadFeatures();
-	}
-
-	async function saveHero() {
-		if (!hero) return;
-		const res = await fetch("/api/landing/hero", {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(hero),
-		});
-		if (res.ok) {
-			try {
-				const updated = await res.json();
-				if (updated && (updated.title || updated.subtitle || updated.images)) {
-					setHero({
-						id: 1,
-						title: updated.title ?? hero.title,
-						subtitle: typeof updated.subtitle === 'string' ? updated.subtitle : hero.subtitle,
-						images: Array.isArray(updated.images) && updated.images.length > 0 ? updated.images : hero.images,
-					});
-				}
-			} catch {}
-			await loadHero();
+		try {
+			const res = await fetch(`/api/landing/features?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+			if (res.ok) {
+				setFeatures(prev => prev.filter(f => f.id !== id));
+				toast.success("Feature deleted successfully!");
+			} else {
+				toast.error("Failed to delete feature");
+			}
+		} catch (error) {
+			toast.error("An error occurred while deleting feature");
 		}
 	}
 
@@ -189,42 +256,48 @@ export default function AdminLandingPage() {
 		}
 	}
 
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
 			<h1 className="text-2xl font-bold text-gray-900 dark:text-white">Landing Page</h1>
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 				<h2 className="text-lg font-semibold mb-4">Hero Section</h2>
-				{loading ? (
-					<div className="text-gray-500">Loading...</div>
-				) : (
-					<div className="grid gap-4">
-						<input className="border rounded p-2 bg-white dark:bg-gray-900" placeholder="Title" value={hero?.title || ""} onChange={(e) => setHero(h => h ? { ...h, title: e.target.value } : h)} />
-						<textarea className="border rounded p-2 min-h-[100px] bg-white dark:bg-gray-900" placeholder="Subtitle" value={hero?.subtitle || ""} onChange={(e) => setHero(h => h ? { ...h, subtitle: e.target.value } : h)} />
-						<div>
-							<div className="flex items-center justify-between mb-2">
-								<h3 className="font-medium">Slider Images</h3>
-								<button onClick={addImage} className="px-3 py-1 rounded bg-teal-500 text-white">Add</button>
-							</div>
-							<div className="space-y-2">
-								{hero?.images?.map((img, idx) => (
-									<div key={idx} className="flex items-center gap-3">
-										{/* eslint-disable-next-line @next/next/no-img-element */}
-										<img src={img || "/placeholder.svg"} alt={`Slide ${idx+1}`} className="h-16 w-24 object-cover rounded border" />
-										<input className="border rounded p-2 flex-1 bg-white dark:bg-gray-900" placeholder={`Image URL #${idx+1}`} value={img} onChange={(e) => updateImage(idx, e.target.value)} />
-										<label className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-sm cursor-pointer">
-											<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(idx, f); }} />
-											Upload
-										</label>
-										<button onClick={() => removeImage(idx)} className="px-3 py-2 rounded bg-red-600 text-white">Remove</button>
-									</div>
-								))}
-							</div>
+				<div className="grid gap-4">
+					<input className="border rounded p-2 bg-white dark:bg-gray-900" placeholder="Title" value={hero?.title || ""} onChange={(e) => setHero(h => h ? { ...h, title: e.target.value } : h)} />
+					<textarea className="border rounded p-2 min-h-[100px] bg-white dark:bg-gray-900" placeholder="Subtitle" value={hero?.subtitle || ""} onChange={(e) => setHero(h => h ? { ...h, subtitle: e.target.value } : h)} />
+					<div>
+						<div className="flex items-center justify-between mb-2">
+							<h3 className="font-medium">Slider Images</h3>
+							<button onClick={addImage} className="px-3 py-1 rounded bg-teal-500 text-white">Add</button>
 						</div>
-						<div>
-							<button disabled={!isValid} onClick={saveHero} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">Save</button>
+						<div className="space-y-2">
+							{hero?.images?.map((img, idx) => (
+								<div key={idx} className="flex items-center gap-3">
+									{/* eslint-disable-next-line @next/next/no-img-element */}
+									<img src={img || "/placeholder.svg"} alt={`Slide ${idx+1}`} className="h-16 w-24 object-cover rounded border" />
+									<input className="border rounded p-2 flex-1 bg-white dark:bg-gray-900" placeholder={`Image URL #${idx+1}`} value={img} onChange={(e) => updateImage(idx, e.target.value)} />
+									<label className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-sm cursor-pointer">
+										<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(idx, f); }} />
+										Upload
+									</label>
+									<button onClick={() => removeImage(idx)} className="px-3 py-2 rounded bg-red-600 text-white">Remove</button>
+								</div>
+							))}
 						</div>
 					</div>
-				)}
+					<div>
+						<button disabled={!isValid || isSaving} onClick={saveHero} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+							{isSaving ? "Saving..." : "Save"}
+						</button>
+					</div>
+				</div>
 			</div>
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 				<h2 className="text-lg font-semibold mb-4">Chatbot Section</h2>
@@ -232,7 +305,9 @@ export default function AdminLandingPage() {
 					<input className="border rounded p-2 bg-white dark:bg-gray-900" placeholder="Chatbot Title" value={chatTitle} onChange={(e) => setChatTitle(e.target.value)} />
 					<textarea className="border rounded p-2 min-h-[100px] bg-white dark:bg-gray-900" placeholder="Chatbot Subtitle" value={chatSubtitle} onChange={(e) => setChatSubtitle(e.target.value)} />
 					<div>
-						<button onClick={saveChatbot} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+						<button disabled={isSaving} onClick={saveChatbot} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+							{isSaving ? "Saving..." : "Save"}
+						</button>
 					</div>
 				</div>
 			</div>
@@ -266,7 +341,9 @@ export default function AdminLandingPage() {
 					))}
 					</div>
 					<div>
-						<button onClick={saveFeaturesSection} className="px-4 py-2 bg-blue-600 text-white rounded">Save Section</button>
+						<button disabled={isSaving} onClick={saveFeaturesSection} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+							{isSaving ? "Saving..." : "Save Section"}
+						</button>
 					</div>
 				</div>
 			</div>

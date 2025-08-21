@@ -4,13 +4,17 @@ import "./globals.css";
 import React from "react";
 import { Toaster } from "react-hot-toast";
 import Providers from "@/components/Providers";
+import { getSettings } from "@/lib/server/settings";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "AI Doctor",
-  description: "An AI-powered medical assistant",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSettings();
+  return {
+    title: s.siteName || "AI Doctor",
+    description: s.siteDescription || "An AI-powered medical assistant",
+  };
+}
 
 export default function RootLayout({
   children,

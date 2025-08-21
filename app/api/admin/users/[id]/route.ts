@@ -17,7 +17,7 @@ export async function DELETE(
     }
 
     // Check if user is admin
-    if (session.user.email !== "admin@ai-doctor.info") {
+    if (session.user.email !== "admin@healthconsultant.ai") {
       return NextResponse.json(
         { message: "Admin access required" },
         { status: 403 }

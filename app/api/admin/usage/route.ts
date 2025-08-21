@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (session.user.email !== "admin@ai-doctor.info") {
+    if (session.user.email !== "admin@healthconsultant.ai") {
       return NextResponse.json(
         { message: "Admin access required" },
         { status: 403 }

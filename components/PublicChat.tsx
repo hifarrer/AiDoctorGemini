@@ -47,6 +47,9 @@ export function PublicChat() {
       const displayMessage = `An error occurred. Please check the console for details.`;
       toast.error(displayMessage);
     },
+    onFinish: (message) => {
+      console.log("Chat message finished:", message);
+    },
   });
 
   const [image, setImage] = useState<string | null>(null);

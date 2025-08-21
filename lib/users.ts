@@ -24,7 +24,7 @@ export const users: User[] = [
   },
   {
     id: "2",
-    email: "admin@ai-doctor.info",
+    email: "admin@healthconsultant.ai",
     password: "admin123", // In a real app, this should be a hashed password
     firstName: "Admin",
     plan: "Premium",

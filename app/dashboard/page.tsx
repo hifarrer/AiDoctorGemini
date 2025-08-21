@@ -13,12 +13,12 @@ export default function DashboardPage() {
   const [siteName, setSiteName] = useState("AI Doctor");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const { data: session } = useSession();
-  const isAdmin = session?.user?.email === "admin@ai-doctor.info";
+  const isAdmin = session?.user?.email === "admin@healthconsultant.ai";
 
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
-        const response = await fetch('/api/settings');
+        const response = await fetch('/api/settings', { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           setSiteName(data.siteName || "AI Doctor");

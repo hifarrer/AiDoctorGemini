@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
 	const session = await getServerSession();
-	if (!session?.user?.email || session.user.email !== "admin@ai-doctor.info") {
+	if (!session?.user?.email || session.user.email !== "admin@healthconsultant.ai") {
 		return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 	}
 	const faqs = await getAllFaqs();
@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
 	const session = await getServerSession();
-	if (!session?.user?.email || session.user.email !== "admin@ai-doctor.info") {
+	if (!session?.user?.email || session.user.email !== "admin@healthconsultant.ai") {
 		return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 	}
 	const body = await request.json();
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
 	const session = await getServerSession();
-	if (!session?.user?.email || session.user.email !== "admin@ai-doctor.info") {
+	if (!session?.user?.email || session.user.email !== "admin@healthconsultant.ai") {
 		return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 	}
 	const body = await request.json();
@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
 	const session = await getServerSession();
-	if (!session?.user?.email || session.user.email !== "admin@ai-doctor.info") {
+	if (!session?.user?.email || session.user.email !== "admin@healthconsultant.ai") {
 		return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 	}
 	const { searchParams } = new URL(request.url);

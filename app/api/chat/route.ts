@@ -2,6 +2,7 @@ import { VertexAI } from '@google-cloud/vertexai';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { recordInteraction } from '@/lib/server/usage';
+import { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,26 +38,45 @@ function iteratorToReadableStream(iterator: AsyncGenerator<string>) {
   });
 }
 
-export async function POST(req: Request) {
-  console.log('API route handler started: Using explicit Google client with Base64 credentials.');
-
+export async function POST(req: NextRequest) {
+  // Simple test to see if our route is being called
+  console.log('=== CHAT API ROUTE CALLED ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  
+  // Also log to a file or use a different method to ensure we see it
+  console.error('CHAT ROUTE CALLED - THIS SHOULD BE VISIBLE');
+  
   try {
-    // The request body now contains messages, and potentially an image data URL and document content
     const { messages, image, document } = await req.json();
     const userMessage = messages[messages.length - 1];
-
-    // Track usage for analytics (HIPAA compliant - no conversation content stored)
     const session = await getServerSession();
-    if (session?.user?.email) {
-      let prompts = 1; // Base interaction
-      if (image) prompts += 1; // Image analysis
-      if (document) prompts += 1; // Document analysis
-      
-      recordInteraction(
-        session.user.email || 'unknown',
-        session.user.email,
+
+    console.log('Chat request received:', {
+      hasMessages: !!messages,
+      messageCount: messages?.length,
+      hasImage: !!image,
+      hasDocument: !!document,
+      userEmail: session?.user?.email || 'anonymous'
+    });
+
+    // Record usage for both authenticated and non-authenticated users
+    let prompts = 1; // Base interaction
+    if (image) prompts += 1; // Image analysis
+    if (document) prompts += 1; // Document analysis
+    
+    const userIdentifier = session?.user?.email || 'anonymous';
+    console.log(`Recording usage for ${userIdentifier}: ${prompts} prompts`);
+    try {
+      await recordInteraction(
+        userIdentifier,
+        userIdentifier,
         prompts
       );
+      console.log('Usage recorded successfully');
+    } catch (error) {
+      console.error('Failed to record usage:', error);
+      // Don't fail the request if usage recording fails
     }
 
     if (!userMessage?.content && !image && !document) {
@@ -177,10 +197,6 @@ export async function POST(req: Request) {
     console.error('!!! AN UNRECOVERABLE ERROR OCCURRED IN THE CHAT API ROUTE !!!');
     console.error('Error Name:', error.name);
     console.error('Error Message:', error.message);
-    if (error.cause) {
-      console.error('Error Cause:', JSON.stringify(error.cause, null, 2));
-    }
-    console.error('Full Error Object:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'An internal server error occurred.', details: error.message }, { status: 500 });
   }
 } 

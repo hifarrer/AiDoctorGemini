@@ -15,6 +15,7 @@ import {
   ArcElement,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 
 ChartJS.register(
@@ -25,7 +26,8 @@ ChartJS.register(
   BarElement,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 interface UsageStats {
@@ -67,8 +69,11 @@ export default function UsageAnalytics() {
       const response = await fetch(`/api/admin/usage?${params}`);
       if (response.ok) {
         const data = await response.json();
+        console.log("Usage data received:", data);
         setStats(data.stats);
         setRecords(data.records);
+      } else {
+        console.error("Failed to fetch usage data:", response.status, response.statusText);
       }
     } catch (error) {
       console.error("Error fetching usage data:", error);

@@ -80,7 +80,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 2. Set your admin password:
    - Open `data/users.json`
-   - Find the admin user (email: admin@ai-doctor.info)
+   - Find the admin user (email: admin@healthconsultant.ai)
    - Change the password from "CHANGE_THIS_PASSWORD" to a secure password
 
 3. Configure Stripe settings (if using subscriptions):
@@ -93,7 +93,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 To access the admin dashboard:
 
 1. Login with the admin account:
-   - Email: `admin@ai-doctor.info`
+   - Email: `admin@healthconsultant.ai`
    - Password: (the password you set in data/users.json)
 
 2. Click the "Admin Panel" button in the dashboard header
@@ -103,7 +103,7 @@ To access the admin dashboard:
 ### Test Accounts
 
 - **Regular User**: `test@example.com` / `password`
-- **Admin User**: `admin@ai-doctor.info` / (your chosen password)
+- **Admin User**: `admin@healthconsultant.ai` / (your chosen password)
 
 ### Important Notes
 

@@ -3,6 +3,8 @@ import { getSettings } from "@/lib/server/settings";
 
 // Note: Do not export non-route functions from this file to satisfy Next.js route typing
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const settings = await getSettings();

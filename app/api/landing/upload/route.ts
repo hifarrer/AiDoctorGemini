@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
 	try {
 		const session = await getServerSession();
-		if (!session?.user?.email || session.user.email !== "admin@ai-doctor.info") {
+		if (!session?.user?.email || session.user.email !== "admin@healthconsultant.ai") {
 			return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 		}
 

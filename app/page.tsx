@@ -34,7 +34,7 @@ export default function LandingPage() {
     const fetchAll = async () => {
       try {
         const [settingsRes, faqRes, heroRes] = await Promise.all([
-          fetch('/api/settings'),
+          fetch('/api/settings', { cache: 'no-store' }),
           fetch('/api/faq', { cache: 'no-store' }),
           fetch('/api/landing/hero', { cache: 'no-store' }),
         ]);

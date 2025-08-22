@@ -4,6 +4,7 @@ import { createStripeCustomer, createStripeSubscription } from "@/lib/stripe";
 import { updateUser, findUserByEmail } from "@/lib/server/users";
 import { getSettings } from "@/lib/server/settings";
 import { findPlanById } from "@/lib/server/plans";
+import { getStripeInstance } from "@/lib/stripe";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,23 @@ export async function POST(request: NextRequest) {
 
     // Create or get Stripe customer
     let customerId = user.stripeCustomerId;
+    if (customerId) {
+      try {
+        console.log('Verifying existing Stripe customer for subscription:', customerId);
+        const stripe = await getStripeInstance();
+        if (stripe) {
+          await stripe.customers.retrieve(customerId);
+          console.log('Existing customer verified successfully for subscription');
+        }
+      } catch (customerError: any) {
+        console.log('Existing customer not found or invalid for subscription:', customerError.message);
+        // Clear the invalid customer ID and create a new one
+        customerId = null;
+        await updateUser(session.user.email, { stripeCustomerId: null } as any);
+        console.log('Cleared invalid customer ID from user record for subscription');
+      }
+    }
+    
     if (!customerId) {
       try {
         const customer = await createStripeCustomer(

@@ -16,13 +16,21 @@ export async function getStripeInstance(): Promise<Stripe | null> {
       return null;
     }
 
-    if (config.secretKey === 'sk_test_your_secret_key_here') {
+    if (config.secretKey === 'sk_test_your_secret_key_here' || 
+        config.secretKey === 'sk_live_your_secret_key_here') {
       console.error('Stripe secret key is still the placeholder value');
       return null;
     }
 
+    if (!config.secretKey.startsWith('sk_test_') && !config.secretKey.startsWith('sk_live_')) {
+      console.error('Stripe secret key has invalid format');
+      return null;
+    }
+
     // Use Stripe SDK default API version for maximum compatibility
-    return new Stripe(config.secretKey);
+    const stripe = new Stripe(config.secretKey);
+    console.log('Stripe instance created successfully');
+    return stripe;
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);
     return null;

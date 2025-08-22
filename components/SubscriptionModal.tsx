@@ -93,7 +93,8 @@ export default function SubscriptionModal({
       // 1) Create a SetupIntent to collect and confirm a payment method on localhost reliably
       const siRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
       if (!siRes.ok) {
-        throw new Error('Failed to initialize payment setup.');
+        const errorData = await siRes.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to initialize payment setup.');
       }
       const { clientSecret: setupClientSecret } = await siRes.json();
       if (!setupClientSecret) {
@@ -108,61 +109,101 @@ export default function SubscriptionModal({
         },
         redirect: 'if_required',
       });
-      if (setupResult.error) {
-        throw new Error(setupResult.error.message || 'Failed to confirm payment method');
-      }
-
-      const paymentMethodId = (setupResult.setupIntent as any)?.payment_method;
-      if (!paymentMethodId) {
-        throw new Error('No payment method returned by Stripe.');
-      }
-
-      // 2) Create subscription on server with the confirmed payment method
-      const response = await fetch('/api/stripe/subscriptions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planId: plan.id,
-          billingCycle,
-          paymentMethodId,
-        }),
-      });
-
-      const { subscription, message } = await response.json();
-
-      if (!response.ok) {
-        throw new Error(message || 'Failed to create subscription');
-      }
-
-      // If Stripe still requires payment confirmation, confirm using the returned client secret
-      if (subscription?.clientSecret) {
-        const { error } = await stripe.confirmPayment({
-          elements,
-          clientSecret: subscription.clientSecret,
-          confirmParams: {
-            return_url: `${window.location.origin}/dashboard?subscription=success`,
-          },
-          redirect: 'if_required',
-        });
-        if (error) {
-          throw new Error(error.message);
-        }
-      }
-
-      toast.success('Subscription created successfully!');
-      onSuccess();
-      onClose();
       
-      // Redirect to profile page after successful subscription
-      window.location.href = '/dashboard?tab=profile';
+      if (setupResult.error) {
+        // Handle specific setup intent errors
+        if (setupResult.error.code === 'resource_missing' || 
+            setupResult.error.message?.includes('No such setupintent')) {
+          console.log('Setup intent expired or invalid, retrying...');
+          // Retry once with a fresh setup intent
+          const retryRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
+          if (!retryRes.ok) {
+            throw new Error('Failed to create fresh setup intent.');
+          }
+          const { clientSecret: retryClientSecret } = await retryRes.json();
+          
+          const retryResult = await stripe.confirmSetup({
+            elements,
+            clientSecret: retryClientSecret,
+            confirmParams: {
+              return_url: `${window.location.origin}/dashboard?subscription=success`,
+            },
+            redirect: 'if_required',
+          });
+          
+          if (retryResult.error) {
+            throw new Error(retryResult.error.message || 'Failed to confirm payment method after retry');
+          }
+          
+          // Use the retry result
+          const paymentMethodId = (retryResult.setupIntent as any)?.payment_method;
+          if (!paymentMethodId) {
+            throw new Error('No payment method returned by Stripe after retry.');
+          }
+          
+          // Continue with subscription creation using the retry payment method
+          await createSubscription(paymentMethodId);
+        } else {
+          throw new Error(setupResult.error.message || 'Failed to confirm payment method');
+        }
+      } else {
+        const paymentMethodId = (setupResult.setupIntent as any)?.payment_method;
+        if (!paymentMethodId) {
+          throw new Error('No payment method returned by Stripe.');
+        }
+        
+        // Continue with subscription creation
+        await createSubscription(paymentMethodId);
+      }
     } catch (error) {
       console.error('Subscription error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create subscription');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const createSubscription = async (paymentMethodId: string) => {
+    // 2) Create subscription on server with the confirmed payment method
+    const response = await fetch('/api/stripe/subscriptions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        planId: plan.id,
+        billingCycle,
+        paymentMethodId,
+      }),
+    });
+
+    const { subscription, message } = await response.json();
+
+    if (!response.ok) {
+      throw new Error(message || 'Failed to create subscription');
+    }
+
+    // If Stripe still requires payment confirmation, confirm using the returned client secret
+    if (subscription?.clientSecret) {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        clientSecret: subscription.clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard?subscription=success`,
+        },
+        redirect: 'if_required',
+      });
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    toast.success('Subscription created successfully!');
+    onSuccess();
+    onClose();
+    
+    // Redirect to profile page after successful subscription
+    window.location.href = '/dashboard?tab=profile';
   };
 
   if (!isOpen) return null;

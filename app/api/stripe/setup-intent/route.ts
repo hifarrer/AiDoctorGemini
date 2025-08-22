@@ -69,13 +69,23 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Creating setup intent for customer:', customerId);
+    
+    // Log the current Stripe environment for debugging
+    const stripeConfig = await import('@/lib/server/settings').then(m => m.getStripeConfig());
+    const isLiveMode = stripeConfig.secretKey?.startsWith('sk_live_');
+    console.log('Stripe environment:', isLiveMode ? 'LIVE' : 'TEST');
+    
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       usage: 'off_session',
       payment_method_types: ['card'],
     });
 
-    console.log('Setup intent created successfully:', setupIntent.id);
+    console.log('Setup intent created successfully:', {
+      id: setupIntent.id,
+      clientSecretPrefix: setupIntent.client_secret?.substring(0, 20) + '...',
+      environment: isLiveMode ? 'LIVE' : 'TEST'
+    });
     return NextResponse.json({ clientSecret: setupIntent.client_secret }, { status: 200 });
   } catch (error) {
     console.error('SetupIntent error:', error);

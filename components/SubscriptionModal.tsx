@@ -42,6 +42,10 @@ export default function SubscriptionModal({
             return;
           }
 
+          // Log the environment for debugging
+          const isLiveMode = publishableKey.startsWith('pk_live_');
+          console.log('Frontend Stripe environment:', isLiveMode ? 'LIVE' : 'TEST');
+
           const stripeInstance = await loadStripe(publishableKey);
           setStripe(stripeInstance);
         } catch (error) {
@@ -115,6 +119,13 @@ export default function SubscriptionModal({
         if (setupResult.error.code === 'resource_missing' || 
             setupResult.error.message?.includes('No such setupintent')) {
           console.log('Setup intent expired or invalid, retrying...');
+          
+          // Submit elements again before retry
+          const { error: retrySubmitError } = await elements.submit();
+          if (retrySubmitError) {
+            throw new Error(retrySubmitError.message);
+          }
+          
           // Retry once with a fresh setup intent
           const retryRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
           if (!retryRes.ok) {

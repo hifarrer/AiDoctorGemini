@@ -33,21 +33,20 @@ export async function GET() {
     const settings = await getSettings();
     console.log("📋 [ADMIN_SETTINGS_GET] Raw settings:", settings);
 
-    // Return settings in the format expected by the admin dashboard
-    const adminConfig = {
-      username: "admin",
-      email: session.user.email,
-      siteSettings: {
-        siteName: settings.siteName || "Medical AI Assistant",
-        contactEmail: settings.contactEmail || "",
-        supportEmail: settings.supportEmail || "",
-        maxUsersPerDay: 1000, // Default value
-        maintenanceMode: false, // Default value
-      }
+    // Return settings in the format expected by the admin settings page
+    const adminSettings = {
+      stripeApiKey: settings.stripeSecretKey ? "••••••••••••••••" : "",
+      stripePublishableKey: settings.stripePublishableKey || "",
+      stripeWebhookSecret: settings.stripeWebhookSecret ? "••••••••••••••••" : "",
+      siteName: settings.siteName || "Medical AI Assistant",
+      siteDescription: (settings as any).siteDescription || "Your Personal AI Health Assistant",
+      contactEmail: settings.contactEmail || "",
+      supportEmail: settings.supportEmail || "",
+      logoUrl: (settings as any).logoUrl || "",
     };
 
-    console.log("✅ [ADMIN_SETTINGS_GET] Returning admin config:", adminConfig);
-    return NextResponse.json(adminConfig, { status: 200 });
+    console.log("✅ [ADMIN_SETTINGS_GET] Returning admin settings:", adminSettings);
+    return NextResponse.json(adminSettings, { status: 200 });
   } catch (error) {
     console.error("❌ [ADMIN_SETTINGS_GET] Error:", error);
     return NextResponse.json(

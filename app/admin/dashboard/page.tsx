@@ -80,7 +80,7 @@ export default function AdminDashboard() {
       const [usersRes, statsRes, configRes] = await Promise.all([
         fetch("/api/admin/users"),
         fetch("/api/admin/stats"),
-        fetch("/api/admin/settings"),
+        fetch("/api/admin/config"),
       ]);
 
       console.log("📊 API Response Status:", {

@@ -79,12 +79,18 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       usage: 'off_session',
       payment_method_types: ['card'],
+      metadata: {
+        created_at: new Date().toISOString(),
+        user_email: user.email,
+        environment: isLiveMode ? 'live' : 'test'
+      }
     });
 
     console.log('Setup intent created successfully:', {
       id: setupIntent.id,
       clientSecretPrefix: setupIntent.client_secret?.substring(0, 20) + '...',
-      environment: isLiveMode ? 'LIVE' : 'TEST'
+      environment: isLiveMode ? 'LIVE' : 'TEST',
+      createdAt: setupIntent.metadata?.created_at
     });
     return NextResponse.json({ clientSecret: setupIntent.client_secret }, { status: 200 });
   } catch (error) {

@@ -60,6 +60,14 @@ export default function SubscriptionModal({
 
   useEffect(() => {
     if (stripe && isOpen) {
+      // Clear any existing elements to prevent caching issues
+      if (elements) {
+        elements.clear();
+      }
+      if (paymentElement) {
+        paymentElement.unmount();
+      }
+      
       const options = {
         mode: 'subscription',
         amount: billingCycle === 'monthly' ? plan.monthlyPrice * 100 : plan.yearlyPrice * 100,
@@ -77,6 +85,20 @@ export default function SubscriptionModal({
       setPaymentElement(paymentElementInstance);
     }
   }, [stripe, isOpen, billingCycle, plan]);
+
+  // Cleanup function to clear elements when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      if (elements) {
+        elements.clear();
+      }
+      if (paymentElement) {
+        paymentElement.unmount();
+      }
+      setElements(null);
+      setPaymentElement(null);
+    }
+  }, [isOpen, elements, paymentElement]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,8 +142,29 @@ export default function SubscriptionModal({
             setupResult.error.message?.includes('No such setupintent')) {
           console.log('Setup intent expired or invalid, retrying...');
           
-          // Submit elements again before retry
-          const { error: retrySubmitError } = await elements.submit();
+          // Clear existing elements and create fresh ones
+          if (elements) {
+            elements.clear();
+          }
+          if (paymentElement) {
+            paymentElement.unmount();
+          }
+          
+          // Create fresh elements instance
+          const freshElements = stripe.elements({
+            mode: 'subscription',
+            amount: billingCycle === 'monthly' ? plan.monthlyPrice * 100 : plan.yearlyPrice * 100,
+            currency: 'usd',
+            appearance: {
+              theme: 'stripe',
+            },
+          });
+          
+          const freshPaymentElement = freshElements.create('payment');
+          freshPaymentElement.mount('#payment-element');
+          
+          // Submit fresh elements
+          const { error: retrySubmitError } = await freshElements.submit();
           if (retrySubmitError) {
             throw new Error(retrySubmitError.message);
           }
@@ -134,7 +177,7 @@ export default function SubscriptionModal({
           const { clientSecret: retryClientSecret } = await retryRes.json();
           
           const retryResult = await stripe.confirmSetup({
-            elements,
+            elements: freshElements,
             clientSecret: retryClientSecret,
             confirmParams: {
               return_url: `${window.location.origin}/dashboard?subscription=success`,

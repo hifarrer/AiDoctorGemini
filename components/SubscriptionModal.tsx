@@ -209,6 +209,11 @@ export default function SubscriptionModal({
   };
 
   const createSubscription = async (paymentMethodId: string) => {
+    console.log('=== FRONTEND: Creating subscription ===');
+    console.log('Payment method ID:', paymentMethodId);
+    console.log('Plan ID:', plan.id);
+    console.log('Billing cycle:', billingCycle);
+    
     // 2) Create subscription on server with the confirmed payment method
     const response = await fetch('/api/stripe/subscriptions', {
       method: 'POST',
@@ -222,14 +227,22 @@ export default function SubscriptionModal({
       }),
     });
 
+    console.log('Subscription response status:', response.status);
+    console.log('Subscription response ok:', response.ok);
+
     const { subscription, message } = await response.json();
+    console.log('Subscription response data:', { subscription, message });
 
     if (!response.ok) {
+      console.error('Subscription creation failed:', message);
       throw new Error(message || 'Failed to create subscription');
     }
 
+    console.log('Subscription created successfully:', subscription);
+
     // If Stripe still requires payment confirmation, confirm using the returned client secret
     if (subscription?.clientSecret) {
+      console.log('Confirming payment with client secret');
       const { error } = await stripe.confirmPayment({
         elements,
         clientSecret: subscription.clientSecret,
@@ -239,10 +252,15 @@ export default function SubscriptionModal({
         redirect: 'if_required',
       });
       if (error) {
+        console.error('Payment confirmation error:', error);
         throw new Error(error.message);
       }
+      console.log('Payment confirmed successfully');
+    } else {
+      console.log('No client secret needed, subscription is complete');
     }
 
+    console.log('=== FRONTEND: Subscription process complete ===');
     toast.success('Subscription created successfully!');
     onSuccess();
     onClose();

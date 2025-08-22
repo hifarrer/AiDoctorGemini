@@ -62,6 +62,15 @@ const handler = NextAuth({
       if (user) {
         token.isAdmin = (user as any).isAdmin || false;
       }
+      // Ensure isAdmin is populated even on subsequent requests
+      if (typeof (token as any).isAdmin === 'undefined' && token?.email) {
+        try {
+          const dbUser = await findUserByEmail(token.email as string);
+          (token as any).isAdmin = !!dbUser?.isAdmin;
+        } catch {
+          // ignore
+        }
+      }
       return token;
     },
     async session({ session, token }) {

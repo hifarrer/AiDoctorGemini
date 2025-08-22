@@ -22,13 +22,5 @@ export const users: User[] = [
     isActive: true,
     createdAt: "2024-01-01",
   },
-  {
-    id: "2",
-    email: "admin@healthconsultant.ai",
-    password: "admin123", // In a real app, this should be a hashed password
-    firstName: "Admin",
-    plan: "Premium",
-    isActive: true,
-    createdAt: "2024-01-01",
-  },
+  // Seed users can be added via API/DB; no hardcoded admin here
 ]; 

@@ -6,7 +6,7 @@ export default function TermsOfServicePage() {
       <header className="px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" href="/">
           <MountainIcon className="h-6 w-6" />
-          <span className="sr-only">AI Doctor</span>
+          <span className="sr-only">Medical AI Assistant</span>
         </Link>
       </header>
       <main className="flex-1 py-12 md:py-24 lg:py-32">
@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
             <p className="text-gray-500 dark:text-gray-400">Last updated: July 13, 2025</p>
             <div className="space-y-4 text-gray-700 dark:text-gray-300">
                 <p>
-                    Please read these Terms of Service (&quot;Terms&quot;, &quot;Terms of Service&quot;) carefully before using the AI Doctor
+                    Please read these Terms of Service (&quot;Terms&quot;, &quot;Terms of Service&quot;) carefully before using the Medical AI Assistant
                     website (the &quot;Service&quot;) operated by us.
                 </p>
                 <h2 className="text-2xl font-bold">1. Conditions of Use</h2>
@@ -32,7 +32,7 @@ export default function TermsOfServicePage() {
                 </p>
                 <h2 className="text-2xl font-bold">3. Disclaimer</h2>
                 <p>
-                    AI Doctor is an informational tool and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of something you have read on this website.
+                    Medical AI Assistant is an informational tool and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of something you have read on this website.
                 </p>
                 <h2 className="text-2xl font-bold">4. Applicable Law</h2>
                 <p>
@@ -49,7 +49,7 @@ export default function TermsOfServicePage() {
         </div>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 AI Doctor. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 Medical AI Assistant. All rights reserved.</p>
       </footer>
     </div>
   )

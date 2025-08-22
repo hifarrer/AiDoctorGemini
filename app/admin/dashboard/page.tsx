@@ -219,7 +219,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                AI Doctor Admin
+                Medical AI Assistant Admin
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Welcome, {config?.username}

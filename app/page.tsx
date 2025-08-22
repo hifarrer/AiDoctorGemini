@@ -5,30 +5,20 @@ import { useState, useEffect } from "react"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { PublicChat } from "@/components/PublicChat"
 import { ImageSlider } from "@/components/ImageSlider"
-
-const defaultSliderImages = [
-  '/images/aidoc1.png',
-  '/images/aidoc2.png',
-  '/images/aidoc3.png',
-  '/images/aidoc4.png',
-];
+import ThemeToggle from "@/components/ThemeToggle"
 
 export default function LandingPage() {
-  const [siteName, setSiteName] = useState("AI Doctor");
+  const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
-  const [heroTitle, setHeroTitle] = useState<string>("Your Personal AI Health Assistant");
-  const [heroSubtitle, setHeroSubtitle] = useState<string>("Get instant, reliable answers to your medical questions. AI Doctor understands both text and images to provide you with the best possible assistance.");
-  const [sliderImages, setSliderImages] = useState<string[]>(defaultSliderImages);
-  const [chatTitle, setChatTitle] = useState<string>("Try AI Doctor Now");
-  const [chatSubtitle, setChatSubtitle] = useState<string>("Ask a question below to test the chatbot's capabilities. No registration required.");
-  const [featuresTitle, setFeaturesTitle] = useState<string>("Your Personal Health Companion");
-  const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("Providing intelligent, secure, and accessible health information right at your fingertips.");
-  const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([
-    { id: '1', title: 'Natural Language Understanding', description: 'Ask questions in plain English and get easy-to-understand answers from our advanced AI.', icon: 'message' },
-    { id: '2', title: 'Image Analysis', description: 'Upload images of symptoms, and our AI will provide relevant, helpful information.', icon: 'image' },
-    { id: '3', title: 'Secure & Anonymous', description: 'Your conversations are private. We are HIPAA-compliant and never store personal health information.', icon: 'shield' },
-  ]);
+  const [heroTitle, setHeroTitle] = useState<string>("");
+  const [heroSubtitle, setHeroSubtitle] = useState<string>("");
+  const [sliderImages, setSliderImages] = useState<string[]>([]);
+  const [chatTitle, setChatTitle] = useState<string>("");
+  const [chatSubtitle, setChatSubtitle] = useState<string>("");
+  const [featuresTitle, setFeaturesTitle] = useState<string>("");
+  const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
+  const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -43,7 +33,7 @@ export default function LandingPage() {
         const featuresFetch = fetch('/api/landing/features', { cache: 'no-store' }).catch(() => null);
         if (settingsRes.ok) {
           const data = await settingsRes.json();
-          setSiteName(data.siteName || "AI Doctor");
+          setSiteName(data.siteName || "");
           setLogoUrl(data.logoUrl || "");
         }
         if (faqRes.ok) {
@@ -90,11 +80,11 @@ export default function LandingPage() {
         <Link className="flex items-center justify-center" href="#">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={siteName} className="h-8 w-auto object-contain" />
+            <img src={logoUrl} alt={siteName || "Medical AI Assistant"} className="h-8 w-auto object-contain" />
           ) : (
             <HeartPulseIcon className="h-6 w-6 text-teal-500" />
           )}
-          <span className="sr-only">{siteName}</span>
+          <span className="sr-only">{siteName || "Medical AI Assistant"}</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="#demo">
@@ -112,6 +102,7 @@ export default function LandingPage() {
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="/contact">
             Contact
           </Link>
+          <ThemeToggle />
           <Link
             className="inline-flex h-9 items-center justify-center rounded-md bg-teal-500 px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-teal-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-700"
             href="/auth/login"
@@ -121,8 +112,16 @@ export default function LandingPage() {
         </nav>
       </header>
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-teal-50 dark:bg-teal-950/20">
-          <div className="container px-4 md:px-6">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-teal-50 dark:bg-teal-950/20 relative overflow-hidden">
+          {/* Background Image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45 dark:opacity-25"
+            style={{ backgroundImage: 'url(/aihealth.png)' }}
+          />
+          {/* Overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-teal-50/80 to-transparent dark:from-teal-950/80" />
+          
+          <div className="container px-4 md:px-6 relative z-10">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
@@ -232,7 +231,7 @@ export default function LandingPage() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-white dark:bg-gray-950">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 AI Doctor. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 Medical AI Assistant. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="/terms">
             Terms of Service

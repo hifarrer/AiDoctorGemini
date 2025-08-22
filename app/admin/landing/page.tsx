@@ -11,11 +11,6 @@ interface LandingHero {
 }
 
 export default function AdminLandingPage() {
-	const defaultTitle = "Your Personal AI Health Assistant";
-	const defaultSubtitle = "Get instant, reliable answers to your medical questions. AI Doctor understands both text and images to provide you with the best possible assistance.";
-	const defaultImages = ["/images/aidoc1.png","/images/aidoc2.png","/images/aidoc3.png","/images/aidoc4.png"];
-	const makeDefaultHero = (): LandingHero => ({ id: 1, title: defaultTitle, subtitle: defaultSubtitle, images: defaultImages });
-
 	const [hero, setHero] = useState<LandingHero | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [chatTitle, setChatTitle] = useState<string>("");
@@ -81,7 +76,13 @@ export default function AdminLandingPage() {
 						images: Array.isArray(heroData.images) && heroData.images.length > 0 ? heroData.images : [],
 					});
 				} else {
-					setHero(makeDefaultHero());
+					// No data from database, set empty state
+					setHero({
+						id: 1,
+						title: "",
+						subtitle: "",
+						images: [],
+					});
 				}
 			}
 
@@ -92,8 +93,9 @@ export default function AdminLandingPage() {
 					setChatTitle(chatbotData.title || "");
 					setChatSubtitle(chatbotData.subtitle || "");
 				} else {
-					setChatTitle("Try AI Doctor Now");
-					setChatSubtitle("Ask a question below to test the chatbot's capabilities. No registration required.");
+					// No data from database, set empty state
+					setChatTitle("");
+					setChatSubtitle("");
 				}
 			}
 
@@ -101,11 +103,12 @@ export default function AdminLandingPage() {
 			if (featuresRes.ok) {
 				const featuresData = await featuresRes.json();
 				if (featuresData?.section) {
-					setFeaturesTitle(featuresData.section.title || "Your Personal Health Companion");
-					setFeaturesSubtitle(typeof featuresData.section.subtitle === 'string' ? featuresData.section.subtitle : "Providing intelligent, secure, and accessible health information right at your fingertips.");
+					setFeaturesTitle(featuresData.section.title || "");
+					setFeaturesSubtitle(featuresData.section.subtitle || "");
 				} else {
-					setFeaturesTitle("Your Personal Health Companion");
-					setFeaturesSubtitle("Providing intelligent, secure, and accessible health information right at your fingertips.");
+					// No data from database, set empty state
+					setFeaturesTitle("");
+					setFeaturesSubtitle("");
 				}
 				if (Array.isArray(featuresData?.items)) setFeatures(featuresData.items);
 			}

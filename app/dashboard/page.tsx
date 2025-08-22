@@ -10,7 +10,7 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("chat");
-  const [siteName, setSiteName] = useState("AI Doctor");
+  const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const { data: session } = useSession();
   const isAdmin = session?.user?.email === "admin@healthconsultant.ai";
@@ -21,7 +21,7 @@ export default function DashboardPage() {
         const response = await fetch('/api/settings', { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
-          setSiteName(data.siteName || "AI Doctor");
+          setSiteName(data.siteName || "");
           setLogoUrl(data.logoUrl || "");
         }
       } catch (error) {
@@ -44,7 +44,7 @@ export default function DashboardPage() {
            )}
            <Link href="/" className="hover:opacity-80 transition-opacity">
              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-               {siteName}
+               {siteName || "Medical AI Assistant"}
              </h1>
            </Link>
          </div>

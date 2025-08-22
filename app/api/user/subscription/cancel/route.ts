@@ -32,7 +32,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('User subscription data:', {
+      userEmail: session.user.email,
+      storedSubscriptionId: user.subscriptionId,
+      requestedSubscriptionId: subscriptionId,
+      userPlan: user.plan,
+      subscriptionStatus: user.subscriptionStatus
+    });
+
     if (user.subscriptionId !== subscriptionId) {
+      console.log('Subscription ID mismatch:', {
+        stored: user.subscriptionId,
+        requested: subscriptionId
+      });
       return NextResponse.json(
         { message: "Subscription not found" },
         { status: 404 }
@@ -43,15 +55,33 @@ export async function POST(request: NextRequest) {
     const stripe = await getStripeInstance();
     if (stripe) {
       try {
+        // First, try to retrieve the subscription to verify it exists
+        console.log('Attempting to retrieve subscription from Stripe:', subscriptionId);
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        console.log('Subscription found in Stripe:', {
+          id: subscription.id,
+          status: subscription.status,
+          customerId: subscription.customer
+        });
+
+        // Now cancel the subscription
         await stripe.subscriptions.update(subscriptionId, {
           cancel_at_period_end: true,
         });
-      } catch (error) {
+        console.log('Subscription cancelled successfully in Stripe');
+      } catch (error: any) {
         console.error("Error cancelling subscription in Stripe:", error);
-        return NextResponse.json(
-          { message: "Failed to cancel subscription" },
-          { status: 500 }
-        );
+        
+        // If the subscription doesn't exist in Stripe, we should still update the user's status
+        if (error.code === 'resource_missing') {
+          console.log('Subscription not found in Stripe, updating user status to canceled');
+          // Continue with updating user status even if subscription doesn't exist in Stripe
+        } else {
+          return NextResponse.json(
+            { message: "Failed to cancel subscription" },
+            { status: 500 }
+          );
+        }
       }
     }
 

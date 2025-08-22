@@ -53,7 +53,7 @@ export default function AdminLogin() {
             Admin Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Access the AI Doctor admin panel
+            Access the Medical AI Assistant admin panel
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -111,7 +111,7 @@ export default function AdminLogin() {
               href="/"
               className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
             >
-              ← Back to AI Doctor
+              ← Back to Medical AI Assistant
             </a>
           </div>
         </form>

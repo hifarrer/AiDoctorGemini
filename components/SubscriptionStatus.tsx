@@ -29,6 +29,11 @@ export default function SubscriptionStatus() {
       if (response.ok) {
         const data = await response.json();
         setSubscription(data);
+        
+        // If user has a subscription ID, sync with Stripe to clean up orphaned IDs
+        if (data.subscriptionId) {
+          await syncSubscriptionWithStripe();
+        }
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
@@ -37,34 +42,53 @@ export default function SubscriptionStatus() {
     }
   };
 
-           const handleCancelSubscription = async () => {
-           if (!subscription?.subscriptionId) return;
+  const syncSubscriptionWithStripe = async () => {
+    try {
+      const response = await fetch('/api/user/subscription/sync', {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSubscription(data);
+        if (data.message) {
+          console.log('Subscription sync result:', data.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing subscription:', error);
+    }
+  };
 
-           if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your current billing period.')) {
-             return;
-           }
+  const handleCancelSubscription = async () => {
+    if (!subscription?.subscriptionId) return;
 
-           try {
-             const response = await fetch('/api/user/subscription/cancel', {
-               method: 'POST',
-               headers: {
-                 'Content-Type': 'application/json',
-               },
-               body: JSON.stringify({
-                 subscriptionId: subscription.subscriptionId,
-               }),
-             });
+    if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your current billing period.')) {
+      return;
+    }
 
-             if (response.ok) {
-               toast.success('Subscription cancelled successfully');
-               fetchSubscriptionStatus();
-             } else {
-               toast.error('Failed to cancel subscription');
-             }
-           } catch (error) {
-             toast.error('An error occurred while cancelling subscription');
-           }
-         };
+    try {
+      const response = await fetch('/api/user/subscription/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId: subscription.subscriptionId,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Subscription cancelled successfully');
+        fetchSubscriptionStatus();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to cancel subscription');
+      }
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      toast.error('An error occurred while cancelling subscription');
+    }
+  };
 
          
 
@@ -139,7 +163,7 @@ export default function SubscriptionStatus() {
         )}
 
                                                {subscription.subscriptionId && subscription.status !== 'canceled' && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                     <Button
                       onClick={handleCancelSubscription}
                       variant="outline"
@@ -147,16 +171,32 @@ export default function SubscriptionStatus() {
                     >
                       Cancel Subscription
                     </Button>
+                    <Button
+                      onClick={syncSubscriptionWithStripe}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-gray-600 border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800"
+                    >
+                      Sync with Stripe
+                    </Button>
                   </div>
                 )}
 
                         {(subscription.plan === 'Free' || subscription.status === 'canceled') && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                     <Button
                       onClick={() => window.location.href = '/plans'}
                       className="w-full"
                     >
                       Upgrade Plan
+                    </Button>
+                    <Button
+                      onClick={syncSubscriptionWithStripe}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-gray-600 border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800"
+                    >
+                      Sync with Stripe
                     </Button>
                   </div>
                 )}

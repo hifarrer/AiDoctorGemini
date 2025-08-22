@@ -14,7 +14,7 @@ export default function PlansPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const [siteName, setSiteName] = useState("AI Doctor");
+  const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function PlansPage() {
         const response = await fetch('/api/settings');
         if (response.ok) {
           const data = await response.json();
-          setSiteName(data.siteName || "AI Doctor");
+          setSiteName(data.siteName || "");
           setLogoUrl(data.logoUrl || "");
         }
       } catch (error) {
@@ -95,13 +95,13 @@ export default function PlansPage() {
             <div className="flex items-center gap-4">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={siteName} className="h-8 w-auto object-contain" />
+                <img src={logoUrl} alt={siteName || "Medical AI Assistant"} className="h-8 w-auto object-contain" />
               ) : (
                 <HeartPulseIcon className="w-8 h-8 text-teal-500" />
               )}
               <Link href="/" className="hover:opacity-80 transition-opacity">
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {siteName}
+                  {siteName || "Medical AI Assistant"}
                 </h1>
               </Link>
             </div>

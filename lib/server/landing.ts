@@ -33,14 +33,9 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 
 	const payload: Partial<LandingHero> & { id: number } = {
 		id: 1,
-		title: input.title ?? current?.title ?? "Your Personal AI Health Assistant",
+		title: input.title ?? current?.title ?? "",
 		subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
-		images: Array.isArray(input.images) ? input.images : (current?.images ?? [
-			"/images/aidoc1.png",
-			"/images/aidoc2.png",
-			"/images/aidoc3.png",
-			"/images/aidoc4.png",
-		]),
+		images: Array.isArray(input.images) ? input.images : (current?.images ?? []),
 		updated_at: new Date().toISOString() as any,
 	};
 
@@ -87,7 +82,7 @@ export async function upsertLandingChatbot(input: Partial<LandingChatbot>): Prom
 
 	const payload: Partial<LandingChatbot> & { id: number } = {
 		id: 1,
-		title: input.title ?? current?.title ?? "Try AI Doctor Now",
+		title: input.title ?? current?.title ?? "",
 		subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
 		updated_at: new Date().toISOString() as any,
 	};
@@ -135,7 +130,7 @@ export async function upsertLandingFeaturesSection(input: Partial<LandingFeature
   const { data: current } = await supabase.from('landing_features_section').select('id, title, subtitle, updated_at').eq('id', 1).single();
   const payload = {
     id: 1,
-    title: input.title ?? current?.title ?? 'Your Personal Health Companion',
+    title: input.title ?? current?.title ?? "",
     subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
     updated_at: new Date().toISOString() as any,
   };

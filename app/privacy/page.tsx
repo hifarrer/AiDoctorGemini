@@ -6,7 +6,7 @@ export default function PrivacyPolicyPage() {
       <header className="px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" href="/">
           <MountainIcon className="h-6 w-6" />
-          <span className="sr-only">AI Doctor</span>
+          <span className="sr-only">Medical AI Assistant</span>
         </Link>
       </header>
       <main className="flex-1 py-12 md:py-24 lg:py-32">
@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 AI Doctor. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 Medical AI Assistant. All rights reserved.</p>
       </footer>
     </div>
   )

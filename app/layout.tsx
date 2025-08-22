@@ -11,7 +11,7 @@ const inter = Inter({ subsets: ["latin"] });
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   return {
-    title: s.siteName || "AI Doctor",
+    title: s.siteName || "Medical AI Assistant",
     description: s.siteDescription || "An AI-powered medical assistant",
   };
 }

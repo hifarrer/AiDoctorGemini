@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getStripeInstance } from "@/lib/stripe";
 import { updateUser, findUserByEmail } from "@/lib/server/users";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getServerSession();
 
@@ -22,11 +22,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user.stripeCustomerId) {
-      return NextResponse.json(
-        { message: "No Stripe customer ID found" },
-        { status: 400 }
-      );
+    // If user has no subscription ID, return current status
+    if (!user.subscriptionId) {
+      return NextResponse.json({
+        plan: user.plan || 'Free',
+        status: user.subscriptionStatus || 'active',
+        subscriptionId: null,
+        nextBillingDate: null,
+      });
     }
 
     const stripe = await getStripeInstance();
@@ -37,49 +40,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get customer's subscriptions from Stripe
-    const subscriptions = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
-      status: 'all',
-      limit: 1,
-    });
-
-    if (subscriptions.data.length === 0) {
-      // No active subscription found, update user to Free plan
-      await updateUser(user.email, {
-        subscriptionId: undefined,
-        subscriptionStatus: 'canceled',
-        plan: 'Free',
-      });
+    try {
+      // Try to retrieve the subscription from Stripe
+      const subscription = await stripe.subscriptions.retrieve(user.subscriptionId);
+      
+      // Subscription exists in Stripe, update user status
+      const updatedUser = await updateUser(session.user.email, {
+        subscriptionStatus: subscription.status,
+        plan: subscription.status === 'active' ? user.plan : 'Free',
+      } as any);
 
       return NextResponse.json({
-        message: "Subscription synced - No active subscription found",
-        subscription: null,
+        plan: updatedUser?.plan || 'Free',
+        status: updatedUser?.subscriptionStatus || 'active',
+        subscriptionId: updatedUser?.subscriptionId,
+        nextBillingDate: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+      });
+
+    } catch (error: any) {
+      console.log('Subscription not found in Stripe, cleaning up user data:', {
+        userEmail: session.user.email,
+        subscriptionId: user.subscriptionId,
+        error: error.message
+      });
+
+      // Subscription doesn't exist in Stripe, clean up user data
+      const updatedUser = await updateUser(session.user.email, {
+        plan: 'Free',
+        subscriptionId: undefined as any,
+        subscriptionStatus: 'canceled',
+      } as any);
+
+      return NextResponse.json({
+        plan: 'Free',
+        status: 'canceled',
+        subscriptionId: null,
+        nextBillingDate: null,
+        message: 'Subscription not found in Stripe, status updated to canceled'
       });
     }
-
-    const subscription = subscriptions.data[0];
-    
-    // Update user with current subscription status
-    await updateUser(user.email, {
-      subscriptionId: subscription.id,
-      subscriptionStatus: subscription.status,
-      plan: subscription.status === 'active' ? user.plan : 'Free', // Keep current plan if active
-    });
-
-    return NextResponse.json({
-      message: "Subscription synced successfully",
-      subscription: {
-        id: subscription.id,
-        status: subscription.status,
-        currentPeriodEnd: (subscription as any).current_period_end,
-      },
-    });
 
   } catch (error) {
     console.error("Error syncing subscription:", error);
     return NextResponse.json(
-      { message: "Failed to sync subscription" },
+      { message: "Internal server error" },
       { status: 500 }
     );
   }

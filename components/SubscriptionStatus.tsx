@@ -30,10 +30,7 @@ export default function SubscriptionStatus() {
         const data = await response.json();
         setSubscription(data);
         
-        // If user has a subscription ID, sync with Stripe to clean up orphaned IDs
-        if (data.subscriptionId) {
-          await syncSubscriptionWithStripe();
-        }
+        // Sync removed – webhook drives updates now
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
@@ -42,22 +39,7 @@ export default function SubscriptionStatus() {
     }
   };
 
-  const syncSubscriptionWithStripe = async () => {
-    try {
-      const response = await fetch('/api/user/subscription/sync', {
-        method: 'POST',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSubscription(data);
-        if (data.message) {
-          console.log('Subscription sync result:', data.message);
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing subscription:', error);
-    }
-  };
+  // Sync removed – webhook drives updates now
 
   const handleCancelSubscription = async () => {
     if (!subscription?.subscriptionId) return;
@@ -171,14 +153,7 @@ export default function SubscriptionStatus() {
                     >
                       Cancel Subscription
                     </Button>
-                    <Button
-                      onClick={syncSubscriptionWithStripe}
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-gray-600 border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800"
-                    >
-                      Sync with Stripe
-                    </Button>
+                    {/* Sync button removed */}
                   </div>
                 )}
 
@@ -190,14 +165,7 @@ export default function SubscriptionStatus() {
                     >
                       Upgrade Plan
                     </Button>
-                    <Button
-                      onClick={syncSubscriptionWithStripe}
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-gray-600 border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800"
-                    >
-                      Sync with Stripe
-                    </Button>
+                    {/* Sync button removed */}
                   </div>
                 )}
       </div>

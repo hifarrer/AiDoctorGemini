@@ -25,6 +25,7 @@ export async function PUT(request: NextRequest) {
     const { id, title, description, features, monthlyPrice, yearlyPrice, isActive, isPopular, stripePriceIds } = body;
 
     // Update plan using the server function
+    console.log('Admin updating plan:', { id, title, hasStripePriceIds: !!stripePriceIds, stripePriceIds });
     const updatedPlan = await updatePlan(id, {
       title,
       description,
@@ -43,12 +44,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Sync with Stripe (creates/updates product and prices; stores IDs)
-    try {
-      await syncPlanWithStripeById(updatedPlan.id);
-    } catch (e) {
-      console.error('Stripe sync failed for plan', updatedPlan.id, e);
-      // We do not fail the request; admin can retry
+    // If admin supplied explicit price IDs, preserve them and skip auto-sync overwrite
+    const adminProvidedBothIds = !!(stripePriceIds && stripePriceIds.monthly && stripePriceIds.yearly);
+    if (adminProvidedBothIds) {
+      console.log('Admin provided explicit Stripe price IDs; skipping auto sync.');
+    } else {
+      // Sync with Stripe (creates/updates product and prices; stores IDs)
+      try {
+        await syncPlanWithStripeById(updatedPlan.id);
+      } catch (e) {
+        console.error('Stripe sync failed for plan', updatedPlan.id, e);
+        // We do not fail the request; admin can retry
+      }
     }
 
     return NextResponse.json(

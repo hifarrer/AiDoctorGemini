@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { getUsers, updateUser } from "@/lib/server/users";
+import { getUsers, updateUser, deleteUser } from "@/lib/server/users";
 
 export async function GET(request: NextRequest) {
   console.log("🔍 [ADMIN_USERS_GET] Starting users fetch...");
@@ -92,9 +92,21 @@ export async function DELETE(request: NextRequest) {
 
     console.log("✅ [ADMIN_USERS_DELETE] Admin access verified, deleting user:", userId);
     
-    // For now, we'll just return success since we don't have a delete function yet
-    // TODO: Implement actual user deletion in lib/server/users.ts
-    console.log("⚠️ [ADMIN_USERS_DELETE] User deletion not yet implemented");
+    // Find the user by ID first to get their email
+    const allUsers = await getUsers();
+    const user = allUsers.find(u => u.id === userId);
+    
+    if (!user) {
+      console.log("❌ [ADMIN_USERS_DELETE] User not found:", userId);
+      return NextResponse.json(
+        { message: "User not found" },
+        { status: 404 }
+      );
+    }
+    
+    // Delete the user using their email
+    const deleted = await deleteUser(user.email);
+    console.log("✅ [ADMIN_USERS_DELETE] User deleted successfully:", user.email);
     
     return NextResponse.json(
       { message: "User deleted successfully" },

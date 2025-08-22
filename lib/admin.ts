@@ -1,5 +1,5 @@
 // Admin system for Medical AI Assistant app
-import { getUsers } from "./server/users";
+import { getUsers, deleteUser as deleteUserFromDB } from "./server/users";
 import { getSettings } from "./server/settings";
 
 // Admin configuration - in production, this should be in a secure database
@@ -169,11 +169,23 @@ export async function getAllUsers() {
   }
 }
 
-export function deleteUser(userId: string): boolean {
-  const index = users.findIndex(user => user.id === userId);
-  if (index !== -1) {
-    users.splice(index, 1);
-    return true;
+export async function deleteUser(userId: string): Promise<boolean> {
+  try {
+    // Find the user by ID first to get their email
+    const users = await getUsers();
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) {
+      console.log("❌ [ADMIN_DELETE_USER] User not found:", userId);
+      return false;
+    }
+    
+    // Delete the user using their email
+    const deleted = await deleteUserFromDB(user.email);
+    console.log("✅ [ADMIN_DELETE_USER] User deleted successfully:", user.email);
+    return deleted;
+  } catch (error) {
+    console.error("❌ [ADMIN_DELETE_USER] Error deleting user:", error);
+    return false;
   }
-  return false;
 }

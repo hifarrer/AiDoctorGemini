@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getSettings, updateSettings } from "@/lib/server/settings";
 
 export async function GET() {
   console.log("⚙️ [ADMIN_SETTINGS_GET] Starting settings fetch...");
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     console.log("👤 [ADMIN_SETTINGS_GET] Session:", { 
       hasSession: !!session, 
       userEmail: session?.user?.email,
@@ -59,7 +60,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   console.log("⚙️ [ADMIN_SETTINGS_PUT] Starting settings update...");
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     console.log("👤 [ADMIN_SETTINGS_PUT] Session:", { 
       hasSession: !!session, 
       userEmail: session?.user?.email,

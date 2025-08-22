@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getUsageStats, getUsageRecords } from "@/lib/server/usage";
 
 export async function GET(request: NextRequest) {
+  console.log("📊 [ADMIN_USAGE_GET] Starting usage fetch...");
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
+    console.log("👤 [ADMIN_USAGE_GET] Session:", { 
+      hasSession: !!session, 
+      userEmail: session?.user?.email,
+      isAdmin: (session as any)?.user?.isAdmin 
+    });
 
     if (!session?.user?.email) {
+      console.log("❌ [ADMIN_USAGE_GET] No session or email");
       return NextResponse.json(
         { message: "Unauthorized" },
         { status: 401 }
@@ -14,6 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!(session as any).user?.isAdmin) {
+      console.log("❌ [ADMIN_USAGE_GET] User is not admin:", session.user.email);
       return NextResponse.json(
         { message: "Admin access required" },
         { status: 403 }

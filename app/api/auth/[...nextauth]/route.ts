@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { findUserByEmail, updateUser } from "@/lib/server/users";
 import bcrypt from "bcryptjs";
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -81,6 +81,8 @@ const handler = NextAuth({
   pages: {
     signIn: "/auth/login",
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 

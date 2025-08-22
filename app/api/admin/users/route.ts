@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getUsers, updateUser, deleteUser } from "@/lib/server/users";
 
 export async function GET(request: NextRequest) {
   console.log("🔍 [ADMIN_USERS_GET] Starting users fetch...");
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     console.log("👤 [ADMIN_USERS_GET] Session:", { 
       hasSession: !!session, 
       userEmail: session?.user?.email,
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   console.log("🗑️ [ADMIN_USERS_DELETE] Starting user deletion...");
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     console.log("👤 [ADMIN_USERS_DELETE] Session:", { 
       hasSession: !!session, 
       userEmail: session?.user?.email,
@@ -123,7 +124,7 @@ export async function DELETE(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json(

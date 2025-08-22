@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getUsageStats } from "@/lib/admin";
 
 export async function GET(req: NextRequest) {
   console.log("📊 [ADMIN_STATS_GET] Starting stats fetch...");
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     console.log("👤 [ADMIN_STATS_GET] Session:", { 
       hasSession: !!session, 
       userEmail: session?.user?.email,

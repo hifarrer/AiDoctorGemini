@@ -30,6 +30,11 @@ export default function SubscriptionModal({
 
   useEffect(() => {
     if (isOpen && typeof window !== 'undefined') {
+      // Clear any existing Stripe instance to prevent caching issues
+      setStripe(null);
+      setElements(null);
+      setPaymentElement(null);
+      
       // Load Stripe
       const loadStripe = async () => {
         try {
@@ -45,8 +50,15 @@ export default function SubscriptionModal({
           // Log the environment for debugging
           const isLiveMode = publishableKey.startsWith('pk_live_');
           console.log('Frontend Stripe environment:', isLiveMode ? 'LIVE' : 'TEST');
+          console.log('Frontend publishable key prefix:', publishableKey.substring(0, 7));
 
           const stripeInstance = await loadStripe(publishableKey);
+          console.log('Stripe instance loaded:', !!stripeInstance);
+          console.log('Stripe instance environment check:', {
+            isLiveMode,
+            publishableKeyStartsWith: publishableKey.substring(0, 7),
+            expectedPrefix: isLiveMode ? 'pk_live' : 'pk_test'
+          });
           setStripe(stripeInstance);
         } catch (error) {
           console.error('Error loading Stripe:', error);
@@ -143,12 +155,14 @@ export default function SubscriptionModal({
       
       const { clientSecret: setupClientSecret } = await siRes.json();
       console.log('Setup intent created, client secret received:', !!setupClientSecret);
+      console.log('Client secret prefix:', setupClientSecret?.substring(0, 7));
       
       if (!setupClientSecret) {
         throw new Error('No setup client secret received from server.');
       }
 
       console.log('Setup intent created, confirming payment method...');
+      console.log('Using Stripe instance for confirmation...');
 
       const setupResult = await stripe.confirmSetup({
         elements,

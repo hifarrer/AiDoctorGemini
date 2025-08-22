@@ -58,7 +58,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
         token.isAdmin = (user as any).isAdmin || false;
       }
@@ -73,7 +73,7 @@ export const authOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       (session.user as any).isAdmin = (token as any).isAdmin || false;
       return session;
     },

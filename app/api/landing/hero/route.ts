@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { getLandingHero, upsertLandingHero } from "@/lib/server/landing";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-	const session = await getServerSession();
+	const session = await getServerSession(authOptions);
 	if (!session?.user?.email || !(session as any).user?.isAdmin) {
 		return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 	}

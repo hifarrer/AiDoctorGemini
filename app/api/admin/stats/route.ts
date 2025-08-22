@@ -1,37 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { getUsageStats } from "@/lib/admin";
-import { jwtVerify } from "jose";
-
-const secret = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || "admin-secret-key"
-);
-
-async function verifyAdminToken(request: NextRequest) {
-  try {
-    const token = request.cookies.get("admin-token")?.value;
-    if (!token) return false;
-
-    const { payload } = await jwtVerify(token, secret);
-    return payload.role === "admin";
-  } catch {
-    return false;
-  }
-}
 
 export async function GET(req: NextRequest) {
+  console.log("📊 [ADMIN_STATS_GET] Starting stats fetch...");
   try {
-    const isAdmin = await verifyAdminToken(req);
-    if (!isAdmin) {
+    const session = await getServerSession();
+    console.log("👤 [ADMIN_STATS_GET] Session:", { 
+      hasSession: !!session, 
+      userEmail: session?.user?.email,
+      isAdmin: (session as any)?.user?.isAdmin 
+    });
+
+    if (!session?.user?.email) {
+      console.log("❌ [ADMIN_STATS_GET] No session or email");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const stats = getUsageStats();
+    // Check if user is admin
+    if (!(session as any).user?.isAdmin) {
+      console.log("❌ [ADMIN_STATS_GET] User is not admin:", session.user.email);
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    console.log("✅ [ADMIN_STATS_GET] Admin access verified, fetching stats...");
+    const stats = await getUsageStats();
+    console.log("📊 [ADMIN_STATS_GET] Stats:", stats);
     return NextResponse.json(stats);
   } catch (error) {
-    console.error("[ADMIN_STATS_ERROR]", error);
+    console.error("❌ [ADMIN_STATS_GET] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

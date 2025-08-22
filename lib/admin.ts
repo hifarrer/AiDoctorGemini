@@ -1,15 +1,16 @@
-// Admin system for AI Doctor app
-import { users } from "./users";
+// Admin system for Medical AI Assistant app
+import { getUsers } from "./server/users";
+import { getSettings } from "./server/settings";
 
 // Admin configuration - in production, this should be in a secure database
 export const adminConfig = {
   username: "admin",
   password: "p@ssword333", // In production, this should be hashed
-  email: "admin@aidoctor.com", // Default admin email
+  email: "admin@medicalai.com", // Default admin email
   siteSettings: {
-    siteName: "AI Doctor",
-    contactEmail: "contact@aidoctor.com",
-    supportEmail: "support@aidoctor.com",
+    siteName: "Medical AI Assistant",
+    contactEmail: "contact@medicalai.com",
+    supportEmail: "support@medicalai.com",
     maxUsersPerDay: 1000,
     maintenanceMode: false,
   }
@@ -103,47 +104,69 @@ export function trackUsage(type: 'chat' | 'image' | 'pdf', userId?: string) {
   }
 }
 
-export function getUsageStats() {
-  const today = new Date().toISOString().split('T')[0];
-  const thisMonth = today.substring(0, 7);
+export async function getUsageStats() {
+  console.log("📊 [ADMIN_STATS] Getting usage stats...");
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const thisMonth = today.substring(0, 7);
+    
+    // Get users from database
+    const users = await getUsers();
+    console.log("👥 [ADMIN_STATS] Found users:", users.length);
 
-  return {
-    total: {
-      chats: usageStats.totalChats,
-      users: users.length,
-      images: usageStats.totalImages,
-      pdfs: usageStats.totalPDFs
-    },
-    today: {
-      chats: usageStats.dailyStats[today]?.chats || 0,
-      users: usageStats.dailyStats[today]?.users.size || 0,
-      images: usageStats.dailyStats[today]?.images || 0,
-      pdfs: usageStats.dailyStats[today]?.pdfs || 0
-    },
-    thisMonth: {
-      chats: usageStats.monthlyStats[thisMonth]?.chats || 0,
-      users: usageStats.monthlyStats[thisMonth]?.users.size || 0,
-      images: usageStats.monthlyStats[thisMonth]?.images || 0,
-      pdfs: usageStats.monthlyStats[thisMonth]?.pdfs || 0
-    },
-    dailyHistory: Object.entries(usageStats.dailyStats)
-      .slice(-30)
-      .map(([date, stats]) => ({
-        date,
-        chats: stats.chats,
-        users: stats.users.size,
-        images: stats.images,
-        pdfs: stats.pdfs
-      }))
-  };
+    return {
+      total: {
+        chats: usageStats.totalChats,
+        users: users.length,
+        images: usageStats.totalImages,
+        pdfs: usageStats.totalPDFs
+      },
+      today: {
+        chats: usageStats.dailyStats[today]?.chats || 0,
+        users: usageStats.dailyStats[today]?.users.size || 0,
+        images: usageStats.dailyStats[today]?.images || 0,
+        pdfs: usageStats.dailyStats[today]?.pdfs || 0
+      },
+      thisMonth: {
+        chats: usageStats.monthlyStats[thisMonth]?.chats || 0,
+        users: usageStats.monthlyStats[thisMonth]?.users.size || 0,
+        images: usageStats.monthlyStats[thisMonth]?.images || 0,
+        pdfs: usageStats.monthlyStats[thisMonth]?.pdfs || 0
+      },
+      dailyHistory: Object.entries(usageStats.dailyStats)
+        .slice(-30)
+        .map(([date, stats]) => ({
+          date,
+          chats: stats.chats,
+          users: stats.users.size,
+          images: stats.images,
+          pdfs: stats.pdfs
+        }))
+    };
+  } catch (error) {
+    console.error("❌ [ADMIN_STATS] Error getting usage stats:", error);
+    // Return fallback data
+    return {
+      total: { chats: 0, users: 0, images: 0, pdfs: 0 },
+      today: { chats: 0, users: 0, images: 0, pdfs: 0 },
+      thisMonth: { chats: 0, users: 0, images: 0, pdfs: 0 },
+      dailyHistory: []
+    };
+  }
 }
 
-export function getAllUsers() {
-  return users.map(user => ({
-    id: user.id,
-    email: user.email,
-    createdAt: user.createdAt || new Date().toISOString(),
-  }));
+export async function getAllUsers() {
+  try {
+    const users = await getUsers();
+    return users.map(user => ({
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt || new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error("❌ [ADMIN_USERS] Error getting all users:", error);
+    return [];
+  }
 }
 
 export function deleteUser(userId: string): boolean {

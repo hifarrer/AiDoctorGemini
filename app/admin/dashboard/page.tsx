@@ -74,39 +74,62 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   const fetchData = useCallback(async () => {
+    console.log("🔄 Starting admin dashboard data fetch...");
     try {
+      console.log("📡 Fetching users, stats, and settings...");
       const [usersRes, statsRes, configRes] = await Promise.all([
         fetch("/api/admin/users"),
         fetch("/api/admin/stats"),
         fetch("/api/admin/settings"),
       ]);
 
+      console.log("📊 API Response Status:", {
+        users: usersRes.status,
+        stats: statsRes.status,
+        config: configRes.status
+      });
+
       if (!usersRes.ok || !statsRes.ok || !configRes.ok) {
+        console.error("❌ API Error Details:", {
+          users: { status: usersRes.status, statusText: usersRes.statusText },
+          stats: { status: statsRes.status, statusText: statsRes.statusText },
+          config: { status: configRes.status, statusText: configRes.statusText }
+        });
+        
         if (usersRes.status === 401 || statsRes.status === 401 || configRes.status === 401) {
+          console.log("🔒 Unauthorized - redirecting to login");
           router.push("/admin/login");
           return;
         }
         throw new Error("Failed to fetch data");
       }
 
+      console.log("✅ All API calls successful, parsing responses...");
       const [usersData, statsData, configData] = await Promise.all([
         usersRes.json(),
         statsRes.json(),
         configRes.json(),
       ]);
 
-      setUsers(usersData.users);
+      console.log("📋 Parsed Data:", {
+        users: usersData,
+        stats: statsData,
+        config: configData
+      });
+
+      setUsers(usersData.users || []);
       setStats(statsData);
       setConfig(configData);
       setSiteForm({
-        contactEmail: configData.siteSettings.contactEmail,
-        supportEmail: configData.siteSettings.supportEmail,
-        maxUsersPerDay: configData.siteSettings.maxUsersPerDay,
-        maintenanceMode: configData.siteSettings.maintenanceMode,
+        contactEmail: configData?.siteSettings?.contactEmail || "",
+        supportEmail: configData?.siteSettings?.supportEmail || "",
+        maxUsersPerDay: configData?.siteSettings?.maxUsersPerDay || 1000,
+        maintenanceMode: configData?.siteSettings?.maintenanceMode || false,
       });
+      console.log("✅ Admin dashboard data loaded successfully");
     } catch (error) {
+      console.error("❌ Admin data fetch error:", error);
       toast.error("Failed to load admin data");
-      console.error("Admin data fetch error:", error);
     } finally {
       setIsLoading(false);
     }

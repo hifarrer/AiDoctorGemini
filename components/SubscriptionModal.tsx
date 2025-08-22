@@ -97,29 +97,58 @@ export default function SubscriptionModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('=== FORM SUBMISSION TRIGGERED ===');
+    console.log('Stripe instance:', !!stripe);
+    console.log('Elements instance:', !!elements);
+    console.log('Session:', !!session);
+    
     if (!stripe || !elements || !session) {
+      console.error('Missing required instances:', { stripe: !!stripe, elements: !!elements, session: !!session });
       return;
     }
 
+    console.log('All instances available, starting payment process...');
     setIsLoading(true);
 
+    // Add timeout to prevent indefinite loading
+    const timeoutId = setTimeout(() => {
+      console.error('Payment process timed out after 30 seconds');
+      toast.error('Payment process timed out. Please try again.');
+      setIsLoading(false);
+    }, 30000); // 30 seconds timeout
+
     try {
+      console.log('=== PAYMENT PROCESS START ===');
+      
       // First, submit the elements to validate the payment method
+      console.log('Submitting elements...');
       const { error: submitError } = await elements.submit();
       if (submitError) {
+        console.error('Elements submit error:', submitError);
         throw new Error(submitError.message);
       }
 
+      console.log('Elements submitted successfully');
+
       // 1) Create a SetupIntent to collect and confirm a payment method on localhost reliably
+      console.log('Creating setup intent...');
       const siRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
+      console.log('Setup intent response status:', siRes.status);
+      
       if (!siRes.ok) {
         const errorData = await siRes.json().catch(() => ({}));
+        console.error('Setup intent creation failed:', errorData);
         throw new Error(errorData.message || 'Failed to initialize payment setup.');
       }
+      
       const { clientSecret: setupClientSecret } = await siRes.json();
+      console.log('Setup intent created, client secret received:', !!setupClientSecret);
+      
       if (!setupClientSecret) {
         throw new Error('No setup client secret received from server.');
       }
+
+      console.log('Setup intent created, confirming payment method...');
 
       const setupResult = await stripe.confirmSetup({
         elements,
@@ -130,7 +159,17 @@ export default function SubscriptionModal({
         redirect: 'if_required',
       });
       
+      console.log('Setup result:', {
+        error: setupResult.error,
+        setupIntent: setupResult.setupIntent ? {
+          id: setupResult.setupIntent.id,
+          status: setupResult.setupIntent.status,
+          payment_method: (setupResult.setupIntent as any)?.payment_method
+        } : null
+      });
+      
       if (setupResult.error) {
+        console.error('Setup intent error:', setupResult.error);
         // Handle specific setup intent errors
         if (setupResult.error.code === 'resource_missing' || 
             setupResult.error.message?.includes('No such setupintent')) {
@@ -176,6 +215,15 @@ export default function SubscriptionModal({
             redirect: 'if_required',
           });
           
+          console.log('Retry setup result:', {
+            error: retryResult.error,
+            setupIntent: retryResult.setupIntent ? {
+              id: retryResult.setupIntent.id,
+              status: retryResult.setupIntent.status,
+              payment_method: (retryResult.setupIntent as any)?.payment_method
+            } : null
+          });
+          
           if (retryResult.error) {
             throw new Error(retryResult.error.message || 'Failed to confirm payment method after retry');
           }
@@ -186,24 +234,30 @@ export default function SubscriptionModal({
             throw new Error('No payment method returned by Stripe after retry.');
           }
           
+          console.log('Payment method confirmed via retry:', paymentMethodId);
           // Continue with subscription creation using the retry payment method
           await createSubscription(paymentMethodId);
         } else {
           throw new Error(setupResult.error.message || 'Failed to confirm payment method');
         }
       } else {
+        console.log('Setup intent confirmed successfully');
         const paymentMethodId = (setupResult.setupIntent as any)?.payment_method;
         if (!paymentMethodId) {
           throw new Error('No payment method returned by Stripe.');
         }
         
+        console.log('Payment method confirmed:', paymentMethodId);
         // Continue with subscription creation
         await createSubscription(paymentMethodId);
       }
+      
+      console.log('=== PAYMENT PROCESS COMPLETE ===');
     } catch (error) {
       console.error('Subscription error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create subscription');
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -366,6 +420,7 @@ export default function SubscriptionModal({
               type="submit"
               disabled={isLoading || !stripe}
               className="w-full"
+              onClick={() => console.log('Button clicked!')}
             >
               {isLoading ? (
                 <div className="flex items-center">

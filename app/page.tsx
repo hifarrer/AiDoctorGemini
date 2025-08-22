@@ -38,6 +38,8 @@ export default function LandingPage() {
         }
         if (faqRes.ok) {
           const items = await faqRes.json();
+          console.log("📋 [LANDING_PAGE] Received FAQs from API:", items.length, "items");
+          console.log("📝 [LANDING_PAGE] FAQ details:", items.map((f: any) => ({ id: f.id, question: f.question.substring(0, 50) + "..." })));
           setFaqs(Array.isArray(items) ? items : []);
         }
         if (heroRes.ok) {

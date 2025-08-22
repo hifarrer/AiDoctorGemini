@@ -10,6 +10,7 @@ export interface FaqItem {
 }
 
 export async function getPublicFaqs(): Promise<FaqItem[]> {
+	console.log("🔍 [GET_PUBLIC_FAQS] Starting FAQ fetch from Supabase...");
 	const supabase = getSupabaseServerClient();
 	const { data, error } = await supabase
 		.from("faqs")
@@ -17,19 +18,25 @@ export async function getPublicFaqs(): Promise<FaqItem[]> {
 		.eq("is_active", true)
 		.order("order_index", { ascending: true });
 	if (error) {
-		console.error("getPublicFaqs error:", error);
+		console.error("❌ [GET_PUBLIC_FAQS] Error fetching active FAQs:", error);
 		return [];
 	}
-	if (data && data.length > 0) return data;
+	console.log("📋 [GET_PUBLIC_FAQS] Active FAQs found:", data?.length || 0);
+	if (data && data.length > 0) {
+		console.log("✅ [GET_PUBLIC_FAQS] Returning active FAQs");
+		return data;
+	}
 	// Fallback: if no active FAQs, return all (ordered)
+	console.log("⚠️ [GET_PUBLIC_FAQS] No active FAQs found, fetching all FAQs as fallback...");
 	const { data: allData, error: allErr } = await supabase
 		.from("faqs")
 		.select("id, question, answer, order_index, is_active, updated_at")
 		.order("order_index", { ascending: true });
 	if (allErr) {
-		console.error("getPublicFaqs fallback error:", allErr);
+		console.error("❌ [GET_PUBLIC_FAQS] Fallback error:", allErr);
 		return [];
 	}
+	console.log("📋 [GET_PUBLIC_FAQS] All FAQs found:", allData?.length || 0);
 	return allData || [];
 }
 

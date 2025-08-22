@@ -13,7 +13,7 @@ export async function GET() {
       );
     }
 
-    if (session.user.email !== "admin@healthconsultant.ai") {
+    if (!(session as any).user?.isAdmin) {
       return NextResponse.json(
         { message: "Admin access required" },
         { status: 403 }
@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (session.user.email !== "admin@healthconsultant.ai") {
+    if (!(session as any).user?.isAdmin) {
       return NextResponse.json(
         { message: "Admin access required" },
         { status: 403 }

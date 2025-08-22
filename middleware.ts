@@ -15,8 +15,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
-    // Check if user is admin
-    if (token.email !== 'admin@healthconsultant.ai') {
+    // Check if user is admin (from NextAuth JWT custom claim)
+    if (!(token as any).isAdmin) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }

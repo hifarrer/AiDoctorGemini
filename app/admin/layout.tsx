@@ -23,9 +23,8 @@ export default function AdminLayout({
       return;
     }
 
-    // Check if user is admin (you can modify this logic based on your needs)
-    // For now, we'll check if the email is admin@healthconsultant.ai
-if (session.user?.email === "admin@healthconsultant.ai") {
+    // Check if user is admin by session flag from NextAuth callbacks
+    if ((session as any).user?.isAdmin) {
       setIsAdmin(true);
     } else {
       router.push("/dashboard");

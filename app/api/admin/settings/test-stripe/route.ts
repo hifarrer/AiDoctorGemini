@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.user.email !== "admin@healthconsultant.ai") {
+    if (!(session as any).user?.isAdmin) {
       return NextResponse.json(
         { message: "Admin access required" },
         { status: 403 }

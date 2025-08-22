@@ -7,6 +7,7 @@ export interface User {
   password: string;
   plan?: string;
   isActive?: boolean;
+  isAdmin?: boolean;
   createdAt?: string;
   stripeCustomerId?: string;
   subscriptionId?: string;
@@ -67,6 +68,7 @@ function rowToUser(row: any): User {
     firstName: row.first_name ?? undefined,
     plan: row.plan ?? undefined,
     isActive: row.is_active ?? undefined,
+    isAdmin: row.is_admin ?? undefined,
     createdAt: row.created_at ?? undefined,
     stripeCustomerId: row.stripe_customer_id ?? undefined,
     subscriptionId: row.subscription_id ?? undefined,
@@ -81,6 +83,7 @@ function userToRow(user: User): any {
     first_name: user.firstName,
     plan: user.plan,
     is_active: user.isActive,
+    is_admin: user.isAdmin,
     created_at: user.createdAt,
     stripe_customer_id: user.stripeCustomerId,
     subscription_id: user.subscriptionId,

@@ -13,7 +13,7 @@ export default function DashboardPage() {
   const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const { data: session } = useSession();
-  const isAdmin = session?.user?.email === "admin@healthconsultant.ai";
+  const isAdmin = !!(session as any)?.user?.isAdmin;
 
   useEffect(() => {
     const fetchSiteSettings = async () => {

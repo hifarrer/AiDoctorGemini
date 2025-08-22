@@ -7,6 +7,7 @@ create table if not exists users (
   first_name text,
   plan text default 'Free',
   is_active boolean default true,
+  is_admin boolean default false,
   created_at timestamptz default now(),
   stripe_customer_id text,
   subscription_id text,

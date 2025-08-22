@@ -49,13 +49,26 @@ const handler = NextAuth({
             id: user.id, 
             email: user.email,
             firstName: user.firstName,
-          };
+            isAdmin: !!user.isAdmin,
+          } as any;
         } else {
           return null;
         }
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.isAdmin = (user as any).isAdmin || false;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      (session.user as any).isAdmin = (token as any).isAdmin || false;
+      return session;
+    },
+  },
   pages: {
     signIn: "/auth/login",
   },

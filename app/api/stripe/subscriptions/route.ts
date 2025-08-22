@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       } catch (customerError: any) {
         console.log('Existing customer not found or invalid for subscription:', customerError.message);
         // Clear the invalid customer ID and create a new one
-        customerId = null;
-        await updateUser(session.user.email, { stripeCustomerId: null } as any);
+        customerId = undefined;
+        await updateUser(session.user.email, { stripeCustomerId: undefined } as any);
         console.log('Cleared invalid customer ID from user record for subscription');
       }
     }

@@ -31,7 +31,6 @@ export async function GET() {
       siteDescription: (settings as any).siteDescription || "Your Personal AI Health Assistant",
       contactEmail: settings.contactEmail || "",
       supportEmail: settings.supportEmail || "",
-      stripePriceIds: settings.stripePriceIds,
     };
 
     return NextResponse.json(safeSettings, { status: 200 });
@@ -72,7 +71,6 @@ export async function PUT(request: NextRequest) {
       contactEmail,
       supportEmail,
       logoUrl,
-      stripePriceIds,
     } = body;
 
     console.log('Received settings update:', {
@@ -109,7 +107,6 @@ export async function PUT(request: NextRequest) {
       contactEmail: contactEmail !== undefined ? contactEmail : currentSettings.contactEmail,
       supportEmail: supportEmail !== undefined ? supportEmail : currentSettings.supportEmail,
       logoUrl: logoUrl !== undefined ? logoUrl : (currentSettings as any).logoUrl,
-      stripePriceIds: stripePriceIds !== undefined ? stripePriceIds : currentSettings.stripePriceIds,
     };
 
     console.log('Updating settings with:', {
@@ -135,7 +132,6 @@ export async function PUT(request: NextRequest) {
           contactEmail: updatedSettings.contactEmail || "",
           supportEmail: updatedSettings.supportEmail || "",
           logoUrl: (updatedSettings as any).logoUrl || "",
-          stripePriceIds: updatedSettings.stripePriceIds,
         }
       },
       { status: 200 }

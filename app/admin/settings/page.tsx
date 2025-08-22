@@ -16,16 +16,6 @@ interface Settings {
   contactEmail: string;
   supportEmail: string;
   logoUrl?: string;
-  stripePriceIds?: {
-    basic: {
-      monthly: string;
-      yearly: string;
-    };
-    premium: {
-      monthly: string;
-      yearly: string;
-    };
-  };
 }
 
 export default function SettingsPage() {
@@ -38,16 +28,6 @@ export default function SettingsPage() {
     contactEmail: "",
     supportEmail: "",
     logoUrl: "",
-    stripePriceIds: {
-      basic: {
-        monthly: "",
-        yearly: "",
-      },
-      premium: {
-        monthly: "",
-        yearly: "",
-      },
-    },
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -68,16 +48,6 @@ export default function SettingsPage() {
             contactEmail: data.contactEmail || "",
             supportEmail: data.supportEmail || "",
             logoUrl: data.logoUrl || "",
-            stripePriceIds: {
-              basic: {
-                monthly: data.stripePriceIds?.basic?.monthly || "",
-                yearly: data.stripePriceIds?.basic?.yearly || "",
-              },
-              premium: {
-                monthly: data.stripePriceIds?.premium?.monthly || "",
-                yearly: data.stripePriceIds?.premium?.yearly || "",
-              },
-            },
           };
           setSettings(normalized);
         } else {
@@ -218,104 +188,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <div className="border-t pt-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                Stripe Price IDs
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Configure the Stripe price IDs for your subscription plans. You can find these in your Stripe Dashboard under Products.
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium">Basic Plan</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <Input
-                        placeholder="Monthly Price ID"
-                        value={settings.stripePriceIds?.basic?.monthly || ""}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            stripePriceIds: {
-                              ...(settings.stripePriceIds || {} as any),
-                              basic: {
-                                ...(settings.stripePriceIds?.basic || {} as any),
-                                monthly: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Input
-                        placeholder="Yearly Price ID"
-                        value={settings.stripePriceIds?.basic?.yearly || ""}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            stripePriceIds: {
-                              ...(settings.stripePriceIds || {} as any),
-                              basic: {
-                                ...(settings.stripePriceIds?.basic || {} as any),
-                                yearly: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">Premium Plan</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <Input
-                        placeholder="Monthly Price ID"
-                        value={settings.stripePriceIds?.premium?.monthly || ""}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            stripePriceIds: {
-                              ...(settings.stripePriceIds || {} as any),
-                              premium: {
-                                ...(settings.stripePriceIds?.premium || {} as any),
-                                monthly: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Input
-                        placeholder="Yearly Price ID"
-                        value={settings.stripePriceIds?.premium?.yearly || ""}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            stripePriceIds: {
-                              ...(settings.stripePriceIds || {} as any),
-                              premium: {
-                                ...(settings.stripePriceIds?.premium || {} as any),
-                                yearly: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Stripe Price IDs removed. Manage price IDs per plan in Admin > Plans. */}
 
             <Button
               onClick={handleTestStripeConnection}

@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, title, description, features, monthlyPrice, yearlyPrice, isActive, isPopular } = body;
+    const { id, title, description, features, monthlyPrice, yearlyPrice, isActive, isPopular, stripePriceIds } = body;
 
     // Update plan using the server function
     const updatedPlan = await updatePlan(id, {
@@ -33,6 +33,7 @@ export async function PUT(request: NextRequest) {
       yearlyPrice,
       isActive,
       isPopular,
+      stripePriceIds,
     });
 
     if (!updatedPlan) {

@@ -255,6 +255,46 @@ export default function PlansManagement() {
                   </div>
                 </div>
 
+                {/* Stripe Price IDs */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="monthlyPriceId">Stripe Monthly Price ID</Label>
+                    <Input
+                      id="monthlyPriceId"
+                      value={editingPlan.stripePriceIds?.monthly || ''}
+                      onChange={(e) =>
+                        setEditingPlan({
+                          ...editingPlan,
+                          stripePriceIds: {
+                            ...(editingPlan.stripePriceIds || {}),
+                            monthly: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="price_..."
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="yearlyPriceId">Stripe Yearly Price ID</Label>
+                    <Input
+                      id="yearlyPriceId"
+                      value={editingPlan.stripePriceIds?.yearly || ''}
+                      onChange={(e) =>
+                        setEditingPlan({
+                          ...editingPlan,
+                          stripePriceIds: {
+                            ...(editingPlan.stripePriceIds || {}),
+                            yearly: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="price_..."
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label>Features</Label>
                   <div className="mt-2 space-y-2">

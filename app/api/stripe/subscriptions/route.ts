@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { createStripeCustomer, createStripeSubscription } from "@/lib/stripe";
 import { updateUser, findUserByEmail } from "@/lib/server/users";
-import { getSettings } from "@/lib/server/settings";
 import { findPlanById } from "@/lib/server/plans";
 import { getStripeInstance } from "@/lib/stripe";
 
@@ -99,30 +98,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Derive Stripe price ID from plan stored linkage, or fall back to Admin Settings mapping
-    let priceId = billingCycle === 'yearly' ? plan.stripePriceIds?.yearly : plan.stripePriceIds?.monthly;
+    // Derive Stripe price ID from plan stored linkage only
+    const priceId = billingCycle === 'yearly' ? plan.stripePriceIds?.yearly : plan.stripePriceIds?.monthly;
     if (!priceId) {
-      try {
-        const settings = await getSettings();
-        const cycleKey = billingCycle === 'yearly' ? 'yearly' : 'monthly';
-        const titleLower = (plan.title || '').toLowerCase();
-        const isPremium = titleLower.includes('premium');
-        const isBasic = titleLower.includes('basic');
-        const mapped = isPremium
-          ? settings.stripePriceIds?.premium
-          : isBasic
-          ? settings.stripePriceIds?.basic
-          : undefined;
-        const fallbackId = mapped ? (mapped as any)[cycleKey] : undefined;
-        if (fallbackId) {
-          priceId = fallbackId;
-        }
-      } catch (e) {
-        // ignore and handle below
-      }
-    }
-    if (!priceId) {
-      console.error(`Price ID missing for plan '${plan.title}' and cycle '${billingCycle}'. Ensure plan is synced or settings have price IDs.`);
+      console.error(`Price ID missing for plan '${plan.title}' and cycle '${billingCycle}'. Set Stripe price IDs on the plan in Admin > Plans.`);
       return NextResponse.json({ message: "Price not configured for this plan" }, { status: 400 });
     }
 

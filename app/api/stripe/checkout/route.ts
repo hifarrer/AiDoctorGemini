@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { getStripeInstance } from "@/lib/stripe";
 import { findPlanById } from "@/lib/server/plans";
 import { getSettings } from "@/lib/server/settings";
-import { findUserByEmail, updateUser } from "@/lib/server/users";
+import { findUserByEmail } from "@/lib/server/users";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,29 +32,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Resolve priceId from plan or settings as fallback
-    let priceId = billingCycle === 'yearly' ? plan.stripePriceIds?.yearly : plan.stripePriceIds?.monthly;
-    if (!priceId) {
-      try {
-        const settings = await getSettings();
-        const cycleKey = billingCycle === 'yearly' ? 'yearly' : 'monthly';
-        const titleLower = (plan.title || '').toLowerCase();
-        const isPremium = titleLower.includes('premium');
-        const isBasic = titleLower.includes('basic');
-        const mapped = isPremium
-          ? settings.stripePriceIds?.premium
-          : isBasic
-          ? settings.stripePriceIds?.basic
-          : undefined;
-        const fallbackId = mapped ? (mapped as any)[cycleKey] : undefined;
-        if (fallbackId) {
-          priceId = fallbackId;
-        }
-      } catch {}
-    }
+    // Resolve priceId from plan only
+    const priceId = billingCycle === 'yearly' ? plan.stripePriceIds?.yearly : plan.stripePriceIds?.monthly;
 
     if (!priceId) {
       return NextResponse.json({ message: "Price not configured for this plan" }, { status: 400 });
+    }
+
+    // Log environment and validate the price exists in current environment
+    try {
+      const cfg = await getSettings();
+      const isLive = cfg.stripeSecretKey?.startsWith('sk_live_');
+      console.log('Checkout environment:', isLive ? 'LIVE' : 'TEST');
+      console.log('Using price ID:', priceId);
+      // Ensure price exists in this Stripe account/env
+      await stripe.prices.retrieve(priceId);
+    } catch (e: any) {
+      const msg = e?.message || 'Unknown error';
+      console.error('Price validation failed:', msg);
+      return NextResponse.json({
+        message: `Configured price ID not found in current Stripe environment. Update the plan's Stripe Price IDs in Admin > Plans. (${msg})`,
+        code: 'PRICE_NOT_FOUND',
+        priceId,
+      }, { status: 400 });
     }
 
     // Create Checkout Session

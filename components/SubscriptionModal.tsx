@@ -24,333 +24,17 @@ export default function SubscriptionModal({
   const { data: session } = useSession();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isLoading, setIsLoading] = useState(false);
-  const [stripe, setStripe] = useState<any>(null);
-  const [elements, setElements] = useState<any>(null);
-  const [paymentElement, setPaymentElement] = useState<any>(null);
+  // Stripe Elements flow removed; using Checkout Session only
 
-  useEffect(() => {
-    if (isOpen && typeof window !== 'undefined') {
-      // Clear any existing Stripe instance to prevent caching issues
-      setStripe(null);
-      setElements(null);
-      setPaymentElement(null);
-      
-      // Load Stripe
-      const loadStripe = async () => {
-        try {
-          const { loadStripe } = await import('@stripe/stripe-js');
-          const response = await fetch('/api/stripe/config');
-          const { publishableKey } = await response.json();
-          
-          if (!publishableKey) {
-            toast.error('Stripe not configured. Please contact support.');
-            return;
-          }
+  // Stripe Elements flow removed
 
-          // Log the environment for debugging
-          const isLiveMode = publishableKey.startsWith('pk_live_');
-          console.log('Frontend Stripe environment:', isLiveMode ? 'LIVE' : 'TEST');
-          console.log('Frontend publishable key prefix:', publishableKey.substring(0, 7));
+  // Stripe Elements flow removed
 
-          const stripeInstance = await loadStripe(publishableKey);
-          console.log('Stripe instance loaded:', !!stripeInstance);
-          console.log('Stripe instance environment check:', {
-            isLiveMode,
-            publishableKeyStartsWith: publishableKey.substring(0, 7),
-            expectedPrefix: isLiveMode ? 'pk_live' : 'pk_test'
-          });
-          setStripe(stripeInstance);
-        } catch (error) {
-          console.error('Error loading Stripe:', error);
-          toast.error('Failed to load payment system');
-        }
-      };
+  // Stripe Elements flow removed
 
-      loadStripe();
-    }
-  }, [isOpen]);
+  // Stripe Elements flow removed
 
-  useEffect(() => {
-    if (stripe && isOpen) {
-      // Clear any existing elements to prevent caching issues
-      if (paymentElement) {
-        paymentElement.unmount();
-      }
-      
-      const options = {
-        mode: 'subscription',
-        amount: billingCycle === 'monthly' ? plan.monthlyPrice * 100 : plan.yearlyPrice * 100,
-        currency: 'usd',
-        appearance: {
-          theme: 'stripe',
-        },
-      };
-
-      const elementsInstance = stripe.elements(options);
-      setElements(elementsInstance);
-
-      const paymentElementInstance = elementsInstance.create('payment');
-      paymentElementInstance.mount('#payment-element');
-      setPaymentElement(paymentElementInstance);
-    }
-  }, [stripe, isOpen, billingCycle, plan]);
-
-  // Cleanup function to clear elements when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      if (paymentElement) {
-        paymentElement.unmount();
-      }
-      setElements(null);
-      setPaymentElement(null);
-    }
-  }, [isOpen, paymentElement]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    console.log('=== FORM SUBMISSION TRIGGERED ===');
-    console.log('Stripe instance:', !!stripe);
-    console.log('Elements instance:', !!elements);
-    console.log('Session:', !!session);
-    
-    if (!stripe || !elements || !session) {
-      console.error('Missing required instances:', { stripe: !!stripe, elements: !!elements, session: !!session });
-      return;
-    }
-
-    console.log('All instances available, starting payment process...');
-    setIsLoading(true);
-
-    // Add timeout to prevent indefinite loading
-    const timeoutId = setTimeout(() => {
-      console.error('Payment process timed out after 30 seconds');
-      toast.error('Payment process timed out. Please try again.');
-      setIsLoading(false);
-    }, 30000); // 30 seconds timeout
-
-    try {
-      console.log('=== PAYMENT PROCESS START ===');
-      
-      // First, submit the elements to validate the payment method
-      console.log('Submitting elements...');
-      const { error: submitError } = await elements.submit();
-      if (submitError) {
-        console.error('Elements submit error:', submitError);
-        throw new Error(submitError.message);
-      }
-
-      console.log('Elements submitted successfully');
-
-      // 1) Create a SetupIntent to collect and confirm a payment method on localhost reliably
-      console.log('Creating setup intent...');
-      const siRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
-      console.log('Setup intent response status:', siRes.status);
-      console.log('Setup intent response headers:', Object.fromEntries(siRes.headers.entries()));
-      
-      if (!siRes.ok) {
-        const errorData = await siRes.json().catch(() => ({}));
-        console.error('Setup intent creation failed:', errorData);
-        throw new Error(errorData.message || 'Failed to initialize payment setup.');
-      }
-      
-      // Log the raw response text first
-      const responseText = await siRes.text();
-      console.log('Raw response text:', responseText);
-      
-      // Try to parse as JSON
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-        console.log('Parsed response data:', responseData);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        throw new Error('Invalid response format from server');
-      }
-      
-      const { clientSecret: setupClientSecret } = responseData;
-      console.log('Setup intent created, client secret received:', !!setupClientSecret);
-      console.log('Client secret prefix:', setupClientSecret?.substring(0, 7));
-      
-      if (!setupClientSecret) {
-        throw new Error('No setup client secret received from server.');
-      }
-
-      console.log('Setup intent created, confirming payment method...');
-      console.log('Using Stripe instance for confirmation...');
-
-      const setupResult = await stripe.confirmSetup({
-        elements,
-        clientSecret: setupClientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/dashboard?subscription=success`,
-        },
-        redirect: 'if_required',
-      });
-      
-      console.log('Setup result:', {
-        error: setupResult.error,
-        setupIntent: setupResult.setupIntent ? {
-          id: setupResult.setupIntent.id,
-          status: setupResult.setupIntent.status,
-          payment_method: (setupResult.setupIntent as any)?.payment_method
-        } : null
-      });
-      
-      if (setupResult.error) {
-        console.error('Setup intent error:', setupResult.error);
-        // Handle specific setup intent errors
-        if (setupResult.error.code === 'resource_missing' || 
-            setupResult.error.message?.includes('No such setupintent')) {
-          console.log('Setup intent expired or invalid, retrying...');
-          
-          // Clear existing elements and create fresh ones
-          if (paymentElement) {
-            paymentElement.unmount();
-          }
-          
-          // Create fresh elements instance
-          const freshElements = stripe.elements({
-            mode: 'subscription',
-            amount: billingCycle === 'monthly' ? plan.monthlyPrice * 100 : plan.yearlyPrice * 100,
-            currency: 'usd',
-            appearance: {
-              theme: 'stripe',
-            },
-          });
-          
-          const freshPaymentElement = freshElements.create('payment');
-          freshPaymentElement.mount('#payment-element');
-          
-          // Submit fresh elements
-          const { error: retrySubmitError } = await freshElements.submit();
-          if (retrySubmitError) {
-            throw new Error(retrySubmitError.message);
-          }
-          
-          // Retry once with a fresh setup intent
-          const retryRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
-          if (!retryRes.ok) {
-            throw new Error('Failed to create fresh setup intent.');
-          }
-          const { clientSecret: retryClientSecret } = await retryRes.json();
-          
-          const retryResult = await stripe.confirmSetup({
-            elements: freshElements,
-            clientSecret: retryClientSecret,
-            confirmParams: {
-              return_url: `${window.location.origin}/dashboard?subscription=success`,
-            },
-            redirect: 'if_required',
-          });
-          
-          console.log('Retry setup result:', {
-            error: retryResult.error,
-            setupIntent: retryResult.setupIntent ? {
-              id: retryResult.setupIntent.id,
-              status: retryResult.setupIntent.status,
-              payment_method: (retryResult.setupIntent as any)?.payment_method
-            } : null
-          });
-          
-          if (retryResult.error) {
-            throw new Error(retryResult.error.message || 'Failed to confirm payment method after retry');
-          }
-          
-          // Use the retry result
-          const paymentMethodId = (retryResult.setupIntent as any)?.payment_method;
-          if (!paymentMethodId) {
-            throw new Error('No payment method returned by Stripe after retry.');
-          }
-          
-          console.log('Payment method confirmed via retry:', paymentMethodId);
-          // Continue with subscription creation using the retry payment method
-          await createSubscription(paymentMethodId);
-        } else {
-          throw new Error(setupResult.error.message || 'Failed to confirm payment method');
-        }
-      } else {
-        console.log('Setup intent confirmed successfully');
-        const paymentMethodId = (setupResult.setupIntent as any)?.payment_method;
-        if (!paymentMethodId) {
-          throw new Error('No payment method returned by Stripe.');
-        }
-        
-        console.log('Payment method confirmed:', paymentMethodId);
-        // Continue with subscription creation
-        await createSubscription(paymentMethodId);
-      }
-      
-      console.log('=== PAYMENT PROCESS COMPLETE ===');
-    } catch (error) {
-      console.error('Subscription error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create subscription');
-    } finally {
-      clearTimeout(timeoutId);
-      setIsLoading(false);
-    }
-  };
-
-  const createSubscription = async (paymentMethodId: string) => {
-    console.log('=== FRONTEND: Creating subscription ===');
-    console.log('Payment method ID:', paymentMethodId);
-    console.log('Plan ID:', plan.id);
-    console.log('Billing cycle:', billingCycle);
-    
-    // 2) Create subscription on server with the confirmed payment method
-    const response = await fetch('/api/stripe/subscriptions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        planId: plan.id,
-        billingCycle,
-        paymentMethodId,
-      }),
-    });
-
-    console.log('Subscription response status:', response.status);
-    console.log('Subscription response ok:', response.ok);
-
-    const { subscription, message } = await response.json();
-    console.log('Subscription response data:', { subscription, message });
-
-    if (!response.ok) {
-      console.error('Subscription creation failed:', message);
-      throw new Error(message || 'Failed to create subscription');
-    }
-
-    console.log('Subscription created successfully:', subscription);
-
-    // If Stripe still requires payment confirmation, confirm using the returned client secret
-    if (subscription?.clientSecret) {
-      console.log('Confirming payment with client secret');
-      const { error } = await stripe.confirmPayment({
-        elements,
-        clientSecret: subscription.clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/dashboard?subscription=success`,
-        },
-        redirect: 'if_required',
-      });
-      if (error) {
-        console.error('Payment confirmation error:', error);
-        throw new Error(error.message);
-      }
-      console.log('Payment confirmed successfully');
-    } else {
-      console.log('No client secret needed, subscription is complete');
-    }
-
-    console.log('=== FRONTEND: Subscription process complete ===');
-    toast.success('Subscription created successfully!');
-    onSuccess();
-    onClose();
-    
-    // Redirect to profile page after successful subscription
-    window.location.href = '/dashboard?tab=profile';
-  };
+  // Stripe Elements flow removed
 
   if (!isOpen) return null;
 
@@ -436,33 +120,8 @@ export default function SubscriptionModal({
             </div>
           </div>
 
-          {/* Payment Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Payment Information
-              </Label>
-              <div id="payment-element" className="mt-2" />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading || !stripe}
-              className="w-full"
-              onClick={() => console.log('Button clicked!')}
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Processing...
-                </div>
-              ) : (
-                `Subscribe for $${price}/${billingCycle === 'monthly' ? 'month' : 'year'}`
-              )}
-            </Button>
-
-            <div className="text-center text-xs text-gray-500 dark:text-gray-400">or</div>
-
+          {/* Payment: Stripe Checkout only */}
+          <form className="space-y-4">
             <Button
               type="button"
               variant="outline"
@@ -470,6 +129,7 @@ export default function SubscriptionModal({
               className="w-full"
               onClick={async () => {
                 try {
+                  setIsLoading(true);
                   const res = await fetch('/api/stripe/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -482,18 +142,25 @@ export default function SubscriptionModal({
                   const data = await res.json();
                   if (data.url) {
                     window.location.href = data.url;
-                  } else if (data.id && stripe) {
-                    await stripe.redirectToCheckout({ sessionId: data.id });
                   } else {
                     throw new Error('Checkout session not returned');
                   }
                 } catch (err: any) {
                   console.error('Checkout redirect failed:', err);
                   toast.error(err.message || 'Checkout failed');
+                } finally {
+                  setIsLoading(false);
                 }
               }}
             >
-              Pay with Stripe Checkout (fallback)
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                  Redirecting to Stripe...
+                </div>
+              ) : (
+                `Subscribe for $${price}/${billingCycle === 'monthly' ? 'month' : 'year'}`
+              )}
             </Button>
           </form>
 

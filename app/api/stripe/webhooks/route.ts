@@ -43,6 +43,9 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object);
+        break;
       case 'customer.subscription.created':
         await handleSubscriptionCreated(event.data.object);
         break;
@@ -156,5 +159,31 @@ async function handlePaymentFailed(invoice: any) {
     await updateUser(user.email, {
       subscriptionStatus: 'past_due',
     } as any);
+  }
+}
+
+async function handleCheckoutCompleted(session: any) {
+  try {
+    console.log('Checkout session completed:', session.id);
+    // session contains: customer, subscription, metadata, etc.
+    const allUsers = await getUsers();
+    const user = allUsers.find(u => u.email === session.customer_details?.email || u.stripeCustomerId === session.customer);
+    if (!user) {
+      console.log('No user matched for checkout.session.completed');
+      return;
+    }
+
+    const planTitle = session.metadata?.plan_title;
+    const subscriptionId = session.subscription;
+
+    await updateUser(user.email, {
+      plan: planTitle || user.plan,
+      subscriptionId: typeof subscriptionId === 'string' ? subscriptionId : undefined,
+      subscriptionStatus: 'active',
+      stripeCustomerId: session.customer || user.stripeCustomerId,
+    } as any);
+    console.log(`Updated user ${user.email} after Checkout: plan=${planTitle}, subscriptionId=${subscriptionId}`);
+  } catch (e) {
+    console.error('Failed to handle checkout.session.completed:', e);
   }
 }

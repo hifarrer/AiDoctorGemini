@@ -61,9 +61,6 @@ export default function SubscriptionModal({
   useEffect(() => {
     if (stripe && isOpen) {
       // Clear any existing elements to prevent caching issues
-      if (elements) {
-        elements.clear();
-      }
       if (paymentElement) {
         paymentElement.unmount();
       }
@@ -89,16 +86,13 @@ export default function SubscriptionModal({
   // Cleanup function to clear elements when modal closes
   useEffect(() => {
     if (!isOpen) {
-      if (elements) {
-        elements.clear();
-      }
       if (paymentElement) {
         paymentElement.unmount();
       }
       setElements(null);
       setPaymentElement(null);
     }
-  }, [isOpen, elements, paymentElement]);
+  }, [isOpen, paymentElement]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,9 +137,6 @@ export default function SubscriptionModal({
           console.log('Setup intent expired or invalid, retrying...');
           
           // Clear existing elements and create fresh ones
-          if (elements) {
-            elements.clear();
-          }
           if (paymentElement) {
             paymentElement.unmount();
           }

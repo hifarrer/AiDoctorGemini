@@ -92,7 +92,12 @@ export async function POST(request: NextRequest) {
       environment: isLiveMode ? 'LIVE' : 'TEST',
       createdAt: setupIntent.metadata?.created_at
     });
-    return NextResponse.json({ clientSecret: setupIntent.client_secret }, { status: 200 });
+    return NextResponse.json({ clientSecret: setupIntent.client_secret }, { 
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   } catch (error) {
     console.error('SetupIntent error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

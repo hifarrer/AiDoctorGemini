@@ -146,6 +146,7 @@ export default function SubscriptionModal({
       console.log('Creating setup intent...');
       const siRes = await fetch('/api/stripe/setup-intent', { method: 'POST' });
       console.log('Setup intent response status:', siRes.status);
+      console.log('Setup intent response headers:', Object.fromEntries(siRes.headers.entries()));
       
       if (!siRes.ok) {
         const errorData = await siRes.json().catch(() => ({}));
@@ -153,7 +154,21 @@ export default function SubscriptionModal({
         throw new Error(errorData.message || 'Failed to initialize payment setup.');
       }
       
-      const { clientSecret: setupClientSecret } = await siRes.json();
+      // Log the raw response text first
+      const responseText = await siRes.text();
+      console.log('Raw response text:', responseText);
+      
+      // Try to parse as JSON
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log('Parsed response data:', responseData);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Invalid response format from server');
+      }
+      
+      const { clientSecret: setupClientSecret } = responseData;
       console.log('Setup intent created, client secret received:', !!setupClientSecret);
       console.log('Client secret prefix:', setupClientSecret?.substring(0, 7));
       
@@ -444,6 +459,41 @@ export default function SubscriptionModal({
               ) : (
                 `Subscribe for $${price}/${billingCycle === 'monthly' ? 'month' : 'year'}`
               )}
+            </Button>
+
+            <div className="text-center text-xs text-gray-500 dark:text-gray-400">or</div>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoading}
+              className="w-full"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/stripe/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ planId: plan.id, billingCycle }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Failed to start Checkout');
+                  }
+                  const data = await res.json();
+                  if (data.url) {
+                    window.location.href = data.url;
+                  } else if (data.id && stripe) {
+                    await stripe.redirectToCheckout({ sessionId: data.id });
+                  } else {
+                    throw new Error('Checkout session not returned');
+                  }
+                } catch (err: any) {
+                  console.error('Checkout redirect failed:', err);
+                  toast.error(err.message || 'Checkout failed');
+                }
+              }}
+            >
+              Pay with Stripe Checkout (fallback)
             </Button>
           </form>
 

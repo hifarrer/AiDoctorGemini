@@ -125,110 +125,228 @@ export default function PlansManagement() {
     fetchData(); // Refresh data
   };
 
-
-
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-          </div>
-        </div>
+      <div style={{
+        background: 'linear-gradient(180deg, #12182c, #0f1325)',
+        border: '1px solid #1e2541',
+        borderRadius: '20px',
+        padding: '32px',
+        height: 'fit-content'
+      }}>
+        <style jsx>{`
+          .loading-skeleton {
+            background: linear-gradient(90deg, #1e2541 25%, #2a3463 50%, #1e2541 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+          }
+          @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
+        <div className="loading-skeleton" style={{ height: '24px', borderRadius: '8px', marginBottom: '16px', width: '40%' }}></div>
+        <div className="loading-skeleton" style={{ height: '16px', borderRadius: '8px', marginBottom: '12px', width: '100%' }}></div>
+        <div className="loading-skeleton" style={{ height: '16px', borderRadius: '8px', marginBottom: '12px', width: '75%' }}></div>
+        <div className="loading-skeleton" style={{ height: '16px', borderRadius: '8px', width: '50%' }}></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-        Plan Management
-      </h3>
+    <div style={{
+      background: 'linear-gradient(180deg, #12182c, #0f1325)',
+      border: '1px solid #1e2541',
+      borderRadius: '20px',
+      padding: '32px',
+      height: 'fit-content'
+    }}>
+      <style jsx>{`
+        .section-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #e7ecf5;
+          margin-bottom: 24px;
+        }
+        .current-plan {
+          background: linear-gradient(180deg, #1a1f35, #0f1325);
+          border: 1px solid #2a3463;
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 24px;
+        }
+        .current-plan-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #9aa4b2;
+          margin-bottom: 8px;
+        }
+        .current-plan-name {
+          font-size: 20px;
+          font-weight: 700;
+          color: #e7ecf5;
+          margin-bottom: 4px;
+        }
+        .current-plan-date {
+          font-size: 12px;
+          color: #9aa4b2;
+        }
+        .plans-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .plan-item {
+          background: linear-gradient(180deg, #1a1f35, #0f1325);
+          border: 1px solid #2a3463;
+          border-radius: 16px;
+          padding: 20px;
+          transition: all 0.2s ease;
+        }
+        .plan-item:hover {
+          border-color: #3a4161;
+        }
+        .plan-item.current {
+          border-color: #8856ff;
+          background: linear-gradient(180deg, #1a1f35, #0f1325);
+        }
+        .plan-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+        .plan-info {
+          flex: 1;
+        }
+        .plan-name {
+          font-size: 16px;
+          font-weight: 700;
+          color: #e7ecf5;
+          margin-bottom: 4px;
+        }
+        .plan-description {
+          font-size: 12px;
+          color: #9aa4b2;
+          margin-bottom: 8px;
+          line-height: 1.4;
+        }
+        .plan-pricing {
+          font-size: 12px;
+          color: #b7c1d6;
+        }
+        .plan-price-highlight {
+          color: #6ae2ff;
+          font-weight: 600;
+        }
+        .plan-actions {
+          margin-left: 16px;
+        }
+        .plan-btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 12px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .plan-btn.primary {
+          background: linear-gradient(90deg, #8856ff, #a854ff);
+          color: white;
+        }
+        .plan-btn.primary:hover {
+          background: linear-gradient(90deg, #7a4bff, #9a44ff);
+        }
+        .plan-btn.secondary {
+          background: #161a2c;
+          color: #e8edfb;
+          border: 1px solid #2a2f44;
+        }
+        .plan-btn.secondary:hover {
+          background: #1e2541;
+          border-color: #3a4161;
+        }
+        .plan-btn.danger {
+          background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+          color: white;
+        }
+        .plan-btn.danger:hover {
+          background: linear-gradient(90deg, #ff5252, #ff7676);
+        }
+        .plan-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .current-badge {
+          background: linear-gradient(90deg, #8856ff, #a854ff);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-left: 8px;
+        }
+      `}</style>
+
+      <h3 className="section-title">Plan Management</h3>
 
       {/* Current Plan Status */}
       {currentSubscription && (
-        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-            Current Plan
-          </h4>
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">
-              {currentSubscription.plan}
-            </span>
-          </div>
+        <div className="current-plan">
+          <div className="current-plan-title">Current Plan</div>
+          <div className="current-plan-name">{currentSubscription.plan}</div>
           {currentSubscription.nextBillingDate && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <div className="current-plan-date">
               Next billing: {new Date(currentSubscription.nextBillingDate).toLocaleDateString()}
-            </p>
+            </div>
           )}
         </div>
       )}
 
       {/* Available Plans */}
-      <div className="space-y-4">
-        <h4 className="font-medium text-gray-900 dark:text-white">
-          Available Plans
-        </h4>
+      <div className="plans-list">
         {plansList.map((plan) => (
           <div
             key={plan.id}
-            className={`p-4 border rounded-lg transition-colors ${
-              currentSubscription?.plan === plan.title
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-            }`}
+            className={`plan-item ${currentSubscription?.plan === plan.title ? 'current' : ''}`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h5 className="font-medium text-gray-900 dark:text-white">
-                    {plan.title}
-                  </h5>
+            <div className="plan-header">
+              <div className="plan-info">
+                <div className="plan-name">
+                  {plan.title}
                   {currentSubscription?.plan === plan.title && (
-                    <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">
-                      Current
-                    </span>
+                    <span className="current-badge">Current</span>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {plan.description}
-                </p>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">${plan.monthlyPrice}/month</span>
+                <div className="plan-description">{plan.description}</div>
+                <div className="plan-pricing">
+                  <span className="plan-price-highlight">${plan.monthlyPrice}/month</span>
                   {plan.monthlyPrice > 0 && (
-                    <span className="ml-2">
-                      or <span className="font-medium">${plan.yearlyPrice}/year</span>
-                      <span className="text-green-600 dark:text-green-400 ml-1">
+                    <span>
+                      {' '}or <span className="plan-price-highlight">${plan.yearlyPrice}/year</span>
+                      <span style={{ color: '#10b981', marginLeft: '4px' }}>
                         (save ${(plan.monthlyPrice * 12 - plan.yearlyPrice).toFixed(2)})
                       </span>
                     </span>
                   )}
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="plan-actions">
                 {currentSubscription?.plan === plan.title ? (
-                  <Button
-                    variant="outline"
-                    disabled
-                    className="text-gray-500"
-                  >
+                  <button className="plan-btn secondary" disabled>
                     Current Plan
-                  </Button>
+                  </button>
                 ) : (
-                  <Button
+                  <button
                     onClick={() => handlePlanChange(plan)}
-                    variant={plan.title === 'Free' ? 'outline' : 'default'}
-                    className={
-                      plan.title === 'Free'
-                        ? 'text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20'
-                        : ''
-                    }
+                    className={`plan-btn ${plan.title === 'Free' ? 'danger' : 'primary'}`}
                   >
                     {plan.title === 'Free' ? 'Downgrade' : 'Upgrade'}
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>

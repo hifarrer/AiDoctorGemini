@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import SubscriptionModal from "@/components/SubscriptionModal";
 import toast from "react-hot-toast";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 export default function PlansPage() {
   const { data: session } = useSession();
@@ -16,6 +17,7 @@ export default function PlansPage() {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -35,6 +37,24 @@ export default function PlansPage() {
     };
 
     fetchPlans();
+  }, []);
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const response = await fetch('/api/faq', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          setFaqs(Array.isArray(data) ? data : []);
+        } else {
+          console.error('Failed to fetch FAQs');
+        }
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      }
+    };
+
+    fetchFaqs();
   }, []);
 
   const handleSubscribe = (plan: Plan) => {
@@ -79,241 +99,439 @@ export default function PlansPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#0f1320' }}>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header with Navigation */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo and Site Name */}
-            <div className="flex items-center gap-4">
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt={siteName || "Medical AI Assistant"} className="h-8 w-auto object-contain" />
-              ) : (
-                <HeartPulseIcon className="w-8 h-8 text-teal-500" />
-              )}
-              <Link href="/" className="hover:opacity-80 transition-opacity">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {siteName || "Medical AI Assistant"}
-                </h1>
-              </Link>
-            </div>
+    <div className="min-h-screen" style={{
+      '--bg': '#0f1320',
+      '--text': '#e7ecf5',
+      '--muted': '#9aa4b2',
+      '--cta': '#8856ff',
+      '--cta-2': '#a854ff',
+      '--accent': '#6ae2ff'
+    } as React.CSSProperties}>
+      <style jsx global>{`
+        :root {
+          --bg: #0f1320;
+          --text: #e7ecf5;
+          --muted: #9aa4b2;
+          --cta: #8856ff;
+          --cta-2: #a854ff;
+          --accent: #6ae2ff;
+        }
+        * {
+          box-sizing: border-box;
+        }
+        body {
+          margin: 0;
+          font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background:
+            radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),
+            radial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),
+            var(--bg);
+          color: var(--text);
+        }
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+        .container {
+          max-width: 1240px;
+          margin: 0 auto;
+          padding: 24px;
+        }
+        .nav {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-weight: 800;
+          font-size: 20px;
+          transition: opacity 0.2s ease;
+        }
+        .logo:hover {
+          opacity: 0.8;
+        }
+        .logo-badge {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, var(--cta), var(--accent));
+          color: #08101b;
+          font-weight: 900;
+        }
+        .navlinks {
+          display: flex;
+          gap: 26px;
+          color: #c9d2e2;
+        }
+        .btn {
+          padding: 12px 18px;
+          border-radius: 12px;
+          border: 1px solid #2a2f44;
+          background: #161a2c;
+          color: #e8edfb;
+          font-weight: 600;
+          transition: all 0.2s ease;
+        }
+        .btn:hover {
+          background: #1e2541;
+          border-color: #3a4161;
+        }
+        .btn.primary {
+          background: linear-gradient(90deg, var(--cta), var(--cta-2));
+          border: none;
+          color: #fff;
+        }
+        .btn.primary:hover {
+          background: linear-gradient(90deg, #7a4bff, #9a44ff);
+        }
+        .eyebrow {
+          color: #a8b1c6;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          font-size: 12px;
+        }
+        .title {
+          font-size: 48px;
+          line-height: 1.05;
+          font-weight: 800;
+          margin: 16px 0;
+          letter-spacing: -0.02em;
+          color: #e7ecf5;
+        }
+        .sub {
+          color: #b7c1d6;
+          max-width: 600px;
+          margin: 0 auto;
+          font-size: 18px;
+        }
+        .plan-card {
+          background: linear-gradient(180deg, #12182c, #0f1325);
+          border: 1px solid #1e2541;
+          border-radius: 20px;
+          padding: 32px;
+          transition: all 0.3s ease;
+        }
+        .plan-card:hover {
+          transform: translateY(-4px);
+          border-color: #2a3463;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        .plan-card.popular {
+          border: 2px solid #8856ff;
+          background: linear-gradient(180deg, #1a1f35, #0f1325);
+        }
+        .popular-badge {
+          background: linear-gradient(90deg, var(--cta), var(--cta-2));
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          position: absolute;
+          top: -12px;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .price {
+          font-size: 48px;
+          font-weight: 800;
+          color: #e7ecf5;
+          margin: 16px 0;
+        }
+        .price-period {
+          color: #9aa4b2;
+          font-size: 16px;
+        }
+        .feature-list {
+          list-style: none;
+          padding: 0;
+          margin: 24px 0;
+        }
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+          color: #b7c1d6;
+        }
+        .feature-icon {
+          width: 20px;
+          height: 20px;
+          color: #6ae2ff;
+          flex-shrink: 0;
+        }
+        .subscribe-btn {
+          width: 100%;
+          padding: 16px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 16px;
+          transition: all 0.2s ease;
+          border: none;
+          cursor: pointer;
+        }
+        .subscribe-btn.primary {
+          background: linear-gradient(90deg, var(--cta), var(--cta-2));
+          color: white;
+        }
+        .subscribe-btn.primary:hover {
+          background: linear-gradient(90deg, #7a4bff, #9a44ff);
+        }
+        .subscribe-btn.secondary {
+          background: #161a2c;
+          color: #e8edfb;
+          border: 1px solid #2a2f44;
+        }
+        .subscribe-btn.secondary:hover {
+          background: #1e2541;
+          border-color: #3a4161;
+        }
+        .faq-section {
+          background: linear-gradient(180deg, #0a0e1a, #0f1320);
+          padding: 80px 0;
+          margin-top: 80px;
+        }
 
-            {/* Navigation - Only show if user is logged in */}
-            {session && (
-              <nav className="flex items-center gap-4">
-                <Link href="/dashboard">
-                  <Button variant="ghost" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
-                    Chat
-                  </Button>
-                </Link>
-                <Link href="/dashboard?tab=profile">
-                  <Button variant="ghost" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
-                    Profile
-                  </Button>
-                </Link>
-              </nav>
-            )}
+        .cta-section {
+          background: linear-gradient(180deg, #0f1320, #0a0e1a);
+          padding: 80px 0;
+        }
+        .cta-card {
+          background: linear-gradient(180deg, #12182c, #0f1325);
+          border: 1px solid #1e2541;
+          border-radius: 20px;
+          padding: 48px;
+          text-align: center;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        .footer {
+          background: #0a0e1a;
+          border-top: 1px solid #1e2541;
+          padding: 24px;
+        }
+        .footer-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 1240px;
+          margin: 0 auto;
+        }
+        .footer-links {
+          display: flex;
+          gap: 24px;
+        }
+        .footer-links a {
+          color: #9aa4b2;
+          font-size: 14px;
+          transition: color 0.2s ease;
+        }
+        .footer-links a:hover {
+          color: #e7ecf5;
+        }
+      `}</style>
+
+      <header className="container">
+        <nav className="nav">
+          <Link href="/" className="logo">
+            <div className="logo-badge">+</div>
+            <span>Health<span style={{ color: '#7ae2ff' }}>Consultant</span></span>
+          </Link>
+          <div className="navlinks">
+            <a href="/#features">Features</a>
+            <a href="/#how-it-works">How it Works</a>
+            <a href="/#faq">FAQ</a>
+            <a href="/plans">Pricing</a>
+            <a href="/contact">Contact</a>
           </div>
-        </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Link className="btn" href="/auth/login">Sign In</Link>
+            <Link className="btn primary" href="/auth/signup">Get Started</Link>
+          </div>
+        </nav>
       </header>
 
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Page Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Choose Your Plan
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Get the perfect AI medical assistance plan for your needs. 
-              Start with our free plan and upgrade as you grow.
-            </p>
-          </div>
+      <main className="container" style={{ paddingTop: '60px' }}>
+        {/* Page Header */}
+        <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+          <div className="eyebrow">PRICING PLANS</div>
+          <h1 className="title">Choose Your Plan</h1>
+          <p className="sub">
+            Get the perfect AI medical assistance plan for your needs. 
+            Start with our free plan and upgrade as you grow.
+          </p>
+        </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 350px))', gap: '32px', maxWidth: '800px', margin: '0 auto', justifyContent: 'center' }}>
           {plansList.map((plan) => (
             <div
               key={plan.id}
-              className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden ${
-                plan.isPopular ? 'ring-2 ring-blue-500 scale-105' : ''
-              } transition-transform duration-200 hover:scale-105`}
+              className={`plan-card ${plan.isPopular ? 'popular' : ''}`}
+              style={{ position: 'relative' }}
             >
               {/* Popular Badge */}
               {plan.isPopular && (
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-                    Most Popular
-                  </div>
-                </div>
+                <div className="popular-badge">Most Popular</div>
               )}
 
-              <div className="p-8">
-                {/* Plan Header */}
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    {plan.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    {plan.description}
-                  </p>
-                </div>
+              {/* Plan Header */}
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <h3 style={{ fontSize: '24px', fontWeight: '700', color: '#e7ecf5', marginBottom: '8px' }}>
+                  {plan.title}
+                </h3>
+                <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
+                  {plan.description}
+                </p>
+              </div>
 
-                {/* Pricing */}
-                <div className="text-center mb-8">
-                  <div className="flex items-baseline justify-center space-x-2 mb-2">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                      ${plan.monthlyPrice}
+              {/* Pricing */}
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <div className="price">${plan.monthlyPrice}</div>
+                <div className="price-period">/month</div>
+                <div style={{ color: '#9aa4b2', fontSize: '14px', marginTop: '8px' }}>
+                  ${plan.yearlyPrice}/year
+                  {plan.monthlyPrice > 0 && (
+                    <span style={{ color: '#6ae2ff', marginLeft: '8px' }}>
+                      (save ${(plan.monthlyPrice * 12 - plan.yearlyPrice).toFixed(2)})
                     </span>
-                    <span className="text-gray-500 dark:text-gray-400">/month</span>
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    ${plan.yearlyPrice}/year
-                    {plan.monthlyPrice > 0 && (
-                      <span className="text-green-600 dark:text-green-400 ml-1">
-                        (save ${(plan.monthlyPrice * 12 - plan.yearlyPrice).toFixed(2)})
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div className="mb-8">
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <CheckIcon className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Subscribe Button */}
-                <div className="text-center">
-                  {session ? (
-                    <Button
-                      onClick={() => handleSubscribe(plan)}
-                      className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                        plan.isPopular
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100'
-                      }`}
-                    >
-                      {plan.title === 'Free' ? 'Get Started' : 'Subscribe Now'}
-                    </Button>
-                  ) : (
-                    <Link href="/auth/login">
-                      <Button
-                        className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                          plan.isPopular
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100'
-                        }`}
-                      >
-                        {plan.title === 'Free' ? 'Get Started' : 'Subscribe Now'}
-                      </Button>
-                    </Link>
                   )}
                 </div>
+              </div>
+
+              {/* Features */}
+              <ul className="feature-list">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="feature-item">
+                    <CheckIcon className="feature-icon" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Subscribe Button */}
+              <div style={{ marginTop: '32px' }}>
+                {session ? (
+                  <button
+                    onClick={() => handleSubscribe(plan)}
+                    className={`subscribe-btn ${plan.isPopular ? 'primary' : 'secondary'}`}
+                  >
+                    {plan.title === 'Free' ? 'Get Started' : 'Subscribe Now'}
+                  </button>
+                ) : (
+                  <Link href="/auth/login">
+                    <button
+                      className={`subscribe-btn ${plan.isPopular ? 'primary' : 'secondary'}`}
+                    >
+                      {plan.title === 'Free' ? 'Get Started' : 'Subscribe Now'}
+                    </button>
+                  </Link>
+                )}
               </div>
             </div>
           ))}
         </div>
 
         {/* FAQ Section */}
-        <div className="mt-16 max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-8">
-            Frequently Asked Questions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Can I change my plan anytime?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Is there a free trial?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                We offer a free plan with limited features. You can upgrade to a paid plan anytime to unlock more features.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                What payment methods do you accept?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                We accept all major credit cards, debit cards, and PayPal. All payments are processed securely.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Can I cancel my subscription?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period.
-              </p>
-            </div>
+        <section className="faq-section">
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <div className="eyebrow">FAQ</div>
+            <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '16px 0', color: '#e7ecf5' }}>
+              Frequently Asked Questions
+            </h2>
+            <p style={{ color: '#b7c1d6', maxWidth: '600px', margin: '0 auto', fontSize: '18px' }}>
+              Have questions? We have answers.
+            </p>
           </div>
-        </div>
+          
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {faqs.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#9aa4b2', fontSize: '16px' }}>No FAQs yet.</div>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {faqs.map((f, idx) => (
+                  <AccordionItem key={f.id} value={`item-${idx + 1}`}>
+                    <AccordionTrigger style={{ color: '#e7ecf5', fontSize: '16px', fontWeight: '600' }}>
+                      {f.question}
+                    </AccordionTrigger>
+                    <AccordionContent style={{ color: '#b7c1d6', fontSize: '14px', lineHeight: '1.6' }}>
+                      {f.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </div>
+        </section>
 
         {/* CTA Section */}
-        <div className="mt-16 text-center">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        <section className="cta-section">
+          <div className="cta-card">
+            <h2 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '16px', color: '#e7ecf5' }}>
               Ready to get started?
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p style={{ color: '#b7c1d6', fontSize: '18px', marginBottom: '32px' }}>
               Join thousands of users who trust our AI medical assistance platform.
             </p>
             {session ? (
               <Link href="/dashboard">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium">
+                <button className="subscribe-btn primary">
                   Go to Dashboard
-                </Button>
+                </button>
               </Link>
             ) : (
               <Link href="/auth/signup">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium">
+                <button className="subscribe-btn primary">
                   Get Started Free
-                </Button>
+                </button>
               </Link>
             )}
           </div>
-                 </div>
-       </div>
-       </div>
+        </section>
+      </main>
 
-       {/* Subscription Modal */}
-       {selectedPlan && (
-         <SubscriptionModal
-           plan={selectedPlan}
-           isOpen={isSubscriptionModalOpen}
-           onClose={() => {
-             setIsSubscriptionModalOpen(false);
-             setSelectedPlan(null);
-           }}
-           onSuccess={handleSubscriptionSuccess}
-         />
-       )}
-     </div>
-   );
- }
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-content">
+          <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
+            © 2025 HealthConsultant. All rights reserved.
+          </p>
+          <div className="footer-links">
+            <Link href="/terms">Terms of Service</Link>
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/contact">Contact</Link>
+          </div>
+        </div>
+      </footer>
+
+      {/* Subscription Modal */}
+      {selectedPlan && (
+        <SubscriptionModal
+          plan={selectedPlan}
+          isOpen={isSubscriptionModalOpen}
+          onClose={() => {
+            setIsSubscriptionModalOpen(false);
+            setSelectedPlan(null);
+          }}
+          onSuccess={handleSubscriptionSuccess}
+        />
+      )}
+    </div>
+  );
+}
 
 function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -332,13 +550,4 @@ function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
       />
     </svg>
   );
-}
-
-function HeartPulseIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-      <path d="M3.22 12H9.5l.7-1.5L11.5 12H16" />
-    </svg>
-  )
 }

@@ -41,11 +41,17 @@ create table if not exists plans (
   monthly_price numeric not null default 0,
   yearly_price numeric not null default 0,
   is_active boolean default true,
+  is_popular boolean default false,
+  interactions_limit integer,
   stripe_product_id text,
-  stripe_price_ids jsonb -- { monthly, yearly }
+  stripe_price_ids jsonb, -- { monthly, yearly }
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 create index if not exists plans_active_idx on plans(is_active);
+create index if not exists plans_popular_idx on plans(is_popular);
+create index if not exists plans_interactions_limit_idx on plans(interactions_limit);
 
 create table if not exists usage_records (
   id uuid primary key default gen_random_uuid(),
@@ -57,6 +63,21 @@ create table if not exists usage_records (
 );
 
 create index if not exists usage_user_date_idx on usage_records(user_email, date);
+
+-- User interactions table for tracking plan limits
+create table if not exists user_interactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  plan_id uuid not null references plans(id) on delete cascade,
+  interaction_type text not null,
+  month text not null, -- YYYY-MM format for easy querying
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_user_interactions_user_id on user_interactions(user_id);
+create index if not exists idx_user_interactions_plan_id on user_interactions(plan_id);
+create index if not exists idx_user_interactions_month on user_interactions(month);
+create index if not exists idx_user_interactions_user_plan_month on user_interactions(user_id, plan_id, month);
 
 
 -- FAQs table for landing page Frequently Asked Questions

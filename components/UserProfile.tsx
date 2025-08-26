@@ -120,155 +120,238 @@ export function UserProfile() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8 px-6">
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "profile"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Profile
-          </button>
-          <button
-            onClick={() => setActiveTab("password")}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "password"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Password
-          </button>
-        </nav>
+    <div style={{
+      background: 'linear-gradient(180deg, #12182c, #0f1325)',
+      border: '1px solid #1e2541',
+      borderRadius: '20px',
+      padding: '32px',
+      height: 'fit-content'
+    }}>
+      <style jsx>{`
+        .profile-tabs {
+          display: flex;
+          border-bottom: 1px solid #1e2541;
+          margin-bottom: 24px;
+        }
+        .profile-tab {
+          padding: 12px 16px;
+          background: none;
+          border: none;
+          color: #9aa4b2;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border-bottom: 2px solid transparent;
+        }
+        .profile-tab.active {
+          color: #e7ecf5;
+          border-bottom-color: #8856ff;
+        }
+        .profile-tab:hover:not(.active) {
+          color: #b7c1d6;
+        }
+        .form-group {
+          margin-bottom: 24px;
+        }
+        .form-label {
+          display: block;
+          color: #e7ecf5;
+          font-weight: 600;
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+        .form-input {
+          width: 100%;
+          padding: 16px;
+          background: #0e142c;
+          border: 1px solid #2a3261;
+          border-radius: 12px;
+          color: #dfe6ff;
+          font-size: 16px;
+          transition: all 0.2s ease;
+        }
+        .form-input:focus {
+          outline: none;
+          border-color: #8856ff;
+          box-shadow: 0 0 0 3px rgba(136, 86, 255, 0.1);
+        }
+        .form-input::placeholder {
+          color: #8ca0c5;
+        }
+        .btn-group {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          margin-top: 32px;
+        }
+        .btn {
+          padding: 12px 24px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.2s ease;
+          border: none;
+          cursor: pointer;
+        }
+        .btn.primary {
+          background: linear-gradient(90deg, #8856ff, #a854ff);
+          color: white;
+        }
+        .btn.primary:hover:not(:disabled) {
+          background: linear-gradient(90deg, #7a4bff, #9a44ff);
+        }
+        .btn.secondary {
+          background: #161a2c;
+          color: #e8edfb;
+          border: 1px solid #2a2f44;
+        }
+        .btn.secondary:hover {
+          background: #1e2541;
+          border-color: #3a4161;
+        }
+        .btn.danger {
+          background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+          color: white;
+        }
+        .btn.danger:hover {
+          background: linear-gradient(90deg, #ff5252, #ff7676);
+        }
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .section-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #e7ecf5;
+          margin-bottom: 16px;
+        }
+      `}</style>
+
+      <div className="profile-tabs">
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`profile-tab ${activeTab === "profile" ? "active" : ""}`}
+        >
+          Profile
+        </button>
+        <button
+          onClick={() => setActiveTab("password")}
+          className={`profile-tab ${activeTab === "password" ? "active" : ""}`}
+        >
+          Password
+        </button>
       </div>
 
-      <div className="p-6">
-        {activeTab === "profile" && (
-          <form onSubmit={handleProfileUpdate} className="space-y-6">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                Profile Information
-              </h2>
-              
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, email: e.target.value })
-                    }
-                    required
-                    className="mt-1"
-                  />
-                </div>
+      {activeTab === "profile" && (
+        <form onSubmit={handleProfileUpdate}>
+          <h2 className="section-title">Profile Information</h2>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              className="form-input"
+              value={profileData.email}
+              onChange={(e) =>
+                setProfileData({ ...profileData, email: e.target.value })
+              }
+              required
+            />
+          </div>
 
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    value={profileData.firstName}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, firstName: e.target.value })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="firstName">First Name</label>
+            <input
+              id="firstName"
+              type="text"
+              className="form-input"
+              value={profileData.firstName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, firstName: e.target.value })
+              }
+            />
+          </div>
 
-            <div className="flex justify-end space-x-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleLogout}
-                className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-900/20"
-              >
-                Logout
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </form>
-        )}
+          <div className="btn-group">
+            <button
+              type="button"
+              className="btn danger"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+            <button type="submit" className="btn primary" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      )}
 
-        {activeTab === "password" && (
-          <form onSubmit={handlePasswordChange} className="space-y-6">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                Change Password
-              </h2>
-              
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        currentPassword: e.target.value,
-                      })
-                    }
-                    required
-                    className="mt-1"
-                  />
-                </div>
+      {activeTab === "password" && (
+        <form onSubmit={handlePasswordChange}>
+          <h2 className="section-title">Change Password</h2>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="currentPassword">Current Password</label>
+            <input
+              id="currentPassword"
+              type="password"
+              className="form-input"
+              value={passwordData.currentPassword}
+              onChange={(e) =>
+                setPasswordData({
+                  ...passwordData,
+                  currentPassword: e.target.value,
+                })
+              }
+              required
+            />
+          </div>
 
-                <div>
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    required
-                    className="mt-1"
-                  />
-                </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="newPassword">New Password</label>
+            <input
+              id="newPassword"
+              type="password"
+              className="form-input"
+              value={passwordData.newPassword}
+              onChange={(e) =>
+                setPasswordData({
+                  ...passwordData,
+                  newPassword: e.target.value,
+                })
+              }
+              required
+            />
+          </div>
 
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    required
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="confirmPassword">Confirm New Password</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              className="form-input"
+              value={passwordData.confirmPassword}
+              onChange={(e) =>
+                setPasswordData({
+                  ...passwordData,
+                  confirmPassword: e.target.value,
+                })
+              }
+              required
+            />
+          </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Changing..." : "Change Password"}
-              </Button>
-            </div>
-          </form>
-        )}
-      </div>
+          <div className="btn-group">
+            <button type="submit" className="btn primary" disabled={isLoading}>
+              {isLoading ? "Changing..." : "Change Password"}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

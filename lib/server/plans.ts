@@ -11,6 +11,8 @@ function rowToPlan(row: any): Plan {
     monthlyPrice: Number(row.monthly_price || 0),
     yearlyPrice: Number(row.yearly_price || 0),
     isActive: !!row.is_active,
+    isPopular: !!row.is_popular,
+    interactionsLimit: row.interactions_limit !== null ? Number(row.interactions_limit) : null,
     stripeProductId: row.stripe_product_id || undefined,
     stripePriceIds: row.stripe_price_ids || undefined,
   } as any;
@@ -24,6 +26,8 @@ function planToRow(updates: Partial<Plan>): any {
     monthly_price: updates.monthlyPrice as any,
     yearly_price: updates.yearlyPrice as any,
     is_active: updates.isActive as any,
+    is_popular: updates.isPopular as any,
+    interactions_limit: updates.interactionsLimit as any,
     stripe_product_id: updates.stripeProductId as any,
     stripe_price_ids: updates.stripePriceIds as any,
   };

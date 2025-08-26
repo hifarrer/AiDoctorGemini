@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
-import { PublicChat } from "@/components/PublicChat"
 import { ImageSlider } from "@/components/ImageSlider"
 import ThemeToggle from "@/components/ThemeToggle"
 
@@ -14,8 +13,6 @@ export default function LandingPage() {
   const [heroTitle, setHeroTitle] = useState<string>("");
   const [heroSubtitle, setHeroSubtitle] = useState<string>("");
   const [sliderImages, setSliderImages] = useState<string[]>([]);
-  const [chatTitle, setChatTitle] = useState<string>("");
-  const [chatSubtitle, setChatSubtitle] = useState<string>("");
   const [featuresTitle, setFeaturesTitle] = useState<string>("");
   const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
@@ -28,8 +25,7 @@ export default function LandingPage() {
           fetch('/api/faq', { cache: 'no-store' }),
           fetch('/api/landing/hero', { cache: 'no-store' }),
         ]);
-        // Fetch chatbot section separately to avoid failing all
-        const chatbotFetch = fetch('/api/landing/chatbot', { cache: 'no-store' }).catch(() => null);
+        // Fetch features section separately to avoid failing all
         const featuresFetch = fetch('/api/landing/features', { cache: 'no-store' }).catch(() => null);
         if (settingsRes.ok) {
           const data = await settingsRes.json();
@@ -48,14 +44,6 @@ export default function LandingPage() {
             if (hero.title) setHeroTitle(hero.title);
             if (typeof hero.subtitle === 'string') setHeroSubtitle(hero.subtitle);
             if (Array.isArray(hero.images) && hero.images.length > 0) setSliderImages(hero.images);
-          }
-        }
-        const cr = await chatbotFetch;
-        if (cr && cr.ok) {
-          const chat = await cr.json();
-          if (chat && (chat.title || chat.subtitle)) {
-            if (chat.title) setChatTitle(chat.title);
-            if (typeof chat.subtitle === 'string') setChatSubtitle(chat.subtitle);
           }
         }
         const fr = await featuresFetch;
@@ -77,220 +65,588 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="px-4 lg:px-6 h-14 flex items-center bg-white dark:bg-gray-950 shadow-sm">
-        <Link className="flex items-center justify-center" href="#">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={siteName || "Medical AI Assistant"} className="h-8 w-auto object-contain" />
-          ) : (
-            <HeartPulseIcon className="h-6 w-6 text-teal-500" />
-          )}
-          <span className="sr-only">{siteName || "Medical AI Assistant"}</span>
-        </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="#demo">
-            Demo
+    <div className="min-h-screen" style={{
+      '--bg': '#0f1320',
+      '--text': '#e7ecf5',
+      '--muted': '#9aa4b2',
+      '--cta': '#8856ff',
+      '--cta-2': '#a854ff',
+      '--accent': '#6ae2ff'
+    } as React.CSSProperties}>
+      <style jsx global>{`
+        :root {
+          --bg: #0f1320;
+          --text: #e7ecf5;
+          --muted: #9aa4b2;
+          --cta: #8856ff;
+          --cta-2: #a854ff;
+          --accent: #6ae2ff;
+        }
+        * {
+          box-sizing: border-box;
+        }
+        body {
+          margin: 0;
+          font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+          background:
+            radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),
+            radial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),
+            var(--bg);
+          color: var(--text);
+        }
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+        .container {
+          max-width: 1240px;
+          margin: 0 auto;
+          padding: 24px;
+        }
+        .nav {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-weight: 800;
+          font-size: 20px;
+          transition: opacity 0.2s ease;
+        }
+        .logo:hover {
+          opacity: 0.8;
+        }
+        .logo-badge {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, var(--cta), var(--accent));
+          color: #08101b;
+          font-weight: 900;
+        }
+        .navlinks {
+          display: flex;
+          gap: 26px;
+          color: #c9d2e2;
+        }
+        .btn {
+          padding: 12px 18px;
+          border-radius: 12px;
+          border: 1px solid #2a2f44;
+          background: #161a2c;
+          color: #e8edfb;
+          font-weight: 600;
+          transition: all 0.2s ease;
+        }
+        .btn:hover {
+          background: #1e2541;
+          border-color: #3a4161;
+        }
+        .btn.primary {
+          background: linear-gradient(90deg, var(--cta), var(--cta-2));
+          border: none;
+          color: #fff;
+        }
+        .btn.primary:hover {
+          background: linear-gradient(90deg, #7a4bff, #9a44ff);
+        }
+        .hero {
+          display: grid;
+          grid-template-columns: 1.35fr 1fr;
+          gap: 40px;
+          align-items: start;
+          margin-top: 22px;
+        }
+        @media (max-width: 1024px) {
+          .hero {
+            grid-template-columns: 1fr;
+          }
+        }
+        .eyebrow {
+          color: #a8b1c6;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          font-size: 12px;
+        }
+        .title {
+          font-size: 56px;
+          line-height: 1.05;
+          font-weight: 800;
+          margin: 10px 0 8px;
+          letter-spacing: -0.02em;
+        }
+        .g-ai {
+          background: linear-gradient(90deg, #8a6bff 0%, #c87cff 45%, #8a6bff 90%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .g-health {
+          background: linear-gradient(90deg, #6ae2ff 0%, #7df3cf 50%, #6ae2ff 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .sub {
+          color: #b7c1d6;
+          max-width: 680px;
+          margin: 8px 0 18px;
+          font-size: 16px;
+        }
+        .steps {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+          margin: 26px 0;
+        }
+        @media (max-width: 640px) {
+          .steps {
+            grid-template-columns: 1fr;
+          }
+        }
+        .step {
+          display: grid;
+          grid-template-columns: 56px 1fr;
+          gap: 14px;
+          align-items: start;
+          background: linear-gradient(180deg, #12182c, #0f1325);
+          border: 1px solid #1e2541;
+          border-radius: 16px;
+          padding: 16px;
+          min-height: 112px;
+        }
+        .icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(145deg, #1a2040, #10152d);
+          border: 1px solid #243055;
+        }
+        .icon svg {
+          width: 26px;
+          height: 26px;
+        }
+        .step small {
+          color: #8ea2c8;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+        }
+        .step h4 {
+          margin: 2px 0 4px;
+          font-size: 16px;
+        }
+        .step p {
+          margin: 0;
+          color: #9fb0cf;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .ctabar {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin: 12px 0;
+        }
+        .btn-xl {
+          padding: 16px 24px;
+          border-radius: 14px;
+          font-size: 16px;
+        }
+        .badges {
+          display: flex;
+          gap: 18px;
+          flex-wrap: wrap;
+        }
+        .badge {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          color: #b8c2d8;
+          background: #11162a;
+          border: 1px solid #212a46;
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 13px;
+        }
+        .disclaimer {
+          color: #90a0bf;
+          font-size: 13px;
+          margin-top: 6px;
+        }
+        .phone {
+          background: linear-gradient(180deg, #111631, #0b1022);
+          border: 1px solid #252f59;
+          border-radius: 22px;
+          padding: 18px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+        }
+        @media (min-width: 1025px) {
+          .phone {
+            margin-top: 66px;
+          }
+        }
+        .chat-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #8e70ff, #6ae1ff);
+          display: grid;
+          place-items: center;
+          color: #0b0f1a;
+          font-weight: 900;
+        }
+        .chip {
+          font-size: 12px;
+          color: #88ffc8;
+          background: #0c1f1a;
+          border: 1px solid #1e4b3c;
+          padding: 3px 8px;
+          border-radius: 999px;
+          margin-left: 6px;
+        }
+        .bubble {
+          background: #0f1732;
+          border: 1px solid #2a3463;
+          color: #dfe6ff;
+          border-radius: 14px;
+          padding: 12px 14px;
+          font-size: 14px;
+          line-height: 1.45;
+        }
+        .bubble.purple {
+          color: #fff;
+          background: linear-gradient(120deg, #7b5cff, #a558ff);
+          border: none;
+        }
+        .input {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 12px;
+          background: #0e142c;
+          border: 1px solid #2a3261;
+          border-radius: 14px;
+          padding: 10px 12px;
+        }
+        .input input {
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #dfe6ff;
+          font-size: 14px;
+          flex: 1;
+        }
+        .send {
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: none;
+          background: linear-gradient(120deg, #7b5cff, #a558ff);
+          color: #fff;
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+        }
+        .tagline {
+          color: #8ca0c5;
+          font-size: 12px;
+          margin-top: 8px;
+          text-align: center;
+        }
+        .features-section {
+          padding: 80px 0;
+          background: linear-gradient(180deg, #0f1320, #0a0e1a);
+        }
+        .faq-section {
+          padding: 80px 0;
+          background: linear-gradient(180deg, #0a0e1a, #0f1320);
+        }
+        .footer {
+          background: #0a0e1a;
+          border-top: 1px solid #1e2541;
+          padding: 24px;
+        }
+        .footer-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 1240px;
+          margin: 0 auto;
+        }
+        .footer-links {
+          display: flex;
+          gap: 24px;
+        }
+        .footer-links a {
+          color: #9aa4b2;
+          font-size: 14px;
+          transition: color 0.2s ease;
+        }
+        .footer-links a:hover {
+          color: #e7ecf5;
+        }
+      `}</style>
+
+      <header className="container">
+        <nav className="nav">
+          <Link href="/" className="logo">
+            <div className="logo-badge">+</div>
+            <span>Health<span style={{ color: '#7ae2ff' }}>Consultant</span></span>
           </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">
-            Features
-          </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/plans">
-            Pricing
-          </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="#faq">
-            FAQ
-          </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/contact">
-            Contact
-          </Link>
-          <ThemeToggle />
-          <Link
-            className="inline-flex h-9 items-center justify-center rounded-md bg-teal-500 px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-teal-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-700"
-            href="/auth/login"
-          >
-            Get Started
-          </Link>
+          <div className="navlinks">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How it Works</a>
+            <a href="#faq">FAQ</a>
+            <a href="/plans">Pricing</a>
+            <a href="/contact">Contact</a>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Link className="btn" href="/auth/login">Sign In</Link>
+            <Link className="btn primary" href="/auth/signup">Get Started</Link>
+          </div>
         </nav>
       </header>
-      <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-teal-50 dark:bg-teal-950/20 relative overflow-hidden">
-          {/* Background Image */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45 dark:opacity-25"
-            style={{ backgroundImage: 'url(/aihealth.png)' }}
-          />
-          {/* Overlay for better text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-teal-50/80 to-transparent dark:from-teal-950/80" />
-          
-          <div className="container px-4 md:px-6 relative z-10">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-teal-900 dark:text-teal-100">{heroTitle}</h1>
-                  <p className="max-w-[600px] text-gray-600 md:text-xl dark:text-gray-400">{heroSubtitle}</p>
-                </div>
+
+      <main className="container hero">
+        {/* LEFT */}
+        <section>
+          <div className="eyebrow">AI-POWERED WELLNESS</div>
+          <h1 className="title">
+            Your Personal <span className="g-ai">AI</span><br />
+            <span className="g-health">Health</span> Assistant
+          </h1>
+          <p className="sub">
+            Upload a health photo or report and get instant, privacy-first insights. 
+            Receive a clean PDF summary and have an AI consultant explain the results in simple language.
+          </p>
+
+          <div className="steps">
+            <div className="step">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>
+                  <path d="M9 9h6v6H9z" fill="#7a86ff"/>
+                </svg>
               </div>
-              <div className="flex items-center justify-center">
-                <ImageSlider images={sliderImages} />
-              </div>
-            </div>
-          </div>
-        </section>
-        <section id="demo" className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-teal-100 px-3 py-1 text-sm text-teal-800 dark:bg-teal-900/20 dark:text-teal-200">Live Demo</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">{chatTitle}</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">{chatSubtitle}</p>
+              <div>
+                <small>STEP 1</small>
+                <h4>AI instantly analyzes</h4>
+                <p>Upload a photo or health report.</p>
               </div>
             </div>
-            <div className="mx-auto max-w-5xl py-12">
-              <PublicChat />
-            </div>
-          </div>
-        </section>
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-teal-100 px-3 py-1 text-sm text-teal-800 dark:bg-teal-900/20 dark:text-teal-200">
-                  Key Features
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">{featuresTitle}</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">{featuresSubtitle}</p>
+
+            <div className="step">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M7 3h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#6ae2ff" strokeWidth="1.4"/>
+                  <path d="M14 3v6h6" stroke="#6ae2ff" strokeWidth="1.4"/>
+                  <path d="M8 13h8M8 17h8" stroke="#3ac5e9" strokeWidth="1.4"/>
+                </svg>
+              </div>
+              <div>
+                <small>STEP 2</small>
+                <h4>Get a personalized PDF</h4>
+                <p>Clear metrics and ranges you can keep.</p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-12 py-12 lg:grid-cols-3">
-              {features.map((f) => (
-                <div key={f.id} className="grid gap-4 text-center">
-                  {f.icon === 'image' ? (
-                    <ImageIcon className="h-12 w-12 mx-auto text-teal-500" />
-                  ) : f.icon === 'shield' ? (
-                    <ShieldCheckIcon className="h-12 w-12 mx-auto text-teal-500" />
-                  ) : (
-                    <MessageCircleIcon className="h-12 w-12 mx-auto text-teal-500" />
-                  )}
-                  <h3 className="text-xl font-bold">{f.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400">{f.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-teal-50 dark:bg-teal-950/20">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Ready to Get Started?</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Choose the perfect plan for your needs and start your AI health journey today.
-                </p>
+
+            <div className="step">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="8" r="3.5" stroke="#b47bff" strokeWidth="1.4"/>
+                  <rect x="6.5" y="13.5" width="11" height="5.5" rx="1.2" stroke="#b47bff" strokeWidth="1.4"/>
+                </svg>
               </div>
-              <div className="flex gap-4">
-                <Link
-                  className="inline-flex h-11 items-center justify-center rounded-md bg-teal-500 px-8 text-sm font-medium text-white shadow transition-colors hover:bg-teal-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-700"
-                  href="/plans"
-                >
-                  View Plans
-                </Link>
-                <Link
-                  className="inline-flex h-11 items-center justify-center rounded-md border border-gray-300 bg-white px-8 text-sm font-medium text-gray-900 shadow transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-700 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
-                  href="/auth/signup"
-                >
-                  Sign Up Free
-                </Link>
+              <div>
+                <small>STEP 3</small>
+                <h4>AI Consultant explains</h4>
+                <p>Understand what your numbers mean.</p>
+              </div>
+            </div>
+
+            <div className="step">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="13" rx="3" stroke="#8cefcf" strokeWidth="1.4"/>
+                  <path d="M8 10h8M8 7.8h8M8 12.2h5" stroke="#5de0b9" strokeWidth="1.4"/>
+                  <path d="M8 21l4-4h7" stroke="#3ed1a3" strokeWidth="1.4"/>
+                </svg>
+              </div>
+              <div>
+                <small>PLUS</small>
+                <h4>Ask follow-up questions</h4>
+                <p>24/7 assistant for quick answers.</p>
               </div>
             </div>
           </div>
-        </section>
-        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-gray-100 dark:bg-gray-800/20">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Frequently Asked Questions</h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Have questions? We have answers.
-                </p>
+
+          <div className="ctabar">
+            <Link className="btn primary btn-xl" href="/auth/signup">GET INSTANT RESULT</Link>
+            <div className="badges">
+              <div className="badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2l1.6 3.6L17 7.2l-3.4 1.6L12 12l-1.6-3.2L7 7.2l3.4-1.6L12 2z" fill="#9ad0ff"/>
+                </svg>
+                AI-Powered Insights
+              </div>
+              <div className="badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3l8 4v5c0 5-3.4 7.9-8 9-4.6-1.1-8-4-8-9V7l8-4z" stroke="#93ffc7" strokeWidth="1.4"/>
+                  <path d="M9 12l2 2 4-4" stroke="#93ffc7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                HIPAA Compliant
+              </div>
+              <div className="badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="#9ad0ff" strokeWidth="1.4"/>
+                  <path d="M12 7v6l4 2" stroke="#9ad0ff" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+                24/7 Available
               </div>
             </div>
-            <div className="mx-auto max-w-3xl py-12">
-              {faqs.length === 0 ? (
-                <div className="text-gray-500 dark:text-gray-400 text-center">No FAQs yet.</div>
-              ) : (
-                <Accordion type="single" collapsible className="w-full">
-                  {faqs.map((f, idx) => (
-                    <AccordionItem key={f.id} value={`item-${idx + 1}`}>
-                      <AccordionTrigger>{f.question}</AccordionTrigger>
-                      <AccordionContent>{f.answer}</AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              )}
-            </div>
           </div>
+
+          <p className="disclaimer">
+            * The scan result is not a diagnosis. <b>To obtain an accurate diagnosis and treatment recommendation consult your doctor.</b>
+          </p>
         </section>
+
+        {/* RIGHT */}
+        <aside>
+          <div className="phone">
+            <div className="chat-header">
+              <div className="avatar">AI</div>
+              <div>
+                <div style={{ fontWeight: '700' }}>AI Health Assistant</div>
+                <div className="chip">● Online</div>
+              </div>
+            </div>
+            <div className="bubble purple">
+              Hi! Can you help me understand my recent health report? I'm a bit concerned about my cholesterol levels.
+            </div>
+            <div style={{ height: '10px' }}></div>
+            <div className="bubble">
+              I'd be happy to help you understand your cholesterol results! Based on your report, your total cholesterol is <b>195 mg/dL</b>, which is within the desirable range (&lt;200). Your HDL is excellent at <b>65 mg/dL</b>.
+            </div>
+            <div className="input">
+              <input placeholder="Ask about your health report…" />
+              <button className="send" aria-label="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 11l18-8-8 18-2-7-8-3z" fill="white"/>
+                </svg>
+              </button>
+            </div>
+            <div className="tagline">Your data stays private and secure.</div>
+          </div>
+        </aside>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-white dark:bg-gray-950">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 Medical AI Assistant. All rights reserved.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link className="text-xs hover:underline underline-offset-4" href="/terms">
-            Terms of Service
-          </Link>
-          <Link className="text-xs hover:underline underline-offset-4" href="/privacy">
-            Privacy
-          </Link>
-        </nav>
+
+      {/* Features Section */}
+      <section id="features" className="features-section">
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <div className="eyebrow">KEY FEATURES</div>
+            <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '16px 0', color: '#e7ecf5' }}>
+              {featuresTitle || "Advanced AI Health Analysis"}
+            </h2>
+            <p style={{ color: '#b7c1d6', maxWidth: '600px', margin: '0 auto', fontSize: '18px' }}>
+              {featuresSubtitle || "Experience the future of health monitoring with our cutting-edge AI technology"}
+            </p>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+            {features.map((feature) => (
+              <div key={feature.id} className="step" style={{ minHeight: 'auto' }}>
+                <div className="icon">
+                  {feature.icon === 'image' ? (
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>
+                      <path d="M9 9h6v6H9z" fill="#7a86ff"/>
+                    </svg>
+                  ) : feature.icon === 'shield' ? (
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M12 3l8 4v5c0 5-3.4 7.9-8 9-4.6-1.1-8-4-8-9V7l8-4z" stroke="#93ffc7" strokeWidth="1.4"/>
+                      <path d="M9 12l2 2 4-4" stroke="#93ffc7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" stroke="#6ae2ff" strokeWidth="1.4"/>
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '20px', marginBottom: '8px' }}>{feature.title}</h4>
+                  <p style={{ color: '#9fb0cf', fontSize: '14px', lineHeight: '1.5' }}>{feature.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="faq-section">
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <div className="eyebrow">FAQ</div>
+            <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '16px 0', color: '#e7ecf5' }}>
+              Frequently Asked Questions
+            </h2>
+            <p style={{ color: '#b7c1d6', maxWidth: '600px', margin: '0 auto', fontSize: '18px' }}>
+              Have questions? We have answers.
+            </p>
+          </div>
+          
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {faqs.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#9aa4b2', fontSize: '16px' }}>No FAQs yet.</div>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {faqs.map((f, idx) => (
+                  <AccordionItem key={f.id} value={`item-${idx + 1}`}>
+                    <AccordionTrigger style={{ color: '#e7ecf5', fontSize: '16px', fontWeight: '600' }}>
+                      {f.question}
+                    </AccordionTrigger>
+                    <AccordionContent style={{ color: '#b7c1d6', fontSize: '14px', lineHeight: '1.6' }}>
+                      {f.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-content">
+          <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
+            © 2025 HealthConsultant. All rights reserved.
+          </p>
+          <div className="footer-links">
+            <Link href="/terms">Terms of Service</Link>
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/contact">Contact</Link>
+          </div>
+        </div>
       </footer>
     </div>
-  )
-}
-
-function HeartPulseIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-      <path d="M3.22 12H9.5l.7-1.5L11.5 12H16" />
-    </svg>
-  )
-}
-
-function ImageIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-    </svg>
-  )
-}
-
-function MessageCircleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-    </svg>
-  )
-}
-
-function ShieldCheckIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1z" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  )
-}
-
-function StethoscopeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3" />
-      <path d="M8 2a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1H4a1 1 0 0 0-1 1v1" />
-      <path d="M16 2a1 1 0 0 1 1 1v1a1 1 0 0 0 1 1h2a1 1 0 0 1 1 1v1" />
-      <path d="M3 10a5 5 0 0 0 5 5h8a5 5 0 0 0 5-5v-3" />
-      <path d="M12 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-    </svg>
   )
 } 

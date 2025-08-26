@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { recordChatStart } from "@/lib/client/usage";
 import ReactMarkdown from 'react-markdown';
+import { useSession } from "next-auth/react";
 
 // Configure the worker for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -23,6 +24,8 @@ interface Message extends AIMessage {
 }
 
 export function PublicChat() {
+  const { data: session } = useSession();
+  
   // Store initial messages in state to prevent re-creation on every render
   const [initialMessages] = useState<Message[]>([
     {
@@ -32,7 +35,7 @@ export function PublicChat() {
     },
   ]);
 
-  const { messages, input, handleInputChange, append, isLoading, setInput } = useChat({
+  const { messages, input, handleInputChange, append, isLoading, setInput, error } = useChat({
     api: "/api/chat",
     initialMessages,
     // This onError handler logs the full error object to the console,
@@ -41,6 +44,42 @@ export function PublicChat() {
       // Log the entire error object to the console to inspect its structure.
       // This will show us exactly what the backend is sending on failure.
       console.error("Full error object from useChat hook:", error);
+
+      // Check if this is an interaction limit error
+      if (error.message && error.message.includes('INTERACTION_LIMIT_REACHED')) {
+        // Parse the error response to get details
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.error === 'INTERACTION_LIMIT_REACHED') {
+            // Add a system message to the chat about the limit
+            const limitMessage: Message = {
+              id: uuidv4(),
+              role: "assistant",
+              content: `🚫 **Interaction Limit Reached**
+
+You've reached your monthly interaction limit for the **${errorData.plan}** plan.
+
+**Current Usage:** ${errorData.limit - (errorData.remainingInteractions || 0)}/${errorData.limit} interactions
+
+**To continue using the AI Health Consultant, please upgrade your plan:**
+
+- **Basic Plan:** 50 interactions/month
+- **Premium Plan:** Unlimited interactions
+
+[Upgrade Now](/plans)`,
+            };
+            
+            // Add the limit message to the chat
+            append(limitMessage);
+            
+            // Show a toast notification
+            toast.error("Interaction limit reached. Please upgrade your plan to continue.");
+            return;
+          }
+        } catch (parseError) {
+          console.error('Error parsing interaction limit error:', parseError);
+        }
+      }
 
       // We will create a user-friendly message without trying to parse JSON.
       // The real details will be in the developer console.
@@ -98,19 +137,21 @@ export function PublicChat() {
               const page = await pdf.getPage(i);
               const textContent = await page.getTextContent();
               const pageText = textContent.items.map(item => (item as any).str).join(" ");
-              fullText += pageText + "\n\n";
+              fullText += pageText + "\n";
             }
-            setDocument({ name: file.name, content: fullText });
+            setDocument({
+              name: file.name,
+              content: fullText.trim(),
+            });
           }
         };
         reader.readAsArrayBuffer(file);
       } catch (error) {
-        console.error("Error parsing PDF:", error);
-        toast.error("Failed to parse PDF file.");
+        console.error("Error reading PDF:", error);
+        toast.error("Error reading PDF file. Please try again.");
       }
     } else {
-      toast.error("Unsupported file type. Please upload an image or a PDF.");
-      return;
+      toast.error("Unsupported file type. Please upload an image or PDF.");
     }
   };
 
@@ -198,59 +239,37 @@ export function PublicChat() {
            {isLoading && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 shrink-0 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm">AI</div>
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
-                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
-                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                <div className="rounded-lg p-3 bg-gray-100 dark:bg-gray-800">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
                 </div>
               </div>
             )}
         </div>
-        <form onSubmit={handleSubmit} className="p-4 border-t bg-gray-50 dark:bg-gray-900 rounded-b-xl">
-          <div className="relative">
-             {image && (
-              <div className="absolute bottom-14 left-0 w-full p-2">
-                <div className="relative inline-block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={image} alt="preview" className="w-20 h-20 rounded-md object-cover" />
-                  <button type="button" onClick={() => setImage(null)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    &times;
-                  </button>
-                </div>
-              </div>
-            )}
-            {document && (
-                <div className="absolute bottom-14 left-0 w-full p-2">
-                    <div className="relative inline-flex items-center gap-2 bg-gray-200 dark:bg-gray-700 p-2 rounded-md">
-                        <FileTextIcon className="w-5 h-5 text-gray-600 dark:text-gray-300"/>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{document.name}</p>
-                        <button type="button" onClick={() => setDocument(null)} className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shrink-0">
-                            &times;
-                        </button>
-                    </div>
-                </div>
-            )}
-            <div className="flex items-center gap-2">
-              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf" />
-              <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
-                <PaperclipIcon className="w-5 h-5" />
-              </Button>
-              <Input
-                className="flex-1 bg-white dark:bg-gray-800"
-                placeholder="Type your message..."
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !isLoading) {
-                    handleSubmit(e as any);
-                  }
-                }}
-                disabled={isLoading}
-              />
-              <Button type="submit" disabled={isLoading || (!input.trim() && !image && !document)} className="bg-teal-500 hover:bg-teal-600 text-white">
-                Send
-              </Button>
-            </div>
+        <form onSubmit={handleSubmit} className="p-4 border-t bg-white dark:bg-gray-950">
+          <div className="flex items-center gap-2">
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf" />
+            <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
+              <PaperclipIcon className="w-5 h-5" />
+            </Button>
+            <Input
+              className="flex-1 bg-white dark:bg-gray-800"
+              placeholder="Type your message..."
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !isLoading) {
+                  handleSubmit(e as any);
+                }
+              }}
+              disabled={isLoading}
+            />
+            <Button type="submit" disabled={isLoading || (!input.trim() && !image && !document)} className="bg-teal-500 hover:bg-teal-600 text-white">
+              Send
+            </Button>
           </div>
           <div className="flex items-center justify-center pt-2">
             <LockIcon className="w-3 h-3 text-gray-400 mr-1.5" />
@@ -264,29 +283,57 @@ export function PublicChat() {
 
 function LockIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+      />
     </svg>
   );
 }
 
 function PaperclipIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+      />
     </svg>
   );
 }
 
 function FileTextIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-      <line x1="10" y1="9" x2="8" y2="9" />
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
     </svg>
   );
 } 

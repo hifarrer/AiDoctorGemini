@@ -7,6 +7,7 @@ export interface Plan {
   yearlyPrice: number;
   isActive: boolean;
   isPopular?: boolean;
+  interactionsLimit?: number; // null/undefined means unlimited
   // Stripe linkage (server-populated)
   stripeProductId?: string;
   stripePriceIds?: {
@@ -22,7 +23,7 @@ export const plans: Plan[] = [
     title: "Free",
     description: "Perfect for getting started",
     features: [
-      "5 AI consultations per month",
+      "3 AI consultations per month",
       "Basic health information",
       "Email support",
       "Standard response time"
@@ -31,6 +32,7 @@ export const plans: Plan[] = [
     yearlyPrice: 0,
     isActive: true,
     isPopular: false,
+    interactionsLimit: 3,
   },
   {
     id: "2",
@@ -48,6 +50,7 @@ export const plans: Plan[] = [
     yearlyPrice: 99.99,
     isActive: true,
     isPopular: true,
+    interactionsLimit: 50,
   },
   {
     id: "3",
@@ -67,5 +70,6 @@ export const plans: Plan[] = [
     yearlyPrice: 299.99,
     isActive: true,
     isPopular: false,
+    interactionsLimit: null, // Unlimited
   },
 ];

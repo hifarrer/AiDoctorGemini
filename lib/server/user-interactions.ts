@@ -43,19 +43,27 @@ export async function getUserInteractionCount(
   const supabase = getSupabaseServerClient();
   const targetMonth = month || new Date().toISOString().slice(0, 7);
 
-  const { count, error } = await supabase
+  console.log('🔍 Getting interaction count for:', { userId, planId, targetMonth });
+
+  const { data, error } = await supabase
     .from('user_interactions')
-    .select('*', { count: 'exact', head: true })
+    .select('*')
     .eq('user_id', userId)
     .eq('plan_id', planId)
     .eq('month', targetMonth);
+
+  console.log('🔍 Raw query result:', { data, error });
 
   if (error) {
     console.error('Error getting user interaction count:', error);
     throw error;
   }
 
-  return count || 0;
+  const count = data?.length || 0;
+  console.log('🔍 Interaction count result:', count);
+  console.log('🔍 Found records:', data);
+  
+  return count;
 }
 
 export async function canUserInteract(
@@ -105,7 +113,14 @@ export async function getUserInteractionStats(
       return { currentMonth: 0, limit: null, remaining: null };
     }
 
-    const currentCount = await getUserInteractionCount(userId, planId);
+    let currentCount = 0;
+    try {
+      currentCount = await getUserInteractionCount(userId, planId);
+    } catch (error) {
+      console.error('Error getting user interaction count, defaulting to 0:', error);
+      currentCount = 0;
+    }
+
     const limit = userPlan.interactionsLimit;
     const remaining = limit === null ? null : Math.max(0, limit - currentCount);
 
@@ -116,6 +131,20 @@ export async function getUserInteractionStats(
     };
   } catch (error) {
     console.error('Error getting user interaction stats:', error);
+    // Don't return null limit on error, try to get the plan limit at least
+    try {
+      const plans = await getPlans();
+      const userPlan = plans.find(plan => plan.id === planId);
+      if (userPlan) {
+        return {
+          currentMonth: 0,
+          limit: userPlan.interactionsLimit,
+          remaining: userPlan.interactionsLimit === null ? null : userPlan.interactionsLimit
+        };
+      }
+    } catch (planError) {
+      console.error('Error getting plan as fallback:', planError);
+    }
     return { currentMonth: 0, limit: null, remaining: null };
   }
 }

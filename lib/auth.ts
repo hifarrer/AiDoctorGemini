@@ -60,13 +60,17 @@ export const authOptions = {
   callbacks: {
     async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
+        token.id = user.id;
         token.isAdmin = (user as any).isAdmin || false;
       }
-      // Ensure isAdmin is populated even on subsequent requests
+      // Ensure isAdmin and id are populated even on subsequent requests
       if (typeof (token as any).isAdmin === 'undefined' && token?.email) {
         try {
           const dbUser = await findUserByEmail(token.email as string);
           (token as any).isAdmin = !!dbUser?.isAdmin;
+          if (!token.id && dbUser?.id) {
+            token.id = dbUser.id;
+          }
         } catch {
           // ignore
         }
@@ -74,6 +78,7 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }: { session: any; token: any }) {
+      (session.user as any).id = token.id;
       (session.user as any).isAdmin = (token as any).isAdmin || false;
       return session;
     },

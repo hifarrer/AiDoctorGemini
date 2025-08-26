@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { recordChatStart } from "@/lib/client/usage";
 import ReactMarkdown from 'react-markdown';
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 // Configure the worker for pdfjs-dist
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -21,6 +22,13 @@ interface Message extends AIMessage {
     name: string;
     content: string;
   }
+}
+
+interface InteractionStats {
+  currentMonth: number;
+  limit: number | null;
+  remaining: number | null;
+  hasUnlimited: boolean;
 }
 
 export function PublicChat() {
@@ -41,53 +49,15 @@ export function PublicChat() {
     // This onError handler logs the full error object to the console,
     // which is crucial for debugging client-side issues with the stream.
     onError: (error) => {
-      // Log the entire error object to the console to inspect its structure.
-      // This will show us exactly what the backend is sending on failure.
       console.error("Full error object from useChat hook:", error);
 
-      // Check if this is an interaction limit error
-      if (error.message && error.message.includes('INTERACTION_LIMIT_REACHED')) {
-        // Parse the error response to get details
-        try {
-          const errorData = JSON.parse(error.message);
-          if (errorData.error === 'INTERACTION_LIMIT_REACHED') {
-            // Add a system message to the chat about the limit
-            const limitMessage: Message = {
-              id: uuidv4(),
-              role: "assistant",
-              content: `🚫 **Interaction Limit Reached**
-
-You've reached your monthly interaction limit for the **${errorData.plan}** plan.
-
-**Current Usage:** ${errorData.limit - (errorData.remainingInteractions || 0)}/${errorData.limit} interactions
-
-**To continue using the AI Health Consultant, please upgrade your plan:**
-
-- **Basic Plan:** 50 interactions/month
-- **Premium Plan:** Unlimited interactions
-
-[Upgrade Now](/plans)`,
-            };
-            
-            // Add the limit message to the chat
-            append(limitMessage);
-            
-            // Show a toast notification
-            toast.error("Interaction limit reached. Please upgrade your plan to continue.");
-            return;
-          }
-        } catch (parseError) {
-          console.error('Error parsing interaction limit error:', parseError);
-        }
-      }
-
       // We will create a user-friendly message without trying to parse JSON.
-      // The real details will be in the developer console.
       const displayMessage = `An error occurred. Please check the console for details.`;
       toast.error(displayMessage);
     },
-    onFinish: (message) => {
-      console.log("Chat message finished:", message);
+    onFinish: () => {
+      // Refresh stats after each completed assistant message
+      void fetchInteractionStats();
     },
   });
 
@@ -96,6 +66,23 @@ You've reached your monthly interaction limit for the **${errorData.plan}** plan
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  const [stats, setStats] = useState<InteractionStats | null>(null);
+  const hasUnlimited = !!stats?.hasUnlimited;
+  const remaining = stats?.remaining ?? null;
+  const isAtLimit = !hasUnlimited && remaining !== null && remaining <= 0;
+
+  const fetchInteractionStats = async () => {
+    try {
+      const res = await fetch('/api/user/interaction-limit', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data as InteractionStats);
+      }
+    } catch (e) {
+      // ignore fetch errors for UX
+    }
+  };
+
   // Auto-scroll to the bottom of the chat on new messages
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -103,10 +90,13 @@ You've reached your monthly interaction limit for the **${errorData.plan}** plan
     }
   }, [messages]);
 
-  // Record chat session start
+  // Record chat session start and load interaction stats
   useEffect(() => {
     recordChatStart();
-  }, []);
+    if (session?.user?.email) {
+      void fetchInteractionStats();
+    }
+  }, [session]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -157,6 +147,20 @@ You've reached your monthly interaction limit for the **${errorData.plan}** plan
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Block sending if user reached the interaction limit
+    if (isAtLimit) {
+      toast.error("You've reached your monthly interaction limit. Please upgrade your plan.");
+      // Optionally show a helper message in the chat
+      const limitMessage: Message = {
+        id: uuidv4(),
+        role: "assistant",
+        content: "You've reached your monthly interaction limit. Please upgrade your plan to continue using this AI Health Consultant.\n\n[Upgrade Now](/plans)",
+      };
+      append(limitMessage);
+      return;
+    }
+
     if (!input.trim() && !image && !document) {
       return;
     }
@@ -170,11 +174,11 @@ You've reached your monthly interaction limit for the **${errorData.plan}** plan
     };
 
     if (image) {
-        messageToAppend.image = image;
+      messageToAppend.image = image;
     }
 
     if (document) {
-        messageToAppend.document = document;
+      messageToAppend.document = document;
     }
 
     // The custom data (image/document) is passed in the `body` of the options argument.
@@ -205,6 +209,33 @@ You've reached your monthly interaction limit for the **${errorData.plan}** plan
     <>
       <Toaster position="top-center" />
       <div className="mx-auto w-full max-w-3xl rounded-xl border bg-white dark:bg-gray-950 shadow-lg">
+        <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+          {stats && !hasUnlimited && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">
+                {`Usage: ${stats.currentMonth} / ${stats.limit ?? '∞'} interactions`}
+              </span>
+              <button
+                className="text-teal-600 hover:underline disabled:opacity-50"
+                onClick={() => fetchInteractionStats()}
+                disabled={isLoading}
+              >
+                Refresh
+              </button>
+            </div>
+          )}
+        </div>
+
+        {isAtLimit && (
+          <div className="mx-4 mt-4 rounded-md bg-red-100 dark:bg-red-900 p-3 text-sm">
+            <p className="text-red-800 dark:text-red-200">
+              You've reached your monthly interaction limit. Please upgrade to continue.
+              {" "}
+              <Link href="/plans" className="underline font-medium">Upgrade plan</Link>
+            </p>
+          </div>
+        )}
+
         <div ref={chatContainerRef} className="p-4 h-[32rem] overflow-y-auto space-y-4">
           {uiMessages.map((message) => (
             <div key={message.id} className={`flex items-start gap-3 ${message.role === "user" ? "justify-end" : ""}`}>
@@ -252,22 +283,22 @@ You've reached your monthly interaction limit for the **${errorData.plan}** plan
         <form onSubmit={handleSubmit} className="p-4 border-t bg-white dark:bg-gray-950">
           <div className="flex items-center gap-2">
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf" />
-            <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
+            <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || isAtLimit}>
               <PaperclipIcon className="w-5 h-5" />
             </Button>
             <Input
               className="flex-1 bg-white dark:bg-gray-800"
-              placeholder="Type your message..."
+              placeholder={isAtLimit ? "Interaction limit reached. Upgrade to continue..." : "Type your message..."}
               value={input}
               onChange={handleInputChange}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !isLoading) {
+                if (e.key === "Enter" && !e.shiftKey && !isLoading && !isAtLimit) {
                   handleSubmit(e as any);
                 }
               }}
-              disabled={isLoading}
+              disabled={isLoading || isAtLimit}
             />
-            <Button type="submit" disabled={isLoading || (!input.trim() && !image && !document)} className="bg-teal-500 hover:bg-teal-600 text-white">
+            <Button type="submit" disabled={isLoading || isAtLimit || (!input.trim() && !image && !document)} className="bg-teal-500 hover:bg-teal-600 text-white">
               Send
             </Button>
           </div>

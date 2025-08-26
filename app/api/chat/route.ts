@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { recordInteraction } from '@/lib/server/usage';
 import { NextRequest } from 'next/server';
+import { recordUserInteraction } from '@/lib/server/user-interactions';
+import { findUserByEmail } from '@/lib/server/users';
+import { getPlans } from '@/lib/server/plans';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,6 +62,30 @@ export async function POST(req: NextRequest) {
       hasDocument: !!document,
       userEmail: session?.user?.email || 'anonymous'
     });
+
+    // Record user interaction for authenticated users
+    if (session?.user?.email) {
+      try {
+        const user = await findUserByEmail(session.user.email);
+        if (user) {
+          const plans = await getPlans();
+          const userPlan = plans.find(plan => plan.title === user.plan) || plans.find(plan => plan.title === 'Free');
+          
+          if (userPlan) {
+            // Determine interaction type
+            let interactionType: 'chat' | 'image_analysis' | 'health_report' = 'chat';
+            if (image) interactionType = 'image_analysis';
+            if (document) interactionType = 'health_report';
+            
+            await recordUserInteraction(user.id, userPlan.id, interactionType);
+            console.log(`✅ User interaction recorded: ${interactionType} for user ${user.email}`);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to record user interaction:', error);
+        // Don't fail the request if interaction recording fails
+      }
+    }
 
     // Record usage for both authenticated and non-authenticated users
     let prompts = 1; // Base interaction

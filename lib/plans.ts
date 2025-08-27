@@ -7,7 +7,7 @@ export interface Plan {
   yearlyPrice: number;
   isActive: boolean;
   isPopular?: boolean;
-  interactionsLimit?: number; // null/undefined means unlimited
+  interactionsLimit?: number | null; // null/undefined means unlimited
   // Stripe linkage (server-populated)
   stripeProductId?: string;
   stripePriceIds?: {

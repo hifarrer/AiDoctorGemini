@@ -229,7 +229,7 @@ export function PublicChat() {
         {isAtLimit && (
           <div className="mx-4 mt-4 rounded-md bg-red-100 dark:bg-red-900 p-3 text-sm">
             <p className="text-red-800 dark:text-red-200">
-              You've reached your monthly interaction limit. Please upgrade to continue.
+              You&apos;ve reached your monthly interaction limit. Please upgrade to continue.
               {" "}
               <Link href="/plans" className="underline font-medium">Upgrade plan</Link>
             </p>

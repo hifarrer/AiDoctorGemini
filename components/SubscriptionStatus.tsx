@@ -125,7 +125,7 @@ export default function SubscriptionStatus() {
         `}</style>
         <div className="no-subscription">
           <h3>No Active Subscription</h3>
-          <p>You're currently on the free plan. Upgrade to unlock premium features.</p>
+          <p>You&apos;re currently on the free plan. Upgrade to unlock premium features.</p>
         </div>
       </div>
     );

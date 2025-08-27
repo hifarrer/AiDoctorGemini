@@ -379,7 +379,7 @@ export default function ContactPage() {
               Other Ways to Connect
             </h2>
             <p style={{ color: '#b7c1d6', maxWidth: '600px', margin: '0 auto', fontSize: '18px' }}>
-              Prefer a different way to get in touch? We're here to help.
+              Prefer a different way to get in touch? We&apos;re here to help.
             </p>
           </div>
           
@@ -388,7 +388,7 @@ export default function ContactPage() {
               <div className="info-icon">📧</div>
               <h3 className="info-title">Email Support</h3>
               <p className="info-content">
-                Send us an email at support@healthconsultant.com and we'll get back to you within 24 hours.
+                Send us an email at support@healthconsultant.com and we&apos;ll get back to you within 24 hours.
               </p>
             </div>
             

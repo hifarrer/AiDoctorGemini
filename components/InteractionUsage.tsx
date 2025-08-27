@@ -128,7 +128,7 @@ export default function InteractionUsage() {
           {isAtLimit ? (
             <div className="bg-red-100 dark:bg-red-900 p-3 rounded-md">
               <p className="text-red-800 dark:text-red-200 text-sm mb-2">
-                🚫 You've reached your monthly interaction limit.
+                🚫 You&apos;ve reached your monthly interaction limit.
               </p>
               <Link href="/plans">
                 <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
@@ -139,7 +139,7 @@ export default function InteractionUsage() {
           ) : isNearLimit ? (
             <div className="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-md">
               <p className="text-yellow-800 dark:text-yellow-200 text-sm mb-2">
-                ⚠️ You're approaching your monthly interaction limit.
+                ⚠️ You&apos;re approaching your monthly interaction limit.
               </p>
               <Link href="/plans">
                 <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">

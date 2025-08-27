@@ -538,11 +538,11 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="bubble purple">
-              Hi! Can you help me understand my recent health report? I'm a bit concerned about my cholesterol levels.
+              Hi! Can you help me understand my recent health report? I&apos;m a bit concerned about my cholesterol levels.
             </div>
             <div style={{ height: '10px' }}></div>
             <div className="bubble">
-              I'd be happy to help you understand your cholesterol results! Based on your report, your total cholesterol is <b>195 mg/dL</b>, which is within the desirable range (&lt;200). Your HDL is excellent at <b>65 mg/dL</b>.
+              I&apos;d be happy to help you understand your cholesterol results! Based on your report, your total cholesterol is <b>195 mg/dL</b>, which is within the desirable range (&lt;200). Your HDL is excellent at <b>65 mg/dL</b>.
             </div>
             <div className="input">
               <input placeholder="Ask about your health report…" />

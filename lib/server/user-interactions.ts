@@ -121,8 +121,9 @@ export async function getUserInteractionStats(
       currentCount = 0;
     }
 
-    const limit = userPlan.interactionsLimit;
-    const remaining = limit === null ? null : Math.max(0, limit - currentCount);
+    const rawLimit = userPlan.interactionsLimit;
+    const limit: number | null = (rawLimit === null || typeof rawLimit === 'undefined') ? null : rawLimit;
+    const remaining = limit === null ? null : Math.max(0, (limit as number) - currentCount);
 
     return {
       currentMonth: currentCount,
@@ -136,10 +137,13 @@ export async function getUserInteractionStats(
       const plans = await getPlans();
       const userPlan = plans.find(plan => plan.id === planId);
       if (userPlan) {
+        const normalized = (userPlan.interactionsLimit === null || typeof userPlan.interactionsLimit === 'undefined') 
+          ? null 
+          : userPlan.interactionsLimit;
         return {
           currentMonth: 0,
-          limit: userPlan.interactionsLimit,
-          remaining: userPlan.interactionsLimit === null ? null : userPlan.interactionsLimit
+          limit: normalized,
+          remaining: normalized === null ? null : normalized
         };
       }
     } catch (planError) {

@@ -11,6 +11,8 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("chat");
+  const [chatTheme, setChatTheme] = useState<'light' | 'dark'>('light');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const { data: session } = useSession();
@@ -170,6 +172,58 @@ export default function DashboardPage() {
         .footer-links a:hover {
           color: #e7ecf5;
         }
+        /* Mobile nav */
+        .menu-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          border: 1px solid #2a2f44;
+          background: #161a2c;
+          color: #e8edfb;
+        }
+        .mobile-menu {
+          display: none;
+          position: absolute;
+          right: 24px;
+          top: 64px;
+          z-index: 20;
+          background: #0f1325;
+          border: 1px solid #1e2541;
+          border-radius: 12px;
+          padding: 8px;
+          min-width: 180px;
+        }
+        .mobile-menu a, .mobile-menu button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 10px 12px;
+          border-radius: 8px;
+          color: #c9d2e2;
+          background: transparent;
+          border: none;
+        }
+        .mobile-menu a:hover, .mobile-menu button:hover {
+          background: #1e2541;
+          color: #fff;
+        }
+        @media (max-width: 640px) {
+          .nav {
+            position: relative;
+          }
+          .navlinks {
+            display: none;
+          }
+          .menu-toggle {
+            display: flex;
+          }
+          .mobile-menu {
+            display: block;
+          }
+        }
       `}</style>
 
       <header className="container">
@@ -178,33 +232,67 @@ export default function DashboardPage() {
             <div className="logo-badge">+</div>
             <span>Health<span style={{ color: '#7ae2ff' }}>Consultant</span></span>
           </Link>
-          <div className="navlinks">
+          <div className="navlinks" style={{ gap: 12 }}>
             <button
               onClick={() => setActiveSection("chat")}
               className={`btn ${activeSection === "chat" ? "active" : ""}`}
+              style={{ padding: '10px 12px' }}
             >
               Chat
             </button>
             <button
               onClick={() => setActiveSection("profile")}
               className={`btn ${activeSection === "profile" ? "active" : ""}`}
+              style={{ padding: '10px 12px' }}
             >
               Profile
             </button>
             {isAdmin && (
-              <Link href="/admin" className="btn admin">
+              <Link href="/admin" className="btn admin" style={{ padding: '10px 12px' }}>
                 Admin Panel
               </Link>
             )}
           </div>
+          <button aria-label="Open menu" className="menu-toggle" onClick={() => setIsMenuOpen(v => !v)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
         </nav>
+        {isMenuOpen && (
+          <div className="mobile-menu" onMouseLeave={() => setIsMenuOpen(false)}>
+            <button onClick={() => { setActiveSection('chat'); setIsMenuOpen(false); }}>Chat</button>
+            <button onClick={() => { setActiveSection('profile'); setIsMenuOpen(false); }}>Profile</button>
+            {isAdmin && (
+              <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>
+            )}
+          </div>
+        )}
       </header>
 
       <main className="container">
         <div className="dashboard-content">
           {activeSection === "chat" && (
             <div className="w-full h-full">
-              <PublicChat />
+              <div className="flex items-center justify-end mb-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setChatTheme('light')}
+                    className={`px-3 py-1 rounded-md text-sm border ${chatTheme === 'light' ? 'bg-[#1e2541] border-[#3a4161] text-white' : 'bg-transparent border-[#2a2f44] text-[#c9d2e2]'}`}
+                  >
+                    Light
+                  </button>
+                  <button
+                    onClick={() => setChatTheme('dark')}
+                    className={`px-3 py-1 rounded-md text-sm border ${chatTheme === 'dark' ? 'bg-[#1e2541] border-[#3a4161] text-white' : 'bg-transparent border-[#2a2f44] text-[#c9d2e2]'}`}
+                  >
+                    Dark
+                  </button>
+                </div>
+              </div>
+              <PublicChat chatTheme={chatTheme} />
             </div>
           )}
           {activeSection === "profile" && (

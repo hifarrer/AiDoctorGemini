@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { plans } from "@/lib/plans";
+import type { Plan } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +23,11 @@ export default function UsersManagement() {
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
 
   useEffect(() => {
     fetchUsers();
+    fetchPlans();
   }, []);
 
   const fetchUsers = async () => {
@@ -41,6 +43,24 @@ export default function UsersManagement() {
       console.error('Error fetching users:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch('/api/plans', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        // Only include active plans
+        const activePlans = Array.isArray(data) ? data.filter((p: Plan) => p.isActive) : [];
+        setAvailablePlans(activePlans);
+      } else {
+        console.error('Failed to fetch plans for users management');
+        setAvailablePlans([]);
+      }
+    } catch (e) {
+      console.error('Error fetching plans for users management:', e);
+      setAvailablePlans([]);
     }
   };
 
@@ -298,7 +318,11 @@ export default function UsersManagement() {
                     }
                     className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
-                    {plans.map((plan) => (
+                    {/* Ensure the current value is present even if plan is inactive */}
+                    {editingUser.plan && !availablePlans.some(p => p.title === editingUser.plan) && (
+                      <option value={editingUser.plan}>{editingUser.plan}</option>
+                    )}
+                    {availablePlans.map((plan) => (
                       <option key={plan.id} value={plan.title}>
                         {plan.title}
                       </option>

@@ -31,7 +31,10 @@ interface InteractionStats {
   hasUnlimited: boolean;
 }
 
-export function PublicChat() {
+type ChatTheme = 'light' | 'dark';
+
+export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
+  const isDarkTheme = chatTheme === 'dark';
   const { data: session } = useSession();
   
   // Store initial messages in state to prevent re-creation on every render
@@ -208,15 +211,17 @@ export function PublicChat() {
   return (
     <>
       <Toaster position="top-center" />
-      <div className="mx-auto w-full max-w-3xl rounded-xl border bg-white dark:bg-gray-950 shadow-lg">
-        <div className="p-3 border-b border-gray-200 dark:border-gray-800">
+      <div className={`mx-auto w-full max-w-full sm:max-w-2xl md:max-w-3xl rounded-xl border shadow-lg ${
+        isDarkTheme ? 'bg-[#0b1220] border-[#1b2a4a] text-[#e7ecf5]' : 'bg-white dark:bg-gray-950'
+      }`}>
+        <div className={`p-3 border-b ${isDarkTheme ? 'border-[#1b2a4a]' : 'border-gray-200 dark:border-gray-800'}`}>
           {stats && !hasUnlimited && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className={`${isDarkTheme ? 'text-[#c9d2e2]' : 'text-gray-600 dark:text-gray-400'}`}>
                 {`Usage: ${stats.currentMonth} / ${stats.limit ?? '∞'} interactions`}
               </span>
               <button
-                className="text-teal-600 hover:underline disabled:opacity-50"
+                className={`${isDarkTheme ? 'text-[#7ae2ff]' : 'text-teal-600'} hover:underline disabled:opacity-50`}
                 onClick={() => fetchInteractionStats()}
                 disabled={isLoading}
               >
@@ -227,7 +232,7 @@ export function PublicChat() {
         </div>
 
         {isAtLimit && (
-          <div className="mx-4 mt-4 rounded-md bg-red-100 dark:bg-red-900 p-3 text-sm">
+          <div className={`mx-4 mt-4 rounded-md p-3 text-sm ${isDarkTheme ? 'bg-red-900/40 text-red-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
             <p className="text-red-800 dark:text-red-200">
               You&apos;ve reached your monthly interaction limit. Please upgrade to continue.
               {" "}
@@ -236,13 +241,19 @@ export function PublicChat() {
           </div>
         )}
 
-        <div ref={chatContainerRef} className="p-4 h-[32rem] overflow-y-auto space-y-4">
+        <div ref={chatContainerRef} className="p-3 md:p-4 h-[65vh] md:h-[32rem] overflow-y-auto space-y-4">
           {uiMessages.map((message) => (
             <div key={message.id} className={`flex items-start gap-3 ${message.role === "user" ? "justify-end" : ""}`}>
               {message.role === "assistant" && (
-                <div className="w-8 h-8 shrink-0 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm">AI</div>
+                <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${
+                  isDarkTheme ? 'bg-[#0f1b2d] text-[#a8c1ff] border border-[#1b2a4a]' : 'bg-teal-500 text-white'
+                }`}>AI</div>
               )}
-              <div className={`rounded-lg p-3 max-w-[75%] ${message.role === "user" ? "bg-teal-500 text-white" : "bg-gray-100 dark:bg-gray-800"}`}>
+              <div className={`rounded-lg p-3 max-w-[75%] ${message.role === "user" ? (
+                isDarkTheme ? 'bg-[#8b5cf6] text-white' : 'bg-teal-500 text-white'
+              ) : (
+                isDarkTheme ? 'bg-[#0f1b2d] text-[#e7ecf5]' : 'bg-gray-100 dark:bg-gray-800'
+              )}`}>
                 {message.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={message.image} alt="user upload" className="rounded-md mb-2 max-w-full h-auto" />
@@ -257,11 +268,11 @@ export function PublicChat() {
                 )}
                 {message.content && (
                   message.role === "assistant" ? (
-                    <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                    <div className={`text-sm leading-relaxed whitespace-pre-wrap ${isDarkTheme ? 'text-[#e7ecf5]' : 'text-gray-900'}`}>
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                   ) : (
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm text-white">{message.content}</p>
                   )
                 )}
               </div>
@@ -269,8 +280,8 @@ export function PublicChat() {
           ))}
            {isLoading && (
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 shrink-0 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm">AI</div>
-                <div className="rounded-lg p-3 bg-gray-100 dark:bg-gray-800">
+                <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${isDarkTheme ? 'bg-[#0f1b2d] text-[#a8c1ff] border border-[#1b2a4a]' : 'bg-teal-500 text-white'}`}>AI</div>
+                <div className={`rounded-lg p-3 ${isDarkTheme ? 'bg-[#0f1b2d]' : 'bg-gray-100 dark:bg-gray-800'}`}>
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -280,14 +291,14 @@ export function PublicChat() {
               </div>
             )}
         </div>
-        <form onSubmit={handleSubmit} className="p-4 border-t bg-white dark:bg-gray-950">
+        <form onSubmit={handleSubmit} className={`p-3 md:p-4 border-t ${isDarkTheme ? 'border-[#1b2a4a] bg-[#0b1220]' : 'bg-white dark:bg-gray-950'}`}>
           <div className="flex items-center gap-2">
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf" />
             <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || isAtLimit}>
               <PaperclipIcon className="w-5 h-5" />
             </Button>
             <Input
-              className="flex-1 bg-white dark:bg-gray-800"
+              className={`flex-1 ${isDarkTheme ? 'bg-[#0f1b2d] text-[#d6e4ff] placeholder-[#7d8aa6] border-[#1b2a4a]' : 'bg-white dark:bg-gray-800'}`}
               placeholder={isAtLimit ? "Interaction limit reached. Upgrade to continue..." : "Type your message..."}
               value={input}
               onChange={handleInputChange}
@@ -298,8 +309,13 @@ export function PublicChat() {
               }}
               disabled={isLoading || isAtLimit}
             />
-            <Button type="submit" disabled={isLoading || isAtLimit || (!input.trim() && !image && !document)} className="bg-teal-500 hover:bg-teal-600 text-white">
-              Send
+            <Button
+              type="submit"
+              aria-label="Send message"
+              disabled={isLoading || isAtLimit || (!input.trim() && !image && !document)}
+              className={`${isDarkTheme ? 'bg-[#8b5cf6] hover:bg-[#7c4fe0]' : 'bg-teal-500 hover:bg-teal-600'} text-white rounded-full ${isDarkTheme ? 'w-10 h-10 p-0' : ''}`}
+            >
+              <SendIcon className="w-5 h-5" />
             </Button>
           </div>
           <div className="flex items-center justify-center pt-2">
@@ -368,3 +384,17 @@ function FileTextIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 } 
+
+function SendIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}

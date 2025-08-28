@@ -461,7 +461,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <small>STEP 2</small>
-                <h4>Get a personalized PDF</h4>
+                <h4>Get a personalized Health Report</h4>
                 <p>Clear metrics and ranges you can keep.</p>
               </div>
             </div>

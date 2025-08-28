@@ -32,74 +32,90 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center min-h-screen px-4">
-      <div className="w-full max-w-sm mx-auto">
-        <div className="text-center">
-          <HeartPulseIcon className="w-8 h-8 mx-auto text-teal-500" />
-          <h1 className="text-3xl font-bold mt-2">Welcome Back</h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Enter your email below to login to your account
-          </p>
-        </div>
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              htmlFor="email"
-            >
-              Email
-            </label>
-            <input
-              className="block w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              id="email"
-              placeholder="m@example.com"
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                htmlFor="password"
-              >
-                Password
-              </label>
-              <Link
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                href="#"
-              >
-                Forgot your password?
-              </Link>
+    <div className="min-h-screen" style={{
+      background:
+        'radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),\nradial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),\n#0f1320',
+      color: '#e7ecf5'
+    }}>
+      <div className="max-w-5xl mx-auto px-6 py-10">
+        <nav className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-extrabold text-lg">
+            <div className="w-8 h-8 rounded-xl grid place-items-center" style={{ background: 'linear-gradient(135deg,#8856ff,#6ae2ff)', color: '#08101b' }}>+</div>
+            <span>Health<span style={{ color: '#7ae2ff' }}>Consultant</span></span>
+          </Link>
+          <Link href="/" className="text-sm text-[#c9d2e2] hover:opacity-80">Back to site</Link>
+        </nav>
+
+        <div className="grid md:grid-cols-2 gap-8 mt-10 items-center">
+          <div className="hidden md:block">
+            <h1 className="text-4xl font-extrabold leading-tight">
+              Welcome Back to <span style={{ background: 'linear-gradient(90deg,#8a6bff,#c87cff,#8a6bff)', WebkitBackgroundClip: 'text', color: 'transparent' }}>your AI</span>
+              <br /> Health <span style={{ background: 'linear-gradient(90deg,#6ae2ff,#7df3cf,#6ae2ff)', WebkitBackgroundClip: 'text', color: 'transparent' }}>Assistant</span>
+            </h1>
+            <p className="mt-4 text-[#b7c1d6]">Log in to continue your private, AI-guided wellness journey.</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="rounded-xl p-4 border" style={{ background: 'linear-gradient(180deg,#12182c,#0f1325)', borderColor: '#1e2541' }}>
+                <p className="text-sm text-[#9fb0cf]">HIPAA-friendly</p>
+              </div>
+              <div className="rounded-xl p-4 border" style={{ background: 'linear-gradient(180deg,#12182c,#0f1325)', borderColor: '#1e2541' }}>
+                <p className="text-sm text-[#9fb0cf]">24/7 secure access</p>
+              </div>
             </div>
-            <input
-              className="block w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              id="password"
-              required
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
           </div>
-          <button
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-        <div className="mt-6 text-center">
-          <p className="text-sm">
-            Don&apos;t have an account?{" "}
-            <Link className="font-medium text-indigo-600 hover:text-indigo-500" href="/auth/signup">
-              Sign up
-            </Link>
-          </p>
+
+          <div className="rounded-2xl p-6 md:p-8 border shadow-lg" style={{ background: 'linear-gradient(180deg,#12182c,#0f1325)', borderColor: '#1e2541' }}>
+            <div className="text-center">
+              <HeartPulseIcon className="w-8 h-8 mx-auto" />
+              <h2 className="text-2xl font-bold mt-2">Sign in to your account</h2>
+              <p className="text-sm text-[#9aa4b2]">Use your email and password</p>
+            </div>
+
+            <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label className="block text-sm mb-1 text-[#c9d2e2]" htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full rounded-md px-3 py-2 text-sm"
+                  style={{ background: '#0f1325', border: '1px solid #1e2541', color: '#e7ecf5' }}
+                  required
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm mb-1 text-[#c9d2e2]" htmlFor="password">Password</label>
+                  <Link href="#" className="text-xs text-[#7ae2ff] hover:opacity-80">Forgot password?</Link>
+                </div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full rounded-md px-3 py-2 text-sm"
+                  style={{ background: '#0f1325', border: '1px solid #1e2541', color: '#e7ecf5' }}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full rounded-lg py-2.5 text-sm font-semibold"
+                style={{ background: 'linear-gradient(90deg,#8856ff,#a854ff)', color: '#fff' }}
+              >
+                {isLoading ? 'Logging in...' : 'Login'}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center text-sm text-[#c9d2e2]">
+              Don&apos;t have an account?{' '}
+              <Link href="/auth/signup" className="text-[#7ae2ff] hover:opacity-80">Sign up</Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

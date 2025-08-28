@@ -18,6 +18,7 @@ export default function LandingPage() {
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
 
   const [isReady, setIsReady] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -416,6 +417,51 @@ export default function LandingPage() {
         .footer-links a:hover {
           color: #e7ecf5;
         }
+        /* Mobile nav */
+        .menu-toggle {
+          display: none;
+          align-items: center;
+          justify-content: center;
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          border: 1px solid #2a2f44;
+          background: #161a2c;
+          color: #e8edfb;
+        }
+        .mobile-menu {
+          display: none;
+          position: absolute;
+          right: 24px;
+          top: 64px;
+          z-index: 20;
+          background: #0f1325;
+          border: 1px solid #1e2541;
+          border-radius: 12px;
+          padding: 8px;
+          min-width: 200px;
+        }
+        .mobile-menu a {
+          display: block;
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 8px;
+          color: #c9d2e2;
+        }
+        .mobile-menu a:hover {
+          background: #1e2541;
+          color: #fff;
+        }
+        @media (max-width: 640px) {
+          .nav { position: relative; }
+          .navlinks { display: none; }
+          .auth-actions { display: none !important; }
+          .btn { padding: 10px 12px; }
+          .menu-toggle { display: flex; }
+          .mobile-menu { display: block; }
+          .title { font-size: 36px; }
+          .sub { font-size: 14px; }
+        }
       `}</style>
 
       <header className="container">
@@ -431,11 +477,29 @@ export default function LandingPage() {
             <a href="/plans">Pricing</a>
             <a href="/contact">Contact</a>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="auth-actions" style={{ display: 'flex', gap: '12px' }}>
             <Link className="btn" href="/auth/login">Sign In</Link>
             <Link className="btn primary" href="/auth/signup">Get Started</Link>
           </div>
+          <button className="menu-toggle" aria-label="Open menu" onClick={() => setIsMenuOpen(v => !v)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
         </nav>
+        {isMenuOpen && (
+          <div className="mobile-menu" onMouseLeave={() => setIsMenuOpen(false)}>
+            <a href="#features" onClick={() => setIsMenuOpen(false)}>Features</a>
+            <a href="#how-it-works" onClick={() => setIsMenuOpen(false)}>How it Works</a>
+            <a href="#faq" onClick={() => setIsMenuOpen(false)}>FAQ</a>
+            <Link href="/plans" onClick={() => setIsMenuOpen(false)}>Pricing</Link>
+            <Link href="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
+            <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+            <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+          </div>
+        )}
       </header>
 
       <main className="container hero" style={{ opacity: isReady ? 1 : 0 }}>
@@ -544,7 +608,7 @@ export default function LandingPage() {
 
         {/* RIGHT - Image Slider */}
         <aside>
-          <div className="h-[320px] sm:h-[380px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
+          <div className="h-[240px] sm:h-[320px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
             <ImageSlider images={[
               '/images/aihealth1.jpg',
               '/images/aihealth2.jpg',

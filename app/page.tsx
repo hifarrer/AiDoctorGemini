@@ -17,6 +17,8 @@ export default function LandingPage() {
   const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
 
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -59,6 +61,8 @@ export default function LandingPage() {
         }
       } catch (error) {
         console.error('Error fetching landing data:', error);
+      } finally {
+        setIsReady(true);
       }
     };
     fetchAll();
@@ -73,6 +77,17 @@ export default function LandingPage() {
       '--cta-2': '#a854ff',
       '--accent': '#6ae2ff'
     } as React.CSSProperties}>
+      {!isReady && (
+        <div className="fixed inset-0 z-50 grid place-items-center" style={{
+          background:
+            'radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),\nradial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),\n#0f1320'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e7ecf5', fontWeight: 600 }}>
+            <span className="animate-spin" style={{ width: 18, height: 18, borderRadius: 999, border: '3px solid #2a2f44', borderTopColor: '#7ae2ff' }} />
+            Loading...
+          </div>
+        </div>
+      )}
       <style jsx global>{`
         :root {
           --bg: #0f1320;
@@ -423,7 +438,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main className="container hero">
+      <main className="container hero" style={{ opacity: isReady ? 1 : 0 }}>
         {/* LEFT */}
         <section>
           <div className="eyebrow">AI-POWERED WELLNESS</div>
@@ -527,32 +542,15 @@ export default function LandingPage() {
           </p>
         </section>
 
-        {/* RIGHT */}
+        {/* RIGHT - Image Slider */}
         <aside>
-          <div className="phone">
-            <div className="chat-header">
-              <div className="avatar">AI</div>
-              <div>
-                <div style={{ fontWeight: '700' }}>AI Health Assistant</div>
-                <div className="chip">● Online</div>
-              </div>
-            </div>
-            <div className="bubble purple">
-              Hi! Can you help me understand my recent health report? I&apos;m a bit concerned about my cholesterol levels.
-            </div>
-            <div style={{ height: '10px' }}></div>
-            <div className="bubble">
-              I&apos;d be happy to help you understand your cholesterol results! Based on your report, your total cholesterol is <b>195 mg/dL</b>, which is within the desirable range (&lt;200). Your HDL is excellent at <b>65 mg/dL</b>.
-            </div>
-            <div className="input">
-              <input placeholder="Ask about your health report…" />
-              <button className="send" aria-label="Send">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 11l18-8-8 18-2-7-8-3z" fill="white"/>
-                </svg>
-              </button>
-            </div>
-            <div className="tagline">Your data stays private and secure.</div>
+          <div className="h-[320px] sm:h-[380px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
+            <ImageSlider images={[
+              '/images/aihealth1.jpg',
+              '/images/aihealth2.jpg',
+              '/images/aihealth3.jpg',
+              '/images/aihealth4.jpg'
+            ]} />
           </div>
         </aside>
       </main>

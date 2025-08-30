@@ -9,11 +9,19 @@ import { getSettings } from "@/lib/server/settings";
 const inter = Inter({ subsets: ["latin"] });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const s = await getSettings();
-  return {
-    title: s.siteName || "Medical AI Assistant",
-    description: s.siteDescription || "An AI-powered medical assistant",
-  };
+  try {
+    const s = await getSettings();
+    return {
+      title: s.siteName,
+      description: s.siteDescription || "An AI-powered medical assistant",
+    };
+  } catch (error) {
+    console.error('Error fetching settings for metadata:', error);
+    return {
+      title: "Health Consultant AI",
+      description: "An AI-powered medical assistant",
+    };
+  }
 }
 
 export default function RootLayout({

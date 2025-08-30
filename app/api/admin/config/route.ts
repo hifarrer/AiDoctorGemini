@@ -38,9 +38,9 @@ export async function GET() {
       username: "admin",
       email: session.user.email,
       siteSettings: {
-        siteName: settings.siteName || "Health Consultant AI",
-        contactEmail: settings.contactEmail || "",
-        supportEmail: settings.supportEmail || "",
+        siteName: settings.siteName,
+        contactEmail: settings.contactEmail,
+        supportEmail: settings.supportEmail,
         maxUsersPerDay: 1000, // Default value
         maintenanceMode: false, // Default value
       }

@@ -38,8 +38,8 @@ export default function LandingPage() {
         const featuresFetch = fetch('/api/landing/features', { cache: 'no-store' }).catch(() => null);
         if (settingsRes.ok) {
           const data = await settingsRes.json();
-          setSiteName(data.siteName || "");
-          setLogoUrl(data.logoUrl || "");
+          setSiteName(data.siteName);
+          setLogoUrl(data.logoUrl);
         }
         if (faqRes.ok) {
           const items = await faqRes.json();

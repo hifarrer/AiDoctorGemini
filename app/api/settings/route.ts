@@ -12,10 +12,10 @@ export async function GET() {
     // Return only public settings (no sensitive data)
     const publicSettings = {
       siteName: settings.siteName,
-      siteDescription: settings.siteDescription || "Your Personal AI Health Assistant",
-      contactEmail: settings.contactEmail || "",
-      supportEmail: settings.supportEmail || "",
-      logoUrl: (settings as any).logoUrl || "",
+      siteDescription: settings.siteDescription,
+      contactEmail: settings.contactEmail,
+      supportEmail: settings.supportEmail,
+      logoUrl: settings.logoUrl,
     };
 
     return NextResponse.json(publicSettings, { status: 200 });

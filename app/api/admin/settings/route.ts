@@ -38,11 +38,11 @@ export async function GET() {
       stripeApiKey: settings.stripeSecretKey ? "••••••••••••••••" : "",
       stripePublishableKey: settings.stripePublishableKey || "",
       stripeWebhookSecret: settings.stripeWebhookSecret ? "••••••••••••••••" : "",
-      siteName: settings.siteName || "Health Consultant AI",
-      siteDescription: (settings as any).siteDescription || "Your Personal AI Health Assistant",
-      contactEmail: settings.contactEmail || "",
-      supportEmail: settings.supportEmail || "",
-      logoUrl: (settings as any).logoUrl || "",
+      siteName: settings.siteName,
+      siteDescription: settings.siteDescription,
+      contactEmail: settings.contactEmail,
+      supportEmail: settings.supportEmail,
+      logoUrl: settings.logoUrl,
     };
 
     console.log("✅ [ADMIN_SETTINGS_GET] Returning admin settings:", adminSettings);

@@ -24,8 +24,8 @@ export default function DashboardPage() {
         const response = await fetch('/api/settings', { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
-          setSiteName(data.siteName || "");
-          setLogoUrl(data.logoUrl || "");
+          setSiteName(data.siteName);
+          setLogoUrl(data.logoUrl);
         }
       } catch (error) {
         console.error('Error fetching site settings:', error);

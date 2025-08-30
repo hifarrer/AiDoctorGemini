@@ -25,28 +25,18 @@ export async function getSettings(): Promise<Settings> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
   if (error || !data) {
-    return {
-      siteName: 'Health Consultant AI',
-      siteDescription: 'Your Personal AI Health Assistant',
-      contactEmail: '',
-      supportEmail: '',
-      logoUrl: '',
-      stripeSecretKey: '',
-      stripePublishableKey: '',
-      stripeWebhookSecret: '',
-      stripePriceIds: { basic: { monthly: '', yearly: '' }, premium: { monthly: '', yearly: '' } },
-    };
+    throw new Error('Settings not found in database');
   }
   const priceIds = (data.stripe_price_ids as any) || {};
   return {
-    siteName: data.site_name || 'Health Consultant AI',
-    siteDescription: data.site_description || 'Your Personal AI Health Assistant',
-    contactEmail: data.contact_email || '',
-    supportEmail: data.support_email || '',
-    logoUrl: data.logo_url || '',
-    stripeSecretKey: data.stripe_secret_key || '',
-    stripePublishableKey: data.stripe_publishable_key || '',
-    stripeWebhookSecret: data.stripe_webhook_secret || '',
+    siteName: data.site_name,
+    siteDescription: data.site_description,
+    contactEmail: data.contact_email,
+    supportEmail: data.support_email,
+    logoUrl: data.logo_url,
+    stripeSecretKey: data.stripe_secret_key,
+    stripePublishableKey: data.stripe_publishable_key,
+    stripeWebhookSecret: data.stripe_webhook_secret,
     stripePriceIds: {
       basic: { monthly: priceIds?.basic?.monthly || '', yearly: priceIds?.basic?.yearly || '' },
       premium: { monthly: priceIds?.premium?.monthly || '', yearly: priceIds?.premium?.yearly || '' },

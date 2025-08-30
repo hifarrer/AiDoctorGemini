@@ -27,25 +27,44 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    console.log('🔍 [SHOWCASE_PUT] Starting showcase update...');
+    
     const session = await getServerSession(authOptions as any);
+    console.log('👤 [SHOWCASE_PUT] Session:', { 
+      hasSession: !!session, 
+      userEmail: session?.user?.email,
+      isAdmin: (session as any)?.user?.isAdmin 
+    });
+    
     if (!session || !(session as any)?.user?.email || !(session as any)?.user?.isAdmin) {
+      console.log('❌ [SHOWCASE_PUT] Admin access denied');
       return NextResponse.json({ message: "Admin access required" }, { status: 403 });
     }
 
     const body = await request.json();
     const { image1, image2, image3 } = body;
+    console.log('📋 [SHOWCASE_PUT] Received data:', { image1, image2, image3 });
 
     const supabase = getSupabaseServerClient();
 
     // Check if record exists
-    const { data: existing } = await supabase
+    console.log('🔍 [SHOWCASE_PUT] Checking for existing record...');
+    const { data: existing, error: checkError } = await supabase
       .from('landing_showcase')
       .select('id')
       .limit(1)
       .single();
 
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('❌ [SHOWCASE_PUT] Error checking existing record:', checkError);
+      return NextResponse.json({ error: 'Failed to check existing record' }, { status: 500 });
+    }
+
+    console.log('📋 [SHOWCASE_PUT] Existing record:', existing);
+
     if (existing) {
       // Update existing record
+      console.log('🔄 [SHOWCASE_PUT] Updating existing record...');
       const { error } = await supabase
         .from('landing_showcase')
         .update({ 
@@ -57,11 +76,13 @@ export async function PUT(request: NextRequest) {
         .eq('id', existing.id);
 
       if (error) {
-        console.error('Error updating showcase images:', error);
+        console.error('❌ [SHOWCASE_PUT] Error updating showcase images:', error);
         return NextResponse.json({ error: 'Failed to update showcase images' }, { status: 500 });
       }
+      console.log('✅ [SHOWCASE_PUT] Record updated successfully');
     } else {
       // Create new record
+      console.log('🆕 [SHOWCASE_PUT] Creating new record...');
       const { error } = await supabase
         .from('landing_showcase')
         .insert({ 
@@ -71,14 +92,16 @@ export async function PUT(request: NextRequest) {
         });
 
       if (error) {
-        console.error('Error creating showcase images:', error);
+        console.error('❌ [SHOWCASE_PUT] Error creating showcase images:', error);
         return NextResponse.json({ error: 'Failed to create showcase images' }, { status: 500 });
       }
+      console.log('✅ [SHOWCASE_PUT] Record created successfully');
     }
 
+    console.log('✅ [SHOWCASE_PUT] Operation completed successfully');
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in showcase PUT:', error);
+    console.error('❌ [SHOWCASE_PUT] Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

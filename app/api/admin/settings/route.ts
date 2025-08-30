@@ -38,7 +38,7 @@ export async function GET() {
       stripeApiKey: settings.stripeSecretKey ? "••••••••••••••••" : "",
       stripePublishableKey: settings.stripePublishableKey || "",
       stripeWebhookSecret: settings.stripeWebhookSecret ? "••••••••••••••••" : "",
-      siteName: settings.siteName || "Medical AI Assistant",
+      siteName: settings.siteName || "Health Consultant AI",
       siteDescription: (settings as any).siteDescription || "Your Personal AI Health Assistant",
       contactEmail: settings.contactEmail || "",
       supportEmail: settings.supportEmail || "",

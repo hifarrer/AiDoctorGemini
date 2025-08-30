@@ -8,7 +8,7 @@ export const adminConfig = {
   password: "p@ssword333", // In production, this should be hashed
   email: "admin@medicalai.com", // Default admin email
   siteSettings: {
-    siteName: "Medical AI Assistant",
+    siteName: "Health Consultant AI",
     contactEmail: "contact@medicalai.com",
     supportEmail: "support@medicalai.com",
     maxUsersPerDay: 1000,

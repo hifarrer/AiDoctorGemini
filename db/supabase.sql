@@ -18,7 +18,7 @@ create index if not exists users_email_idx on users(email);
 
 create table if not exists settings (
   id int primary key default 1,
-  site_name text default 'AI Doctor',
+  site_name text default 'Health Consultant AI',
   site_description text default 'Your Personal AI Health Assistant',
   contact_email text,
   support_email text,

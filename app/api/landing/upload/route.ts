@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
 	try {
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions as any);
 		if (!session?.user?.email || !(session as any).user?.isAdmin) {
 			return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 		}
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
 
 		const supabase = getSupabaseServerClient();
 		const bucket = process.env.SUPABASE_STORAGE_BUCKET || "landing";
-		const objectPath = `hero/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+		const objectPath = `showcase/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
 		const { error: uploadError } = await supabase.storage
 			.from(bucket)

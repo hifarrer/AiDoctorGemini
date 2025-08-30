@@ -74,8 +74,15 @@ export async function PUT(request: NextRequest) {
 
     if (existing) {
       // Update existing record
-      console.log('🔄 [SHOWCASE_PUT] Updating existing record...');
-      const { error } = await supabase
+      console.log('🔄 [SHOWCASE_PUT] Updating existing record with ID:', existing.id);
+      console.log('🔄 [SHOWCASE_PUT] Update data:', { 
+        image1: image1 || null,
+        image2: image2 || null,
+        image3: image3 || null,
+        updated_at: new Date().toISOString()
+      });
+      
+      const { data: updateResult, error } = await supabase
         .from('landing_showcase')
         .update({ 
           image1: image1 || null,
@@ -83,13 +90,14 @@ export async function PUT(request: NextRequest) {
           image3: image3 || null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', existing.id);
+        .eq('id', existing.id)
+        .select();
 
       if (error) {
         console.error('❌ [SHOWCASE_PUT] Error updating showcase images:', error);
         return NextResponse.json({ error: 'Failed to update showcase images' }, { status: 500 });
       }
-      console.log('✅ [SHOWCASE_PUT] Record updated successfully');
+      console.log('✅ [SHOWCASE_PUT] Record updated successfully:', updateResult);
     } else {
       // Create new record
       console.log('🆕 [SHOWCASE_PUT] Creating new record...');

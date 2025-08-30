@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
 	try {
 		const session = await getServerSession(authOptions as any);
-		if (!session?.user?.email || !(session as any).user?.isAdmin) {
+		if (!session || !(session as any)?.user?.email || !(session as any)?.user?.isAdmin) {
 			return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 		}
 

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const supabase = getSupabaseServerClient();
@@ -42,8 +44,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { image1, image2, image3 } = body;
-    console.log('📋 [SHOWCASE_PUT] Received data:', { image1, image2, image3 });
+    console.log('📋 [SHOWCASE_PUT] Raw body:', body);
+    const { image1, image2, image3, id } = body;
+    console.log('📋 [SHOWCASE_PUT] Extracted data:', { image1, image2, image3, id });
 
     const supabase = getSupabaseServerClient();
 

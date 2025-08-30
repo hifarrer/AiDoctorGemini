@@ -22,8 +22,11 @@ export async function GET() {
     }
 
     console.log('📋 [SHOWCASE_GET] Database result:', data);
+    console.log('📋 [SHOWCASE_GET] Data type:', typeof data);
+    console.log('📋 [SHOWCASE_GET] Data keys:', data ? Object.keys(data) : 'null');
     const result = data || {};
-    console.log('✅ [SHOWCASE_GET] Returning:', result);
+    console.log('✅ [SHOWCASE_GET] Final result:', result);
+    console.log('✅ [SHOWCASE_GET] Result keys:', Object.keys(result));
     return NextResponse.json(result);
   } catch (error) {
     console.error('❌ [SHOWCASE_GET] Unexpected error:', error);

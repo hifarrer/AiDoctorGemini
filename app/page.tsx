@@ -32,7 +32,7 @@ export default function LandingPage() {
           fetch('/api/settings', { cache: 'no-store' }),
           fetch('/api/faq', { cache: 'no-store' }),
           fetch('/api/landing/hero', { cache: 'no-store' }),
-          fetch('/api/landing/showcase', { cache: 'no-store' }),
+          fetch(`/api/landing/showcase?t=${Date.now()}`, { cache: 'no-store' }),
         ]);
         // Fetch features section separately to avoid failing all
         const featuresFetch = fetch('/api/landing/features', { cache: 'no-store' }).catch(() => null);

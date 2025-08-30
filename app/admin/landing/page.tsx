@@ -71,7 +71,7 @@ export default function AdminLandingPage() {
 				fetch("/api/landing/hero"),
 				fetch("/api/landing/chatbot"),
 				fetch("/api/landing/features"),
-				fetch("/api/landing/showcase")
+				fetch(`/api/landing/showcase?t=${Date.now()}`)
 			]);
 
 			// Handle hero data
@@ -182,7 +182,7 @@ export default function AdminLandingPage() {
 			if (res.ok) {
 				toast.success("Showcase images saved successfully!");
 				// Reload showcase data to refresh the form
-				const showcaseRes = await fetch("/api/landing/showcase");
+				const showcaseRes = await fetch(`/api/landing/showcase?t=${Date.now()}`);
 				if (showcaseRes.ok) {
 					const showcaseData = await showcaseRes.json();
 					if (showcaseData && (showcaseData.image1 || showcaseData.image2 || showcaseData.image3)) {

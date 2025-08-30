@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession(authOptions as any);
     console.log('👤 [SHOWCASE_PUT] Session:', { 
       hasSession: !!session, 
-      userEmail: session?.user?.email,
+      userEmail: (session as any)?.user?.email,
       isAdmin: (session as any)?.user?.isAdmin 
     });
     

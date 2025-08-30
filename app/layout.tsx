@@ -8,9 +8,15 @@ import { getSettings } from "@/lib/server/settings";
 
 const inter = Inter({ subsets: ["latin"] });
 
+// Force dynamic metadata generation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
+    console.log('🔍 Generating metadata...');
     const s = await getSettings();
+    console.log('📋 Settings for metadata:', { siteName: s.siteName, siteDescription: s.siteDescription });
     return {
       title: s.siteName,
       description: s.siteDescription || "An AI-powered medical assistant",

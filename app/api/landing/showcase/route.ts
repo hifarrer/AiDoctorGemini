@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    console.log('🔍 [SHOWCASE_GET] Fetching showcase images...');
     const supabase = getSupabaseServerClient();
     
     const { data, error } = await supabase
@@ -16,13 +17,16 @@ export async function GET() {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-      console.error('Error fetching showcase images:', error);
+      console.error('❌ [SHOWCASE_GET] Error fetching showcase images:', error);
       return NextResponse.json({ error: 'Failed to fetch showcase images' }, { status: 500 });
     }
 
-    return NextResponse.json(data || {});
+    console.log('📋 [SHOWCASE_GET] Database result:', data);
+    const result = data || {};
+    console.log('✅ [SHOWCASE_GET] Returning:', result);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in showcase GET:', error);
+    console.error('❌ [SHOWCASE_GET] Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

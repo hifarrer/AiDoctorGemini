@@ -181,6 +181,19 @@ export default function AdminLandingPage() {
 			});
 			if (res.ok) {
 				toast.success("Showcase images saved successfully!");
+				// Reload showcase data to refresh the form
+				const showcaseRes = await fetch("/api/landing/showcase");
+				if (showcaseRes.ok) {
+					const showcaseData = await showcaseRes.json();
+					if (showcaseData && (showcaseData.image1 || showcaseData.image2 || showcaseData.image3)) {
+						setShowcaseImages({
+							id: 1,
+							image1: showcaseData.image1 || "",
+							image2: showcaseData.image2 || "",
+							image3: showcaseData.image3 || "",
+						});
+					}
+				}
 			} else {
 				toast.error("Failed to save showcase images");
 			}

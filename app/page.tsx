@@ -57,13 +57,23 @@ export default function LandingPage() {
         }
         if (showcaseRes.ok) {
           const showcase = await showcaseRes.json();
+          console.log("📋 [LANDING_PAGE] Received showcase data:", showcase);
           if (showcase && (showcase.image1 || showcase.image2 || showcase.image3)) {
+            console.log("✅ [LANDING_PAGE] Setting showcase images:", {
+              image1: showcase.image1 || "",
+              image2: showcase.image2 || "",
+              image3: showcase.image3 || ""
+            });
             setShowcaseImages({
               image1: showcase.image1 || "",
               image2: showcase.image2 || "",
               image3: showcase.image3 || ""
             });
+          } else {
+            console.log("⚠️ [LANDING_PAGE] No showcase images found in data");
           }
+        } else {
+          console.log("❌ [LANDING_PAGE] Failed to fetch showcase data:", showcaseRes.status);
         }
         const fr = await featuresFetch;
         if (fr && fr.ok) {

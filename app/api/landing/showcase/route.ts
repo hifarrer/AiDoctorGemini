@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -25,6 +27,11 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions as any);
+    if (!session || !(session as any)?.user?.email || !(session as any)?.user?.isAdmin) {
+      return NextResponse.json({ message: "Admin access required" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { image1, image2, image3 } = body;
 

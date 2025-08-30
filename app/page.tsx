@@ -16,6 +16,11 @@ export default function LandingPage() {
   const [featuresTitle, setFeaturesTitle] = useState<string>("");
   const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
+  const [showcaseImages, setShowcaseImages] = useState<{ image1: string; image2: string; image3: string }>({
+    image1: "",
+    image2: "",
+    image3: ""
+  });
 
   const [isReady, setIsReady] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -23,10 +28,11 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [settingsRes, faqRes, heroRes] = await Promise.all([
+        const [settingsRes, faqRes, heroRes, showcaseRes] = await Promise.all([
           fetch('/api/settings', { cache: 'no-store' }),
           fetch('/api/faq', { cache: 'no-store' }),
           fetch('/api/landing/hero', { cache: 'no-store' }),
+          fetch('/api/landing/showcase', { cache: 'no-store' }),
         ]);
         // Fetch features section separately to avoid failing all
         const featuresFetch = fetch('/api/landing/features', { cache: 'no-store' }).catch(() => null);
@@ -47,6 +53,16 @@ export default function LandingPage() {
             if (hero.title) setHeroTitle(hero.title);
             if (typeof hero.subtitle === 'string') setHeroSubtitle(hero.subtitle);
             if (Array.isArray(hero.images) && hero.images.length > 0) setSliderImages(hero.images);
+          }
+        }
+        if (showcaseRes.ok) {
+          const showcase = await showcaseRes.json();
+          if (showcase && (showcase.image1 || showcase.image2 || showcase.image3)) {
+            setShowcaseImages({
+              image1: showcase.image1 || "",
+              image2: showcase.image2 || "",
+              image3: showcase.image3 || ""
+            });
           }
         }
         const fr = await featuresFetch;
@@ -70,418 +86,50 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{
-      '--bg': '#0f1320',
-      '--text': '#e7ecf5',
-      '--muted': '#9aa4b2',
-      '--cta': '#8856ff',
-      '--cta-2': '#a854ff',
-      '--accent': '#6ae2ff'
-    } as React.CSSProperties}>
+    <div className="min-h-screen bg-[#0f1320] text-[#e7ecf5] relative overflow-hidden">
+      {/* Background gradients */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-10 -left-10 w-[1200px] h-[600px] bg-[#1a1f35] rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute -top-5 -right-10 w-[900px] h-[500px] bg-[#1a1f35] rounded-full opacity-20 blur-3xl"></div>
+      </div>
+
+      {/* Loading overlay */}
       {!isReady && (
-        <div className="fixed inset-0 z-50 grid place-items-center" style={{
-          background:
-            'radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),\nradial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),\n#0f1320'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e7ecf5', fontWeight: 600 }}>
-            <span className="animate-spin" style={{ width: 18, height: 18, borderRadius: 999, border: '3px solid #2a2f44', borderTopColor: '#7ae2ff' }} />
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[#0f1320]">
+          <div className="flex items-center gap-3 text-[#e7ecf5] font-semibold">
+            <div className="animate-spin w-[18px] h-[18px] rounded-full border-3 border-[#2a2f44] border-t-[#7ae2ff]"></div>
             Loading...
           </div>
         </div>
       )}
-      <style jsx global>{`
-        :root {
-          --bg: #0f1320;
-          --text: #e7ecf5;
-          --muted: #9aa4b2;
-          --cta: #8856ff;
-          --cta-2: #a854ff;
-          --accent: #6ae2ff;
-        }
-        * {
-          box-sizing: border-box;
-        }
-        body {
-          margin: 0;
-          font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-          background:
-            radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),
-            radial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),
-            var(--bg);
-          color: var(--text);
-        }
-        a {
-          color: inherit;
-          text-decoration: none;
-        }
-        .container {
-          max-width: 1240px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-        .nav {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-weight: 800;
-          font-size: 20px;
-          transition: opacity 0.2s ease;
-        }
-        .logo:hover {
-          opacity: 0.8;
-        }
-        .logo-badge {
-          width: 34px;
-          height: 34px;
-          border-radius: 10px;
-          display: grid;
-          place-items: center;
-          background: linear-gradient(135deg, var(--cta), var(--accent));
-          color: #08101b;
-          font-weight: 900;
-        }
-        .navlinks {
-          display: flex;
-          gap: 26px;
-          color: #c9d2e2;
-        }
-        .btn {
-          padding: 12px 18px;
-          border-radius: 12px;
-          border: 1px solid #2a2f44;
-          background: #161a2c;
-          color: #e8edfb;
-          font-weight: 600;
-          transition: all 0.2s ease;
-        }
-        .btn:hover {
-          background: #1e2541;
-          border-color: #3a4161;
-        }
-        .btn.primary {
-          background: linear-gradient(90deg, var(--cta), var(--cta-2));
-          border: none;
-          color: #fff;
-        }
-        .btn.primary:hover {
-          background: linear-gradient(90deg, #7a4bff, #9a44ff);
-        }
-        .hero {
-          display: grid;
-          grid-template-columns: 1.35fr 1fr;
-          gap: 40px;
-          align-items: start;
-          margin-top: 22px;
-        }
-        @media (max-width: 1024px) {
-          .hero {
-            grid-template-columns: 1fr;
-          }
-        }
-        .eyebrow {
-          color: #a8b1c6;
-          font-weight: 600;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          font-size: 12px;
-        }
-        .title {
-          font-size: 56px;
-          line-height: 1.05;
-          font-weight: 800;
-          margin: 10px 0 8px;
-          letter-spacing: -0.02em;
-        }
-        .g-ai {
-          background: linear-gradient(90deg, #8a6bff 0%, #c87cff 45%, #8a6bff 90%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-        }
-        .g-health {
-          background: linear-gradient(90deg, #6ae2ff 0%, #7df3cf 50%, #6ae2ff 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-        }
-        .sub {
-          color: #b7c1d6;
-          max-width: 680px;
-          margin: 8px 0 18px;
-          font-size: 16px;
-        }
-        .steps {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 18px;
-          margin: 26px 0;
-        }
-        @media (max-width: 640px) {
-          .steps {
-            grid-template-columns: 1fr;
-          }
-        }
-        .step {
-          display: grid;
-          grid-template-columns: 56px 1fr;
-          gap: 14px;
-          align-items: start;
-          background: linear-gradient(180deg, #12182c, #0f1325);
-          border: 1px solid #1e2541;
-          border-radius: 16px;
-          padding: 16px;
-          min-height: 112px;
-        }
-        .icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
-          display: grid;
-          place-items: center;
-          background: linear-gradient(145deg, #1a2040, #10152d);
-          border: 1px solid #243055;
-        }
-        .icon svg {
-          width: 26px;
-          height: 26px;
-        }
-        .step small {
-          color: #8ea2c8;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-        }
-        .step h4 {
-          margin: 2px 0 4px;
-          font-size: 16px;
-        }
-        .step p {
-          margin: 0;
-          color: #9fb0cf;
-          font-size: 13px;
-          line-height: 1.45;
-        }
-        .ctabar {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          flex-wrap: wrap;
-          margin: 12px 0;
-        }
-        .btn-xl {
-          padding: 16px 24px;
-          border-radius: 14px;
-          font-size: 16px;
-        }
-        .badges {
-          display: flex;
-          gap: 18px;
-          flex-wrap: wrap;
-        }
-        .badge {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          color: #b8c2d8;
-          background: #11162a;
-          border: 1px solid #212a46;
-          padding: 10px 12px;
-          border-radius: 12px;
-          font-weight: 600;
-          font-size: 13px;
-        }
-        .disclaimer {
-          color: #90a0bf;
-          font-size: 13px;
-          margin-top: 6px;
-        }
-        .phone {
-          background: linear-gradient(180deg, #111631, #0b1022);
-          border: 1px solid #252f59;
-          border-radius: 22px;
-          padding: 18px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-        }
-        @media (min-width: 1025px) {
-          .phone {
-            margin-top: 66px;
-          }
-        }
-        .chat-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-        .avatar {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #8e70ff, #6ae1ff);
-          display: grid;
-          place-items: center;
-          color: #0b0f1a;
-          font-weight: 900;
-        }
-        .chip {
-          font-size: 12px;
-          color: #88ffc8;
-          background: #0c1f1a;
-          border: 1px solid #1e4b3c;
-          padding: 3px 8px;
-          border-radius: 999px;
-          margin-left: 6px;
-        }
-        .bubble {
-          background: #0f1732;
-          border: 1px solid #2a3463;
-          color: #dfe6ff;
-          border-radius: 14px;
-          padding: 12px 14px;
-          font-size: 14px;
-          line-height: 1.45;
-        }
-        .bubble.purple {
-          color: #fff;
-          background: linear-gradient(120deg, #7b5cff, #a558ff);
-          border: none;
-        }
-        .input {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-top: 12px;
-          background: #0e142c;
-          border: 1px solid #2a3261;
-          border-radius: 14px;
-          padding: 10px 12px;
-        }
-        .input input {
-          background: transparent;
-          border: none;
-          outline: none;
-          color: #dfe6ff;
-          font-size: 14px;
-          flex: 1;
-        }
-        .send {
-          width: 34px;
-          height: 34px;
-          border-radius: 999px;
-          border: none;
-          background: linear-gradient(120deg, #7b5cff, #a558ff);
-          color: #fff;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-        }
-        .tagline {
-          color: #8ca0c5;
-          font-size: 12px;
-          margin-top: 8px;
-          text-align: center;
-        }
-        .features-section {
-          padding: 80px 0;
-          background: linear-gradient(180deg, #0f1320, #0a0e1a);
-        }
-        .faq-section {
-          padding: 80px 0;
-          background: linear-gradient(180deg, #0a0e1a, #0f1320);
-        }
-        .footer {
-          background: #0a0e1a;
-          border-top: 1px solid #1e2541;
-          padding: 24px;
-        }
-        .footer-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          max-width: 1240px;
-          margin: 0 auto;
-        }
-        .footer-links {
-          display: flex;
-          gap: 24px;
-        }
-        .footer-links a {
-          color: #9aa4b2;
-          font-size: 14px;
-          transition: color 0.2s ease;
-        }
-        .footer-links a:hover {
-          color: #e7ecf5;
-        }
-        /* Mobile nav */
-        .menu-toggle {
-          display: none;
-          align-items: center;
-          justify-content: center;
-          width: 42px;
-          height: 42px;
-          border-radius: 10px;
-          border: 1px solid #2a2f44;
-          background: #161a2c;
-          color: #e8edfb;
-        }
-        .mobile-menu {
-          display: none;
-          position: absolute;
-          right: 24px;
-          top: 64px;
-          z-index: 20;
-          background: #0f1325;
-          border: 1px solid #1e2541;
-          border-radius: 12px;
-          padding: 8px;
-          min-width: 200px;
-        }
-        .mobile-menu a {
-          display: block;
-          width: 100%;
-          padding: 10px 12px;
-          border-radius: 8px;
-          color: #c9d2e2;
-        }
-        .mobile-menu a:hover {
-          background: #1e2541;
-          color: #fff;
-        }
-        @media (max-width: 640px) {
-          .nav { position: relative; }
-          .navlinks { display: none; }
-          .auth-actions { display: none !important; }
-          .btn { padding: 10px 12px; }
-          .menu-toggle { display: flex; }
-          .mobile-menu { display: block; }
-          .title { font-size: 36px; }
-          .sub { font-size: 14px; }
-        }
-      `}</style>
 
-      <header className="container">
-        <nav className="nav">
-          <Link href="/" className="logo">
-            <div className="logo-badge">+</div>
-            <span>Health<span style={{ color: '#7ae2ff' }}>Consultant</span></span>
+      {/* Header */}
+      <header className="container mx-auto px-6 py-6 relative z-10">
+        <nav className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 font-extrabold text-xl hover:opacity-80 transition-opacity">
+            <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-[#8856ff] to-[#6ae2ff] text-[#08101b] font-black grid place-items-center">+</div>
+            <span>Health<span className="text-[#7ae2ff]">Consultant</span></span>
           </Link>
-          <div className="navlinks">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How it Works</a>
-            <a href="#faq">FAQ</a>
-            <a href="/plans">Pricing</a>
-            <a href="/contact">Contact</a>
+          
+          <div className="hidden sm:flex gap-6 text-[#c9d2e2]">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            <Link href="/plans" className="hover:text-white transition-colors">Pricing</Link>
+            <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
           </div>
-          <div className="auth-actions" style={{ display: 'flex', gap: '12px' }}>
-            <Link className="btn" href="/auth/login">Sign In</Link>
-            <Link className="btn primary" href="/auth/signup">Get Started</Link>
+          
+          <div className="hidden sm:flex gap-3">
+            <Link href="/auth/login" className="px-4 py-3 rounded-xl border border-[#2a2f44] bg-[#161a2c] text-[#e8edfb] font-semibold hover:bg-[#1e2541] hover:border-[#3a4161] transition-all">Sign In</Link>
+            <Link href="/auth/signup" className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#8856ff] to-[#a854ff] text-white font-semibold hover:from-[#7a4bff] hover:to-[#9a44ff] transition-all">Get Started</Link>
           </div>
-          <button className="menu-toggle" aria-label="Open menu" onClick={() => setIsMenuOpen(v => !v)}>
+
+          {/* Mobile menu button */}
+          <button 
+            className="sm:hidden flex items-center justify-center w-[42px] h-[42px] rounded-[10px] border border-[#2a2f44] bg-[#161a2c] text-[#e8edfb]"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Open menu"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6"/>
               <line x1="3" y1="12" x2="21" y2="12"/>
@@ -489,172 +137,204 @@ export default function LandingPage() {
             </svg>
           </button>
         </nav>
+
+        {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="mobile-menu" onMouseLeave={() => setIsMenuOpen(false)}>
-            <a href="#features" onClick={() => setIsMenuOpen(false)}>Features</a>
-            <a href="#how-it-works" onClick={() => setIsMenuOpen(false)}>How it Works</a>
-            <a href="#faq" onClick={() => setIsMenuOpen(false)}>FAQ</a>
-            <Link href="/plans" onClick={() => setIsMenuOpen(false)}>Pricing</Link>
-            <Link href="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
-            <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
-            <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+          <div className="sm:hidden absolute right-6 top-16 z-20 bg-[#0f1325] border border-[#1e2541] rounded-xl p-2 min-w-[200px]">
+            <a href="#features" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Features</a>
+            <a href="#how-it-works" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>How it Works</a>
+            <a href="#faq" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>FAQ</a>
+            <Link href="/plans" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Pricing</Link>
+            <Link href="/contact" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Contact</Link>
+            <Link href="/auth/login" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+            <Link href="/auth/signup" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
           </div>
         )}
       </header>
 
-      <main className="container hero" style={{ opacity: isReady ? 1 : 0 }}>
-        {/* LEFT */}
-        <section>
-          <div className="eyebrow">AI-POWERED WELLNESS</div>
-          <h1 className="title">
-            Your Personal <span className="g-ai">AI</span><br />
-            <span className="g-health">Health</span> Assistant
-          </h1>
-          <p className="sub">
-            Upload a health photo or report and get instant, privacy-first insights. 
-            Receive a clean PDF summary and have an AI consultant explain the results in simple language.
-          </p>
+      {/* Main content */}
+      <main className="container mx-auto px-6 py-6 relative z-10" style={{ opacity: isReady ? 1 : 0 }}>
+        <div className="grid lg:grid-cols-[1.35fr_1fr] gap-10 items-start mt-6">
+          {/* Left section */}
+          <section>
+            <div className="text-[#a8b1c6] font-semibold tracking-wider uppercase text-xs">AI-POWERED WELLNESS</div>
+            <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight mt-3 mb-2 tracking-tight">
+              Your Personal <span className="bg-gradient-to-r from-[#8a6bff] via-[#c87cff] to-[#8a6bff] bg-clip-text text-transparent">AI</span><br />
+              <span className="bg-gradient-to-r from-[#6ae2ff] via-[#7df3cf] to-[#6ae2ff] bg-clip-text text-transparent">Health</span> Assistant
+            </h1>
+            <p className="text-[#b7c1d6] max-w-[680px] mt-2 mb-5 text-base">
+              Upload a health photo or report and get instant, privacy-first insights. 
+              Receive a clean PDF summary and have an AI consultant explain the results in simple language.
+            </p>
 
-          <div className="steps">
-            <div className="step">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>
-                  <path d="M9 9h6v6H9z" fill="#7a86ff"/>
-                </svg>
+            {/* Steps grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
+              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
+                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+                    <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>
+                    <path d="M9 9h6v6H9z" fill="#7a86ff"/>
+                  </svg>
+                </div>
+                <div>
+                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">STEP 1</small>
+                  <h4 className="mt-1 mb-1 text-base font-semibold">AI instantly analyzes</h4>
+                  <p className="text-[#9fb0cf] text-sm leading-relaxed">Upload a photo or health report.</p>
+                </div>
               </div>
-              <div>
-                <small>STEP 1</small>
-                <h4>AI instantly analyzes</h4>
-                <p>Upload a photo or health report.</p>
+
+              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
+                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+                    <path d="M7 3h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#6ae2ff" strokeWidth="1.4"/>
+                    <path d="M14 3v6h6" stroke="#6ae2ff" strokeWidth="1.4"/>
+                    <path d="M8 13h8M8 17h8" stroke="#3ac5e9" strokeWidth="1.4"/>
+                  </svg>
+                </div>
+                <div>
+                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">STEP 2</small>
+                  <h4 className="mt-1 mb-1 text-base font-semibold">Get a personalized Health Report</h4>
+                  <p className="text-[#9fb0cf] text-sm leading-relaxed">Clear metrics and ranges you can keep.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
+                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+                    <circle cx="12" cy="8" r="3.5" stroke="#b47bff" strokeWidth="1.4"/>
+                    <rect x="6.5" y="13.5" width="11" height="5.5" rx="1.2" stroke="#b47bff" strokeWidth="1.4"/>
+                  </svg>
+                </div>
+                <div>
+                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">STEP 3</small>
+                  <h4 className="mt-1 mb-1 text-base font-semibold">AI Consultant explains</h4>
+                  <p className="text-[#9fb0cf] text-sm leading-relaxed">Understand what your numbers mean.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
+                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+                    <rect x="3" y="4" width="18" height="13" rx="3" stroke="#8cefcf" strokeWidth="1.4"/>
+                    <path d="M8 10h8M8 7.8h8M8 12.2h5" stroke="#5de0b9" strokeWidth="1.4"/>
+                    <path d="M8 21l4-4h7" stroke="#3ed1a3" strokeWidth="1.4"/>
+                  </svg>
+                </div>
+                <div>
+                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">PLUS</small>
+                  <h4 className="mt-1 mb-1 text-base font-semibold">Ask follow-up questions</h4>
+                  <p className="text-[#9fb0cf] text-sm leading-relaxed">24/7 assistant for quick answers.</p>
+                </div>
               </div>
             </div>
 
-            <div className="step">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M7 3h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#6ae2ff" strokeWidth="1.4"/>
-                  <path d="M14 3v6h6" stroke="#6ae2ff" strokeWidth="1.4"/>
-                  <path d="M8 13h8M8 17h8" stroke="#3ac5e9" strokeWidth="1.4"/>
-                </svg>
-              </div>
-              <div>
-                <small>STEP 2</small>
-                <h4>Get a personalized Health Report</h4>
-                <p>Clear metrics and ranges you can keep.</p>
-              </div>
-            </div>
-
-            <div className="step">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="8" r="3.5" stroke="#b47bff" strokeWidth="1.4"/>
-                  <rect x="6.5" y="13.5" width="11" height="5.5" rx="1.2" stroke="#b47bff" strokeWidth="1.4"/>
-                </svg>
-              </div>
-              <div>
-                <small>STEP 3</small>
-                <h4>AI Consultant explains</h4>
-                <p>Understand what your numbers mean.</p>
+            {/* CTA section */}
+            <div className="flex items-center gap-4 flex-wrap my-3">
+              <Link href="/auth/signup" className="px-6 py-4 rounded-4 bg-gradient-to-r from-[#8856ff] to-[#a854ff] text-white font-semibold text-base hover:from-[#7a4bff] hover:to-[#9a44ff] transition-all">GET INSTANT RESULT</Link>
+              <div className="flex gap-4 flex-wrap">
+                <div className="flex gap-2 items-center text-[#b8c2d8] bg-[#11162a] border border-[#212a46] px-3 py-2 rounded-xl font-semibold text-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2l1.6 3.6L17 7.2l-3.4 1.6L12 12l-1.6-3.2L7 7.2l3.4-1.6L12 2z" fill="#9ad0ff"/>
+                  </svg>
+                  AI-Powered Insights
+                </div>
+                <div className="flex gap-2 items-center text-[#b8c2d8] bg-[#11162a] border border-[#212a46] px-3 py-2 rounded-xl font-semibold text-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3l8 4v5c0 5-3.4 7.9-8 9-4.6-1.1-8-4-8-9V7l8-4z" stroke="#93ffc7" strokeWidth="1.4"/>
+                    <path d="M9 12l2 2 4-4" stroke="#93ffc7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  HIPAA Compliant
+                </div>
+                <div className="flex gap-2 items-center text-[#b8c2d8] bg-[#11162a] border border-[#212a46] px-3 py-2 rounded-xl font-semibold text-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="#9ad0ff" strokeWidth="1.4"/>
+                    <path d="M12 7v6l4 2" stroke="#9ad0ff" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                  24/7 Available
+                </div>
               </div>
             </div>
 
-            <div className="step">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="13" rx="3" stroke="#8cefcf" strokeWidth="1.4"/>
-                  <path d="M8 10h8M8 7.8h8M8 12.2h5" stroke="#5de0b9" strokeWidth="1.4"/>
-                  <path d="M8 21l4-4h7" stroke="#3ed1a3" strokeWidth="1.4"/>
-                </svg>
-              </div>
-              <div>
-                <small>PLUS</small>
-                <h4>Ask follow-up questions</h4>
-                <p>24/7 assistant for quick answers.</p>
-              </div>
+            <p className="text-[#90a0bf] text-sm mt-2">
+              * The scan result is not a diagnosis. <b>To obtain an accurate diagnosis and treatment recommendation consult your doctor.</b>
+            </p>
+          </section>
+
+          {/* Right section - Image Slider */}
+          <aside className="lg:mt-16">
+            <div className="h-[240px] sm:h-[320px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
+              <ImageSlider images={[
+                '/images/aihealth1.jpg',
+                '/images/aihealth2.jpg',
+                '/images/aihealth3.jpg',
+                '/images/aihealth4.jpg'
+              ]} />
             </div>
-          </div>
-
-          <div className="ctabar">
-            <Link className="btn primary btn-xl" href="/auth/signup">GET INSTANT RESULT</Link>
-            <div className="badges">
-              <div className="badge">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2l1.6 3.6L17 7.2l-3.4 1.6L12 12l-1.6-3.2L7 7.2l3.4-1.6L12 2z" fill="#9ad0ff"/>
-                </svg>
-                AI-Powered Insights
-              </div>
-              <div className="badge">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3l8 4v5c0 5-3.4 7.9-8 9-4.6-1.1-8-4-8-9V7l8-4z" stroke="#93ffc7" strokeWidth="1.4"/>
-                  <path d="M9 12l2 2 4-4" stroke="#93ffc7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                HIPAA Compliant
-              </div>
-              <div className="badge">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9" stroke="#9ad0ff" strokeWidth="1.4"/>
-                  <path d="M12 7v6l4 2" stroke="#9ad0ff" strokeWidth="1.6" strokeLinecap="round"/>
-                </svg>
-                24/7 Available
-              </div>
-            </div>
-          </div>
-
-          <p className="disclaimer">
-            * The scan result is not a diagnosis. <b>To obtain an accurate diagnosis and treatment recommendation consult your doctor.</b>
-          </p>
-        </section>
-
-        {/* RIGHT - Image Slider */}
-        <aside>
-          <div className="h-[240px] sm:h-[320px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
-            <ImageSlider images={[
-              '/images/aihealth1.jpg',
-              '/images/aihealth2.jpg',
-              '/images/aihealth3.jpg',
-              '/images/aihealth4.jpg'
-            ]} />
-          </div>
-        </aside>
+          </aside>
+        </div>
       </main>
 
+      {/* Image Showcase */}
+      {showcaseImages.image1 || showcaseImages.image2 || showcaseImages.image3 ? (
+        <section className="py-10">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+              {showcaseImages.image1 && (
+                <div className="col-span-2 sm:col-span-1">
+                  <img src={showcaseImages.image1} alt="Showcase 1" className="w-full h-[220px] sm:h-[160px] object-cover rounded-2xl border border-[#1e2541] shadow-2xl" />
+                </div>
+              )}
+              {showcaseImages.image2 && (
+                <div className="col-span-2 sm:col-span-1">
+                  <img src={showcaseImages.image2} alt="Showcase 2" className="w-full h-[220px] sm:h-[160px] object-cover rounded-2xl border border-[#1e2541] shadow-2xl" />
+                </div>
+              )}
+              {showcaseImages.image3 && (
+                <div className="col-span-2">
+                  <img src={showcaseImages.image3} alt="Showcase 3" className="w-full h-[260px] sm:h-[200px] object-cover rounded-2xl border border-[#1e2541] shadow-2xl" />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {/* Features Section */}
-      <section id="features" className="features-section">
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-            <div className="eyebrow">KEY FEATURES</div>
-            <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '16px 0', color: '#e7ecf5' }}>
+      <section id="features" className="py-20 bg-gradient-to-b from-[#0f1320] to-[#0a0e1a]">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-15">
+            <div className="text-[#a8b1c6] font-semibold tracking-wider uppercase text-xs">KEY FEATURES</div>
+            <h2 className="text-5xl font-extrabold mt-4 mb-4 text-[#e7ecf5]">
               {featuresTitle || "Advanced AI Health Analysis"}
             </h2>
-            <p style={{ color: '#b7c1d6', maxWidth: '600px', margin: '0 auto', fontSize: '18px' }}>
+            <p className="text-[#b7c1d6] max-w-[600px] mx-auto text-lg">
               {featuresSubtitle || "Experience the future of health monitoring with our cutting-edge AI technology"}
             </p>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature) => (
-              <div key={feature.id} className="step" style={{ minHeight: 'auto' }}>
-                <div className="icon">
+              <div key={feature.id} className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4">
+                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
                   {feature.icon === 'image' ? (
-                    <svg viewBox="0 0 24 24" fill="none">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                       <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>
                       <path d="M9 9h6v6H9z" fill="#7a86ff"/>
                     </svg>
                   ) : feature.icon === 'shield' ? (
-                    <svg viewBox="0 0 24 24" fill="none">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                       <path d="M12 3l8 4v5c0 5-3.4 7.9-8 9-4.6-1.1-8-4-8-9V7l8-4z" stroke="#93ffc7" strokeWidth="1.4"/>
                       <path d="M9 12l2 2 4-4" stroke="#93ffc7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   ) : (
-                    <svg viewBox="0 0 24 24" fill="none">
+                    <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                       <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" stroke="#6ae2ff" strokeWidth="1.4"/>
                     </svg>
                   )}
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '20px', marginBottom: '8px' }}>{feature.title}</h4>
-                  <p style={{ color: '#9fb0cf', fontSize: '14px', lineHeight: '1.5' }}>{feature.description}</p>
+                  <h4 className="text-xl mb-2 font-semibold">{feature.title}</h4>
+                  <p className="text-[#9fb0cf] text-sm leading-relaxed">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -663,29 +343,29 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="faq-section">
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-            <div className="eyebrow">FAQ</div>
-            <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '16px 0', color: '#e7ecf5' }}>
+      <section id="faq" className="py-20 bg-gradient-to-b from-[#0a0e1a] to-[#0f1320]">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-15">
+            <div className="text-[#a8b1c6] font-semibold tracking-wider uppercase text-xs">FAQ</div>
+            <h2 className="text-5xl font-extrabold mt-4 mb-4 text-[#e7ecf5]">
               Frequently Asked Questions
             </h2>
-            <p style={{ color: '#b7c1d6', maxWidth: '600px', margin: '0 auto', fontSize: '18px' }}>
+            <p className="text-[#b7c1d6] max-w-[600px] mx-auto text-lg">
               Have questions? We have answers.
             </p>
           </div>
           
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div className="max-w-[800px] mx-auto">
             {faqs.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#9aa4b2', fontSize: '16px' }}>No FAQs yet.</div>
+              <div className="text-center text-[#9aa4b2] text-base">No FAQs yet.</div>
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {faqs.map((f, idx) => (
                   <AccordionItem key={f.id} value={`item-${idx + 1}`}>
-                    <AccordionTrigger style={{ color: '#e7ecf5', fontSize: '16px', fontWeight: '600' }}>
+                    <AccordionTrigger className="text-[#e7ecf5] text-base font-semibold">
                       {f.question}
                     </AccordionTrigger>
-                    <AccordionContent style={{ color: '#b7c1d6', fontSize: '14px', lineHeight: '1.6' }}>
+                    <AccordionContent className="text-[#b7c1d6] text-sm leading-relaxed">
                       {f.answer}
                     </AccordionContent>
                   </AccordionItem>
@@ -697,15 +377,17 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="footer-content">
-          <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
-            © 2025 HealthConsultant. All rights reserved.
-          </p>
-          <div className="footer-links">
-            <Link href="/terms">Terms of Service</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/contact">Contact</Link>
+      <footer className="bg-[#0a0e1a] border-t border-[#1e2541] py-6">
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-center">
+            <p className="text-[#9aa4b2] text-sm">
+              © 2025 HealthConsultant. All rights reserved.
+            </p>
+            <div className="flex gap-6">
+              <Link href="/terms" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Privacy Policy</Link>
+              <Link href="/contact" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Contact</Link>
+            </div>
           </div>
         </div>
       </footer>

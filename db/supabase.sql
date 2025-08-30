@@ -166,3 +166,34 @@ select * from (
 ) as v(title, description, icon, order_index, is_active)
 where not exists (select 1 from landing_features_items);
 
+-- Landing page: showcase images section
+create table if not exists landing_showcase (
+  id uuid primary key default gen_random_uuid(),
+  image1 text,
+  image2 text,
+  image3 text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_landing_showcase_id on landing_showcase(id);
+
+-- Create trigger to update updated_at timestamp
+create or replace function update_landing_showcase_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger update_landing_showcase_updated_at
+  before update on landing_showcase
+  for each row
+  execute function update_landing_showcase_updated_at();
+
+-- Insert default record if table is empty
+insert into landing_showcase (image1, image2, image3)
+select '', '', ''
+where not exists (select 1 from landing_showcase limit 1);
+

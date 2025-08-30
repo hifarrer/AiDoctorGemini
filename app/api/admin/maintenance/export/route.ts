@@ -56,6 +56,24 @@ SET session_replication_role = replica;
 
 `;
 
+    // Helper to infer column type from data sample
+    const inferType = (values: any[]): string => {
+      const nonNull = values.filter(v => v !== null && typeof v !== 'undefined');
+      if (nonNull.length === 0) return 'TEXT';
+      const isBoolean = nonNull.every(v => typeof v === 'boolean');
+      if (isBoolean) return 'BOOLEAN';
+      const isNumber = nonNull.every(v => typeof v === 'number');
+      if (isNumber) return 'NUMERIC';
+      const isObject = nonNull.some(v => typeof v === 'object');
+      if (isObject) return 'JSONB';
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const isUUID = nonNull.every(v => typeof v === 'string' && uuidRegex.test(v));
+      if (isUUID) return 'UUID';
+      const isTimestamp = nonNull.every(v => typeof v === 'string' && !isNaN(Date.parse(v as string)));
+      if (isTimestamp) return 'TIMESTAMP WITH TIME ZONE';
+      return 'TEXT';
+    };
+
     // Export each known table
     for (const tableName of knownTables) {
       try {
@@ -69,18 +87,27 @@ SET session_replication_role = replica;
           continue;
         }
 
-        // Create basic table structure (we'll use a simplified approach)
+        // Create table structure inferred from data when available
         sqlContent += `\n-- Table structure for table '${tableName}'
 DROP TABLE IF EXISTS "${tableName}" CASCADE;
 
--- Note: Table structure is simplified. You may need to adjust column types and constraints.
-CREATE TABLE "${tableName}" (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 `;
+        if (tableData && tableData.length > 0) {
+          const sample = tableData.slice(0, Math.min(200, tableData.length));
+          const columns = Object.keys(sample[0]);
+          const columnDefs = columns.map(col => {
+            const colValues = sample.map(r => r[col]);
+            const t = inferType(colValues);
+            if (col === 'id' && t === 'UUID') {
+              return `  "${col}" ${t} PRIMARY KEY DEFAULT gen_random_uuid()`;
+            }
+            return `  "${col}" ${t}`;
+          });
+          sqlContent += `CREATE TABLE "${tableName}" (\n${columnDefs.join(',\n')}\n);\n\n`;
+        } else {
+          // Fallback minimal structure if table is empty
+          sqlContent += `-- Note: No sample data available; using minimal structure\nCREATE TABLE "${tableName}" (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  created_at TIMESTAMP WITH TIME ZONE,\n  updated_at TIMESTAMP WITH TIME ZONE\n);\n\n`;
+        }
 
         // Insert data if exists
         if (tableData && tableData.length > 0) {

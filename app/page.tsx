@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
-import { ImageSlider } from "@/components/ImageSlider"
+ 
 import ThemeToggle from "@/components/ThemeToggle"
 
 export default function LandingPage() {
@@ -270,15 +270,10 @@ export default function LandingPage() {
             </p>
           </section>
 
-          {/* Right section - Image Slider */}
+          {/* Right section - Static Image */}
           <aside className="lg:mt-16">
             <div className="h-[240px] sm:h-[320px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
-              <ImageSlider images={[
-                '/images/aihealth1.jpg',
-                '/images/aihealth2.jpg',
-                '/images/aihealth3.jpg',
-                '/images/aihealth4.jpg'
-              ]} />
+              <img src="/images/healthassistantchat.png" alt="Health Assistant Chat" className="w-full h-full object-contain rounded-2xl border border-[#1e2541] shadow-2xl" />
             </div>
           </aside>
         </div>

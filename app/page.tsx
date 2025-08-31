@@ -284,30 +284,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* Image Showcase */}
-      {showcaseImages.image1 || showcaseImages.image2 || showcaseImages.image3 ? (
-        <section className="py-10">
-          <div className="container mx-auto px-6">
-            <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
-              {showcaseImages.image1 && (
-                <div className="col-span-2 sm:col-span-1">
-                  <img src={showcaseImages.image1} alt="Showcase 1" className="w-full h-[220px] sm:h-[160px] object-cover rounded-2xl border border-[#1e2541] shadow-2xl" />
-                </div>
-              )}
-              {showcaseImages.image2 && (
-                <div className="col-span-2 sm:col-span-1">
-                  <img src={showcaseImages.image2} alt="Showcase 2" className="w-full h-[220px] sm:h-[160px] object-cover rounded-2xl border border-[#1e2541] shadow-2xl" />
-                </div>
-              )}
-              {showcaseImages.image3 && (
-                <div className="col-span-2">
-                  <img src={showcaseImages.image3} alt="Showcase 3" className="w-full h-[260px] sm:h-[200px] object-cover rounded-2xl border border-[#1e2541] shadow-2xl" />
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : null}
+      {/* Showcase section disabled temporarily */}
 
       {/* Features Section */}
       <section id="features" className="py-20 bg-gradient-to-b from-[#0f1320] to-[#0a0e1a]">

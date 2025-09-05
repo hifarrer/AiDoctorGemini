@@ -212,7 +212,7 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
     <>
       <Toaster position="top-center" />
       <div className={`mx-auto w-full max-w-full sm:max-w-2xl md:max-w-3xl rounded-xl border shadow-lg ${
-        isDarkTheme ? 'bg-[#0b1220] border-[#1b2a4a] text-[#e7ecf5]' : 'bg-white dark:bg-gray-950'
+        isDarkTheme ? 'bg-[#0b1220] border-[#1b2a4a] text-[#e7ecf5]' : 'bg-gray-800 dark:bg-gray-950 text-white'
       }`}>
         <div className={`p-3 border-b ${isDarkTheme ? 'border-[#1b2a4a]' : 'border-gray-200 dark:border-gray-800'}`}>
           {stats && !hasUnlimited && (
@@ -252,7 +252,7 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
               <div className={`rounded-lg p-3 max-w-[75%] ${message.role === "user" ? (
                 isDarkTheme ? 'bg-[#8b5cf6] text-white' : 'bg-teal-500 text-white'
               ) : (
-                isDarkTheme ? 'bg-[#0f1b2d] text-[#e7ecf5]' : 'bg-gray-100 dark:bg-gray-800'
+                isDarkTheme ? 'bg-[#0f1b2d] text-[#e7ecf5]' : 'bg-gray-700 dark:bg-gray-800 text-white'
               )}`}>
                 {message.image && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -268,7 +268,7 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
                 )}
                 {message.content && (
                   message.role === "assistant" ? (
-                    <div className={`text-sm leading-relaxed whitespace-pre-wrap ${isDarkTheme ? 'text-[#e7ecf5]' : 'text-gray-900'}`}>
+                    <div className={`text-sm leading-relaxed whitespace-pre-wrap ${isDarkTheme ? 'text-[#e7ecf5]' : 'text-white'}`}>
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                   ) : (
@@ -281,7 +281,7 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
            {isLoading && (
               <div className="flex items-start gap-3">
                 <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-bold text-sm ${isDarkTheme ? 'bg-[#0f1b2d] text-[#a8c1ff] border border-[#1b2a4a]' : 'bg-teal-500 text-white'}`}>AI</div>
-                <div className={`rounded-lg p-3 ${isDarkTheme ? 'bg-[#0f1b2d]' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                <div className={`rounded-lg p-3 ${isDarkTheme ? 'bg-[#0f1b2d]' : 'bg-gray-700 dark:bg-gray-800'}`}>
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>

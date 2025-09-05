@@ -1,9 +1,10 @@
 import { VertexAI } from '@google-cloud/vertexai';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { recordInteraction } from '@/lib/server/usage';
 import { NextRequest } from 'next/server';
-import { recordUserInteraction } from '@/lib/server/user-interactions';
+import { recordUserInteraction, canUserInteract, getUserInteractionStats } from '@/lib/server/user-interactions';
 import { findUserByEmail } from '@/lib/server/users';
 import { getPlans } from '@/lib/server/plans';
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, image, document } = await req.json();
     const userMessage = messages[messages.length - 1];
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions as any);
 
     console.log('Chat request received:', {
       hasMessages: !!messages,
@@ -63,47 +64,56 @@ export async function POST(req: NextRequest) {
       userEmail: session?.user?.email || 'anonymous'
     });
 
-    // Record user interaction for authenticated users
+    // Enforce plan interaction limits for authenticated users
     if (session?.user?.email) {
       try {
         const user = await findUserByEmail(session.user.email);
         if (user) {
           const plans = await getPlans();
           const userPlan = plans.find(plan => plan.title === user.plan) || plans.find(plan => plan.title === 'Free');
-          
           if (userPlan) {
-            // Determine interaction type
-            let interactionType: 'chat' | 'image_analysis' | 'health_report' = 'chat';
-            if (image) interactionType = 'image_analysis';
-            if (document) interactionType = 'health_report';
-            
-            await recordUserInteraction(user.id, userPlan.id, interactionType);
-            console.log(`✅ User interaction recorded: ${interactionType} for user ${user.email}`);
+            const interactionType: 'chat' | 'image_analysis' | 'health_report' = image
+              ? 'image_analysis'
+              : document
+              ? 'health_report'
+              : 'chat';
+
+            const can = await canUserInteract(user.id, userPlan.id);
+            if (!can.canInteract) {
+              return NextResponse.json({
+                error: 'Interaction limit reached',
+                message: 'You have reached your monthly interaction limit. Please upgrade your plan.',
+                remaining: can.remainingInteractions ?? 0,
+                limit: can.limit ?? null,
+              }, { status: 429 });
+            }
+
+            // Record the interaction immediately after passing the limit check so stats reflect promptly
+            try {
+              await recordUserInteraction(user.id, userPlan.id, interactionType);
+              console.log(`✅ User interaction recorded (pre-check pass): ${interactionType} for user ${user.email}`);
+            } catch (recErr) {
+              console.error('Failed to record user interaction after limit check:', recErr);
+            }
           }
         }
       } catch (error) {
-        console.error('Failed to record user interaction:', error);
-        // Don't fail the request if interaction recording fails
+        console.error('Failed to enforce interaction limit:', error);
+        // On enforcement error, do not block the user; continue
       }
     }
 
-    // Record usage for both authenticated and non-authenticated users
-    let prompts = 1; // Base interaction
-    if (image) prompts += 1; // Image analysis
-    if (document) prompts += 1; // Document analysis
-    
-    const userIdentifier = session?.user?.email || 'anonymous';
-    console.log(`Recording usage for ${userIdentifier}: ${prompts} prompts`);
+    // Record usage aggregate (analytics) for both authenticated and non-authenticated users
+    // Note: This does not enforce limits; user_interactions above is authoritative for limits
     try {
-      await recordInteraction(
-        userIdentifier,
-        userIdentifier,
-        prompts
-      );
-      console.log('Usage recorded successfully');
+      let prompts = 1; // Base interaction
+      if (image) prompts += 1; // Image analysis
+      if (document) prompts += 1; // Document analysis
+      const userIdentifier = session?.user?.email || 'anonymous';
+      console.log(`Recording usage aggregate for ${userIdentifier}: ${prompts} prompts`);
+      await recordInteraction(userIdentifier, userIdentifier, prompts);
     } catch (error) {
-      console.error('Failed to record usage:', error);
-      // Don't fail the request if usage recording fails
+      console.error('Failed to record usage aggregate:', error);
     }
 
     if (!userMessage?.content && !image && !document) {
@@ -212,6 +222,8 @@ export async function POST(req: NextRequest) {
 
     const transformedIterator = streamTransformer(googleStreamResult.stream);
     const readableStream = iteratorToReadableStream(transformedIterator);
+
+    // Already recorded after limit check; no need to duplicate here
 
     // Return a standard response with the correctly formatted stream
     return new Response(readableStream, {

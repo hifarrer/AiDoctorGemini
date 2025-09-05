@@ -27,6 +27,8 @@ export async function getUsers(): Promise<User[]> {
 export async function addUser(user: User): Promise<User> {
   const supabase = getSupabaseServerClient();
   const payload = userToRow(user);
+  // Remove undefined fields to avoid inserting nulls explicitly
+  Object.keys(payload).forEach((k) => (payload as any)[k] === undefined && delete (payload as any)[k]);
   const { data, error } = await supabase.from('users').insert(payload).select('*').single();
   if (error) throw error;
   return rowToUser(data);
@@ -78,6 +80,7 @@ function rowToUser(row: any): User {
 
 function userToRow(user: User): any {
   return {
+    id: (user as any).id,
     email: user.email,
     password: user.password,
     first_name: user.firstName,

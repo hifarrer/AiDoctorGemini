@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any);
 
-    if (!session?.user?.email) {
+    if (!(session as any)?.user?.email) {
       return NextResponse.json(
         { message: "Unauthorized" },
         { status: 401 }
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
     // Record the interaction (no conversation content stored)
     // Use email as the unique identifier since NextAuth's default session.user has no id by default
     await recordInteraction(
-      session.user.email,
-      session.user.email,
+      (session as any).user.email,
+      (session as any).user.email,
       prompts
     );
 

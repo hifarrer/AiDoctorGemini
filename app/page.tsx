@@ -273,7 +273,7 @@ export default function LandingPage() {
           {/* Right section - Static Image */}
           <aside className="lg:mt-16">
             <div className="h-[240px] sm:h-[320px] md:h-[460px] lg:h-[520px] flex items-center justify-center">
-              <img src="/images/aidoc3.png" alt="Health Assistant Chat" className="w-full h-full object-contain rounded-2xl border border-[#1e2541] shadow-2xl" />
+              <img src={(sliderImages && sliderImages[0]) ? sliderImages[0] : "/images/aidoc3.png"} alt="Health Assistant Chat" className="w-full h-full object-contain rounded-2xl border border-[#1e2541] shadow-2xl" />
             </div>
           </aside>
         </div>

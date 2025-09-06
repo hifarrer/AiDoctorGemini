@@ -19,6 +19,14 @@ export async function recordUserInteraction(
   const now = new Date();
   const month = now.toISOString().slice(0, 7); // YYYY-MM format
 
+  console.log('📝 Recording user_interaction attempt:', {
+    userId,
+    planId,
+    interactionType,
+    month,
+    created_at: now.toISOString(),
+  });
+
   const { error } = await supabase
     .from('user_interactions')
     .insert({
@@ -30,9 +38,11 @@ export async function recordUserInteraction(
     });
 
   if (error) {
-    console.error('Error recording user interaction:', error);
+    console.error('❌ Error recording user interaction:', error);
     throw error;
   }
+
+  console.log('✅ user_interactions row inserted successfully.');
 }
 
 export async function getUserInteractionCount(

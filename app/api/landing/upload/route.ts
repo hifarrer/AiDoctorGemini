@@ -25,7 +25,8 @@ export async function POST(request: Request) {
 
 		const supabase = getSupabaseServerClient();
 		const bucket = process.env.SUPABASE_STORAGE_BUCKET || "landing";
-		const objectPath = `showcase/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+		const folder = (form.get("folder") as string) || "showcase";
+		const objectPath = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
 		const { error: uploadError } = await supabase.storage
 			.from(bucket)

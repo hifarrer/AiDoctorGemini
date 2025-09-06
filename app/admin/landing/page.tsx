@@ -10,16 +10,10 @@ interface LandingHero {
 	images: string[];
 }
 
-interface ShowcaseImages {
-	id: number;
-	image1: string;
-	image2: string;
-	image3: string;
-}
+// Showcase images section removed
 
 export default function AdminLandingPage() {
 	const [hero, setHero] = useState<LandingHero | null>(null);
-	const [showcaseImages, setShowcaseImages] = useState<ShowcaseImages | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [chatTitle, setChatTitle] = useState<string>("");
 	const [chatSubtitle, setChatSubtitle] = useState<string>("");
@@ -67,11 +61,10 @@ export default function AdminLandingPage() {
 		setLoading(true);
 		try {
 			// Load all data in parallel
-			const [heroRes, chatbotRes, featuresRes, showcaseRes] = await Promise.all([
+			const [heroRes, chatbotRes, featuresRes] = await Promise.all([
 				fetch("/api/landing/hero"),
 				fetch("/api/landing/chatbot"),
-				fetch("/api/landing/features"),
-				fetch(`/api/landing/showcase?t=${Date.now()}`)
+				fetch("/api/landing/features")
 			]);
 
 			// Handle hero data
@@ -95,26 +88,7 @@ export default function AdminLandingPage() {
 				}
 			}
 
-			// Handle showcase images data
-			if (showcaseRes.ok) {
-				const showcaseData = await showcaseRes.json();
-				if (showcaseData && (showcaseData.image1 || showcaseData.image2 || showcaseData.image3)) {
-					setShowcaseImages({
-						id: 1,
-						image1: showcaseData.image1 || "",
-						image2: showcaseData.image2 || "",
-						image3: showcaseData.image3 || "",
-					});
-				} else {
-					// No data from database, set empty state
-					setShowcaseImages({
-						id: 1,
-						image1: "",
-						image2: "",
-						image3: "",
-					});
-				}
-			}
+			// Showcase images removed
 
 			// Handle chatbot data
 			if (chatbotRes.ok) {
@@ -170,39 +144,7 @@ export default function AdminLandingPage() {
 		}
 	}
 
-	async function saveShowcase() {
-		if (!showcaseImages) return;
-		setIsSaving(true);
-		try {
-			const res = await fetch("/api/landing/showcase", {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(showcaseImages),
-			});
-			if (res.ok) {
-				toast.success("Showcase images saved successfully!");
-				// Reload showcase data to refresh the form
-				const showcaseRes = await fetch(`/api/landing/showcase?t=${Date.now()}`);
-				if (showcaseRes.ok) {
-					const showcaseData = await showcaseRes.json();
-					if (showcaseData && (showcaseData.image1 || showcaseData.image2 || showcaseData.image3)) {
-						setShowcaseImages({
-							id: 1,
-							image1: showcaseData.image1 || "",
-							image2: showcaseData.image2 || "",
-							image3: showcaseData.image3 || "",
-						});
-					}
-				}
-			} else {
-				toast.error("Failed to save showcase images");
-			}
-		} catch (error) {
-			toast.error("An error occurred while saving showcase images");
-		} finally {
-			setIsSaving(false);
-		}
-	}
+    // Showcase images save removed
 
 	async function saveChatbot() {
 		setIsSaving(true);
@@ -312,10 +254,7 @@ export default function AdminLandingPage() {
 		setHero({ ...hero, images: hero.images.filter((_, i) => i !== idx) });
 	}
 
-	function updateShowcaseImage(field: 'image1' | 'image2' | 'image3', value: string) {
-		if (!showcaseImages) return;
-		setShowcaseImages({ ...showcaseImages, [field]: value });
-	}
+    // Showcase images handlers removed
 
 	async function onUpload(idx: number, file: File) {
 		const form = new FormData();
@@ -328,16 +267,7 @@ export default function AdminLandingPage() {
 		}
 	}
 
-	async function onShowcaseUpload(field: 'image1' | 'image2' | 'image3', file: File) {
-		const form = new FormData();
-		form.append("file", file);
-		form.append("filename", file.name);
-		const res = await fetch("/api/landing/upload", { method: "POST", body: form });
-		if (res.ok) {
-			const data = await res.json();
-			if (data?.url) updateShowcaseImage(field, data.url);
-		}
-	}
+    // Showcase upload removed
 
 	if (loading) {
 		return (
@@ -355,7 +285,42 @@ export default function AdminLandingPage() {
 				<div className="grid gap-4">
 					<input className="border rounded p-2 bg-white dark:bg-gray-900" placeholder="Title" value={hero?.title || ""} onChange={(e) => setHero(h => h ? { ...h, title: e.target.value } : h)} />
 					<textarea className="border rounded p-2 min-h-[100px] bg-white dark:bg-gray-900" placeholder="Subtitle" value={hero?.subtitle || ""} onChange={(e) => setHero(h => h ? { ...h, subtitle: e.target.value } : h)} />
-					{/* Slider image uploaders removed as slider is no longer used */}
+					{/* Hero image upload */}
+					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
+						<label className="block text-sm font-medium mb-2">Hero Image</label>
+						<div className="flex items-center gap-3">
+							{hero?.images?.[0] && (
+								<img src={hero.images[0]} alt="Hero" className="h-16 w-24 object-cover rounded border" />
+							)}
+							<input 
+								className="border rounded p-2 flex-1 bg-white dark:bg-gray-900" 
+								placeholder="Hero Image URL" 
+								value={hero?.images?.[0] || ""} 
+								onChange={(e) => setHero(h => h ? { ...h, images: [e.target.value, ...(h.images?.slice(1) || [])] } : h)} 
+							/>
+							<label className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-sm cursor-pointer">
+								<input 
+									type="file" 
+									accept="image/*" 
+									className="hidden" 
+									onChange={async (e) => { 
+										const f = e.target.files?.[0]; 
+										if (!f) return; 
+										const form = new FormData();
+										form.append('file', f);
+										form.append('filename', f.name);
+										form.append('folder', 'hero');
+										const res = await fetch('/api/landing/upload', { method: 'POST', body: form });
+										if (res.ok) { 
+											const data = await res.json(); 
+											if (data?.url) setHero(h => h ? { ...h, images: [data.url, ...(h.images?.slice(1) || [])] } : h); 
+										}
+									}} 
+								/>
+								Upload
+							</label>
+						</div>
+					</div>
 					<div>
 						<button disabled={!isValid || isSaving} onClick={saveHero} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
 							{isSaving ? "Saving..." : "Save"}
@@ -364,102 +329,8 @@ export default function AdminLandingPage() {
 				</div>
 			</div>
 
-			<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-				<h2 className="text-lg font-semibold mb-4">Showcase Images Section</h2>
-				<p className="text-sm text-gray-600 dark:text-gray-400 mb-4">These 3 images will be displayed before the Key Features section on the landing page.</p>
-				<div className="grid gap-4">
-					{/* Image 1 */}
-					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
-						<label className="block text-sm font-medium mb-2">Image 1 (Top Left)</label>
-						<div className="flex items-center gap-3">
-							{showcaseImages?.image1 && (
-								<img src={showcaseImages.image1} alt="Showcase 1" className="h-16 w-24 object-cover rounded border" />
-							)}
-							<input 
-								className="border rounded p-2 flex-1 bg-white dark:bg-gray-900" 
-								placeholder="Image URL #1" 
-								value={showcaseImages?.image1 || ""} 
-								onChange={(e) => updateShowcaseImage('image1', e.target.value)} 
-							/>
-							<label className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-sm cursor-pointer">
-								<input 
-									type="file" 
-									accept="image/*" 
-									className="hidden" 
-									onChange={(e) => { 
-										const f = e.target.files?.[0]; 
-										if (f) onShowcaseUpload('image1', f); 
-									}} 
-								/>
-								Upload
-							</label>
-						</div>
-					</div>
+			{/* Showcase Images Section removed */}
 
-					{/* Image 2 */}
-					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
-						<label className="block text-sm font-medium mb-2">Image 2 (Top Right)</label>
-						<div className="flex items-center gap-3">
-							{showcaseImages?.image2 && (
-								<img src={showcaseImages.image2} alt="Showcase 2" className="h-16 w-24 object-cover rounded border" />
-							)}
-							<input 
-								className="border rounded p-2 flex-1 bg-white dark:bg-gray-900" 
-								placeholder="Image URL #2" 
-								value={showcaseImages?.image2 || ""} 
-								onChange={(e) => updateShowcaseImage('image2', e.target.value)} 
-							/>
-							<label className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-sm cursor-pointer">
-								<input 
-									type="file" 
-									accept="image/*" 
-									className="hidden" 
-									onChange={(e) => { 
-										const f = e.target.files?.[0]; 
-										if (f) onShowcaseUpload('image2', f); 
-									}} 
-								/>
-								Upload
-							</label>
-						</div>
-					</div>
-
-					{/* Image 3 */}
-					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
-						<label className="block text-sm font-medium mb-2">Image 3 (Bottom Full Width)</label>
-						<div className="flex items-center gap-3">
-							{showcaseImages?.image3 && (
-								<img src={showcaseImages.image3} alt="Showcase 3" className="h-16 w-24 object-cover rounded border" />
-							)}
-							<input 
-								className="border rounded p-2 flex-1 bg-white dark:bg-gray-900" 
-								placeholder="Image URL #3" 
-								value={showcaseImages?.image3 || ""} 
-								onChange={(e) => updateShowcaseImage('image3', e.target.value)} 
-							/>
-							<label className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700 text-sm cursor-pointer">
-								<input 
-									type="file" 
-									accept="image/*" 
-									className="hidden" 
-									onChange={(e) => { 
-										const f = e.target.files?.[0]; 
-										if (f) onShowcaseUpload('image3', f); 
-									}} 
-								/>
-								Upload
-							</label>
-						</div>
-					</div>
-
-					<div>
-						<button disabled={isSaving} onClick={saveShowcase} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
-							{isSaving ? "Saving..." : "Save Showcase Images"}
-						</button>
-					</div>
-				</div>
-			</div>
-			
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 				<h2 className="text-lg font-semibold mb-4">Key Features Section</h2>
 				<div className="grid gap-4">

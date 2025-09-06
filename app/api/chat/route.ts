@@ -61,13 +61,13 @@ export async function POST(req: NextRequest) {
       messageCount: messages?.length,
       hasImage: !!image,
       hasDocument: !!document,
-      userEmail: session?.user?.email || 'anonymous'
+      userEmail: (session as any)?.user?.email || 'anonymous'
     });
 
     // Enforce plan interaction limits for authenticated users
-    if (session?.user?.email) {
+    if ((session as any)?.user?.email) {
       try {
-        const user = await findUserByEmail(session.user.email);
+        const user = await findUserByEmail((session as any).user.email);
         if (user) {
           const plans = await getPlans();
           const userPlan = plans.find(plan => plan.title === user.plan) || plans.find(plan => plan.title === 'Free');
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       let prompts = 1; // Base interaction
       if (image) prompts += 1; // Image analysis
       if (document) prompts += 1; // Document analysis
-      const userIdentifier = session?.user?.email || 'anonymous';
+      const userIdentifier = (session as any)?.user?.email || 'anonymous';
       console.log(`Recording usage aggregate for ${userIdentifier}: ${prompts} prompts`);
       await recordInteraction(userIdentifier, userIdentifier, prompts);
     } catch (error) {

@@ -52,9 +52,10 @@ export async function PUT(request: NextRequest) {
 		
 		console.log('✅ [HERO_PUT] Successfully updated hero');
 		return NextResponse.json(updated);
-	} catch (error) {
+	} catch (error: unknown) {
 		console.error('❌ [HERO_PUT] Error in PUT handler:', error);
-		return NextResponse.json({ message: "Internal server error", error: error.message }, { status: 500 });
+		const message = error instanceof Error ? error.message : String(error);
+		return NextResponse.json({ message: "Internal server error", error: message }, { status: 500 });
 	}
 }
 

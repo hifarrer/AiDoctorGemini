@@ -9,6 +9,7 @@ export interface LandingHero {
 }
 
 export async function getLandingHero(): Promise<LandingHero | null> {
+	console.log('🔍 [getLandingHero] Fetching hero data from database...');
 	const supabase = getSupabaseServerClient();
 	const { data, error } = await supabase
 		.from("landing_hero")
@@ -16,13 +17,15 @@ export async function getLandingHero(): Promise<LandingHero | null> {
 		.eq("id", 1)
 		.single();
 	if (error) {
-		console.error("getLandingHero error:", error);
+		console.error("❌ [getLandingHero] Error:", error);
 		return null;
 	}
+	console.log('📋 [getLandingHero] Database result:', data);
 	return data as LandingHero;
 }
 
 export async function upsertLandingHero(input: Partial<LandingHero>): Promise<LandingHero | null> {
+	console.log('🔄 [upsertLandingHero] Starting upsert with input:', input);
 	const supabase = getSupabaseServerClient();
 	// Load current to safely merge undefined fields
 	const { data: current } = await supabase
@@ -30,6 +33,8 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 		.select("id, title, subtitle, images, updated_at")
 		.eq("id", 1)
 		.single();
+
+	console.log('📋 [upsertLandingHero] Current data:', current);
 
 	const payload: Partial<LandingHero> & { id: number } = {
 		id: 1,
@@ -39,15 +44,18 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 		updated_at: new Date().toISOString() as any,
 	};
 
+	console.log('📋 [upsertLandingHero] Payload to upsert:', payload);
+
 	const { data, error } = await supabase
 		.from("landing_hero")
 		.upsert(payload as any, { onConflict: "id" })
 		.select("id, title, subtitle, images, updated_at")
 		.single();
 	if (error) {
-		console.error("upsertLandingHero error:", error);
+		console.error("❌ [upsertLandingHero] Error:", error);
 		return null;
 	}
+	console.log('✅ [upsertLandingHero] Successfully upserted:', data);
 	return data as LandingHero;
 }
 

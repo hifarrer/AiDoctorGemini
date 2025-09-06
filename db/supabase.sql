@@ -106,7 +106,7 @@ insert into landing_hero (id, title, subtitle, images)
 values (
   1,
   'Your Personal AI Health Assistant',
-  'Get instant, reliable answers to your medical questions. AI Doctor understands both text and images to provide you with the best possible assistance.',
+  'Get instant, reliable answers to your medical questions. Health Consultant AI understands both text and images to provide you with the best possible assistance.',
   array['/images/aidoc1.png','/images/aidoc2.png','/images/aidoc3.png','/images/aidoc4.png']
 )
 on conflict (id) do nothing;
@@ -122,7 +122,7 @@ create table if not exists landing_chatbot (
 insert into landing_chatbot (id, title, subtitle)
 values (
   1,
-  'Try AI Doctor Now',
+  'Try Health Consultant AI Now',
   'Ask a question below to test the chatbot''s capabilities. No registration required.'
 )
 on conflict (id) do nothing;

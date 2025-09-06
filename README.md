@@ -1,4 +1,4 @@
-# AI Doctor
+# Health Consultant AI
 
 This is a web application that uses Google's Gemini models to answer medical questions based on text and images.
 

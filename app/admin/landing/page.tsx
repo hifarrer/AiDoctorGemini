@@ -62,7 +62,7 @@ export default function AdminLandingPage() {
 		try {
 			// Load all data in parallel
 			const [heroRes, chatbotRes, featuresRes] = await Promise.all([
-				fetch("/api/landing/hero"),
+				fetch(`/api/landing/hero?t=${Date.now()}`),
 				fetch("/api/landing/chatbot"),
 				fetch("/api/landing/features")
 			]);
@@ -70,15 +70,19 @@ export default function AdminLandingPage() {
 			// Handle hero data
 			if (heroRes.ok) {
 				const heroData = await heroRes.json();
+				console.log('📋 [ADMIN] Received hero data:', heroData);
 				if (heroData && (heroData.title || heroData.subtitle || heroData.images)) {
-					setHero({
+					const heroState = {
 						id: 1,
 						title: heroData.title || "",
 						subtitle: heroData.subtitle || "",
 						images: Array.isArray(heroData.images) && heroData.images.length > 0 ? heroData.images : [],
-					});
+					};
+					console.log('✅ [ADMIN] Setting hero state:', heroState);
+					setHero(heroState);
 				} else {
 					// No data from database, set empty state
+					console.log('⚠️ [ADMIN] No hero data found, setting empty state');
 					setHero({
 						id: 1,
 						title: "",
@@ -86,6 +90,8 @@ export default function AdminLandingPage() {
 						images: [],
 					});
 				}
+			} else {
+				console.log('❌ [ADMIN] Failed to fetch hero data:', heroRes.status);
 			}
 
 			// Showcase images removed
@@ -125,6 +131,7 @@ export default function AdminLandingPage() {
 
 	async function saveHero() {
 		if (!hero) return;
+		console.log('🔄 [ADMIN] Saving hero data:', hero);
 		setIsSaving(true);
 		try {
 			const res = await fetch("/api/landing/hero", {
@@ -133,11 +140,15 @@ export default function AdminLandingPage() {
 				body: JSON.stringify(hero),
 			});
 			if (res.ok) {
+				const result = await res.json();
+				console.log('✅ [ADMIN] Hero save response:', result);
 				toast.success("Hero section saved successfully!");
 			} else {
+				console.log('❌ [ADMIN] Hero save failed:', res.status);
 				toast.error("Failed to save hero section");
 			}
 		} catch (error) {
+			console.error("❌ [ADMIN] Error saving hero:", error);
 			toast.error("An error occurred while saving hero section");
 		} finally {
 			setIsSaving(false);

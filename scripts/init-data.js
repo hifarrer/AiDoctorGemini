@@ -101,7 +101,7 @@ if (!fs.existsSync(settingsFile)) {
   const defaultSettings = {
     stripeApiKey: "",
     stripePublishableKey: "",
-    siteName: "AI Doctor",
+    siteName: "Health Consultant AI",
     siteDescription: "Your Personal AI Health Assistant",
     contactEmail: "",
     supportEmail: "",

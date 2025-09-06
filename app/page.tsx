@@ -31,7 +31,7 @@ export default function LandingPage() {
         const [settingsRes, faqRes, heroRes, showcaseRes] = await Promise.all([
           fetch('/api/settings', { cache: 'no-store' }),
           fetch('/api/faq', { cache: 'no-store' }),
-          fetch('/api/landing/hero', { cache: 'no-store' }),
+          fetch(`/api/landing/hero?t=${Date.now()}`, { cache: 'no-store' }),
           fetch(`/api/landing/showcase?t=${Date.now()}`, { cache: 'no-store' }),
         ]);
         // Fetch features section separately to avoid failing all
@@ -49,11 +49,21 @@ export default function LandingPage() {
         }
         if (heroRes.ok) {
           const hero = await heroRes.json();
+          console.log("📋 [LANDING_PAGE] Received hero data:", hero);
           if (hero && (hero.title || hero.subtitle || hero.images)) {
             if (hero.title) setHeroTitle(hero.title);
             if (typeof hero.subtitle === 'string') setHeroSubtitle(hero.subtitle);
-            if (Array.isArray(hero.images) && hero.images.length > 0) setSliderImages(hero.images);
+            if (Array.isArray(hero.images) && hero.images.length > 0) {
+              console.log("✅ [LANDING_PAGE] Setting slider images:", hero.images);
+              setSliderImages(hero.images);
+            } else {
+              console.log("⚠️ [LANDING_PAGE] No valid images found in hero data");
+            }
+          } else {
+            console.log("⚠️ [LANDING_PAGE] No hero data found");
           }
+        } else {
+          console.log("❌ [LANDING_PAGE] Failed to fetch hero data:", heroRes.status);
         }
         if (showcaseRes.ok) {
           const showcase = await showcaseRes.json();

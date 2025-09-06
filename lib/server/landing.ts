@@ -5,6 +5,7 @@ export interface LandingHero {
 	title: string;
 	subtitle: string | null;
 	images: string[];
+	background_color: string | null;
 	updated_at: string | null;
 }
 
@@ -13,7 +14,7 @@ export async function getLandingHero(): Promise<LandingHero | null> {
 	const supabase = getSupabaseServerClient();
 	const { data, error } = await supabase
 		.from("landing_hero")
-		.select("id, title, subtitle, images, updated_at")
+		.select("id, title, subtitle, images, background_color, updated_at")
 		.eq("id", 1)
 		.single();
 	if (error) {
@@ -21,6 +22,7 @@ export async function getLandingHero(): Promise<LandingHero | null> {
 		return null;
 	}
 	console.log('📋 [getLandingHero] Database result:', data);
+	console.log('📋 [getLandingHero] Background color from DB:', data?.background_color);
 	return data as LandingHero;
 }
 
@@ -30,26 +32,29 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 	// Load current to safely merge undefined fields
 	const { data: current } = await supabase
 		.from("landing_hero")
-		.select("id, title, subtitle, images, updated_at")
+		.select("id, title, subtitle, images, background_color, updated_at")
 		.eq("id", 1)
 		.single();
 
 	console.log('📋 [upsertLandingHero] Current data:', current);
 
-	const payload: Partial<LandingHero> & { id: number } = {
+	const payload: any = {
 		id: 1,
 		title: input.title ?? current?.title ?? "",
 		subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
 		images: Array.isArray(input.images) ? input.images : (current?.images ?? []),
+		background_color: input.background_color ?? current?.background_color ?? "gradient-blue",
 		updated_at: new Date().toISOString() as any,
 	};
+	
+	console.log('📋 [upsertLandingHero] Payload with background_color:', payload);
 
 	console.log('📋 [upsertLandingHero] Payload to upsert:', payload);
 
 	const { data, error } = await supabase
 		.from("landing_hero")
-		.upsert(payload as any, { onConflict: "id" })
-		.select("id, title, subtitle, images, updated_at")
+		.upsert(payload, { onConflict: "id" })
+		.select("id, title, subtitle, images, background_color, updated_at")
 		.single();
 	if (error) {
 		console.error("❌ [upsertLandingHero] Error:", error);
@@ -111,6 +116,7 @@ export interface LandingFeaturesSection {
   id: number;
   title: string;
   subtitle: string | null;
+  background_color?: string | null;
   updated_at: string | null;
 }
 
@@ -127,7 +133,7 @@ export interface LandingFeatureItem {
 export async function getLandingFeatures(): Promise<{ section: LandingFeaturesSection | null; items: LandingFeatureItem[]; }> {
   const supabase = getSupabaseServerClient();
   const [{ data: section }, { data: items }] = await Promise.all([
-    supabase.from('landing_features_section').select('id, title, subtitle, updated_at').eq('id', 1).single(),
+    supabase.from('landing_features_section').select('id, title, subtitle, background_color, updated_at').eq('id', 1).single(),
     supabase.from('landing_features_items').select('id, title, description, icon, order_index, is_active, updated_at').eq('is_active', true).order('order_index', { ascending: true }),
   ]);
   return { section: (section as any) || null, items: (items as any) || [] };
@@ -135,17 +141,18 @@ export async function getLandingFeatures(): Promise<{ section: LandingFeaturesSe
 
 export async function upsertLandingFeaturesSection(input: Partial<LandingFeaturesSection>): Promise<LandingFeaturesSection | null> {
   const supabase = getSupabaseServerClient();
-  const { data: current } = await supabase.from('landing_features_section').select('id, title, subtitle, updated_at').eq('id', 1).single();
+  const { data: current } = await supabase.from('landing_features_section').select('id, title, subtitle, background_color, updated_at').eq('id', 1).single();
   const payload = {
     id: 1,
     title: input.title ?? current?.title ?? "",
     subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
+    background_color: input.background_color ?? (current ? (current as any).background_color : null) ?? 'solid-blue',
     updated_at: new Date().toISOString() as any,
   };
   const { data, error } = await supabase
     .from('landing_features_section')
     .upsert(payload as any, { onConflict: 'id' })
-    .select('id, title, subtitle, updated_at')
+    .select('id, title, subtitle, background_color, updated_at')
     .single();
   if (error) {
     console.error('upsertLandingFeaturesSection error:', error);

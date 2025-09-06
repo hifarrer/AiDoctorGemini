@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { createClient } from '@supabase/supabase-js'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
  
 import ThemeToggle from "@/components/ThemeToggle"
@@ -13,9 +14,11 @@ export default function LandingPage() {
   const [heroTitle, setHeroTitle] = useState<string>("");
   const [heroSubtitle, setHeroSubtitle] = useState<string>("");
   const [sliderImages, setSliderImages] = useState<string[]>([]);
+  const [heroBackgroundColor, setHeroBackgroundColor] = useState<string>("gradient-blue");
   const [featuresTitle, setFeaturesTitle] = useState<string>("");
   const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
+  const [featuresBackgroundColor, setFeaturesBackgroundColor] = useState<string>('solid-blue');
   const [showcaseImages, setShowcaseImages] = useState<{ image1: string; image2: string; image3: string }>({
     image1: "",
     image2: "",
@@ -25,13 +28,32 @@ export default function LandingPage() {
   const [isReady, setIsReady] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Client-side Supabase for live reads (avoids API caching)
+  const supabaseBrowser = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+  );
+
+  // Function returns stable theme utility classes; the actual colors are driven by CSS variables
+  const getBackgroundClasses = (_bgColor: string) => {
+    return {
+      background: 'theme-bg',
+      text: 'theme-text',
+      textSecondary: 'theme-text-secondary',
+      cardBg: 'theme-card-bg',
+      cardBorder: 'theme-card-border',
+      cardIconBg: 'theme-icon-bg',
+      cardIconBorder: 'theme-icon-border'
+    } as const;
+  };
+
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [settingsRes, faqRes, heroRes, showcaseRes] = await Promise.all([
+        console.log('🔄 [LANDING_PAGE] Fetching fresh data...');
+        const [settingsRes, faqRes, showcaseRes] = await Promise.all([
           fetch('/api/settings', { cache: 'no-store' }),
           fetch('/api/faq', { cache: 'no-store' }),
-          fetch(`/api/landing/hero?t=${Date.now()}`, { cache: 'no-store' }),
           fetch(`/api/landing/showcase?t=${Date.now()}`, { cache: 'no-store' }),
         ]);
         // Fetch features section separately to avoid failing all
@@ -47,9 +69,20 @@ export default function LandingPage() {
           console.log("📝 [LANDING_PAGE] FAQ details:", items.map((f: any) => ({ id: f.id, question: f.question.substring(0, 50) + "..." })));
           setFaqs(Array.isArray(items) ? items : []);
         }
-        if (heroRes.ok) {
-          const hero = await heroRes.json();
-          console.log("📋 [LANDING_PAGE] Received hero data:", hero);
+        // Fetch hero data directly from Supabase (client-side) to bypass any API caching
+        const { data: hero, error: heroErr } = await supabaseBrowser
+          .from('landing_hero')
+          .select('id, title, subtitle, images, background_color, updated_at')
+          .eq('id', 1)
+          .single();
+
+        if (heroErr) {
+          console.error('❌ [LANDING_PAGE] Error fetching hero from Supabase:', heroErr);
+        } else if (hero) {
+          console.log("📋 [LANDING_PAGE] Received hero data (Supabase):", hero);
+          console.log("📋 [LANDING_PAGE] Hero background_color field:", hero.background_color);
+          console.log("📋 [LANDING_PAGE] Hero background_color type:", typeof hero.background_color);
+
           if (hero && (hero.title || hero.subtitle || hero.images)) {
             if (hero.title) setHeroTitle(hero.title);
             if (typeof hero.subtitle === 'string') setHeroSubtitle(hero.subtitle);
@@ -59,11 +92,16 @@ export default function LandingPage() {
             } else {
               console.log("⚠️ [LANDING_PAGE] No valid images found in hero data");
             }
+            if (hero.background_color) {
+              console.log("✅ [LANDING_PAGE] Setting background color:", hero.background_color);
+              setHeroBackgroundColor(hero.background_color);
+            } else {
+              console.log("⚠️ [LANDING_PAGE] No background color found, using default");
+              setHeroBackgroundColor("gradient-blue");
+            }
           } else {
             console.log("⚠️ [LANDING_PAGE] No hero data found");
           }
-        } else {
-          console.log("❌ [LANDING_PAGE] Failed to fetch hero data:", heroRes.status);
         }
         if (showcaseRes.ok) {
           const showcase = await showcaseRes.json();
@@ -96,6 +134,22 @@ export default function LandingPage() {
             setFeatures(fd.items.map((it: any) => ({ id: it.id, title: it.title, description: it.description || '', icon: it.icon || undefined })));
           }
         }
+
+        // Fetch features background color directly from Supabase to avoid any API caching
+        const { data: featuresSection, error: featuresErr } = await supabaseBrowser
+          .from('landing_features_section')
+          .select('background_color')
+          .eq('id', 1)
+          .single();
+        if (featuresErr) {
+          console.error('❌ [LANDING_PAGE] Error fetching features section from Supabase:', featuresErr);
+        } else if (featuresSection?.background_color) {
+          console.log('✅ [LANDING_PAGE] Setting features background color:', featuresSection.background_color);
+          setFeaturesBackgroundColor(featuresSection.background_color);
+        } else {
+          console.log('⚠️ [LANDING_PAGE] No features background color found, using default solid-blue');
+          setFeaturesBackgroundColor('solid-blue');
+        }
       } catch (error) {
         console.error('Error fetching landing data:', error);
       } finally {
@@ -105,8 +159,15 @@ export default function LandingPage() {
     fetchAll();
   }, []);
 
+  const bgClasses = getBackgroundClasses(heroBackgroundColor);
+  
+  console.log('🎨 [LANDING_PAGE] Current background color state:', heroBackgroundColor);
+  console.log('🎨 [LANDING_PAGE] getBackgroundClasses input:', heroBackgroundColor);
+  console.log('🎨 [LANDING_PAGE] getBackgroundClasses output:', bgClasses);
+  console.log('🎨 [LANDING_PAGE] Final CSS classes:', `min-h-screen ${bgClasses.background} ${bgClasses.text} relative overflow-hidden`);
+  
   return (
-    <div className="min-h-screen bg-[#0f1320] text-[#e7ecf5] relative overflow-hidden">
+    <div className={`min-h-screen ${bgClasses.background} ${bgClasses.text} relative overflow-hidden scheme-${heroBackgroundColor}`}>
       {/* Background gradients */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-10 -left-10 w-[1200px] h-[600px] bg-[#1a1f35] rounded-full opacity-20 blur-3xl"></div>
@@ -131,12 +192,12 @@ export default function LandingPage() {
             <span>Health<span className="text-[#7ae2ff]">Consultant</span></span>
           </Link>
           
-          <div className="hidden sm:flex gap-6 text-[#c9d2e2]">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-            <Link href="/plans" className="hover:text-white transition-colors">Pricing</Link>
-            <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+          <div className={`hidden sm:flex gap-6 ${bgClasses.textSecondary}`}>
+            <a href="#features" className={`hover:${bgClasses.text} transition-colors`}>Features</a>
+            <a href="#how-it-works" className={`hover:${bgClasses.text} transition-colors`}>How it Works</a>
+            <a href="#faq" className={`hover:${bgClasses.text} transition-colors`}>FAQ</a>
+            <Link href="/plans" className={`hover:${bgClasses.text} transition-colors`}>Pricing</Link>
+            <Link href="/contact" className={`hover:${bgClasses.text} transition-colors`}>Contact</Link>
           </div>
           
           <div className="hidden sm:flex gap-3">
@@ -177,34 +238,32 @@ export default function LandingPage() {
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-10 items-start mt-6">
           {/* Left section */}
           <section>
-            <div className="text-[#a8b1c6] font-semibold tracking-wider uppercase text-xs">AI-POWERED WELLNESS</div>
-            <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight mt-3 mb-2 tracking-tight">
-              Your Personal <span className="bg-gradient-to-r from-[#8a6bff] via-[#c87cff] to-[#8a6bff] bg-clip-text text-transparent">AI</span><br />
-              <span className="bg-gradient-to-r from-[#6ae2ff] via-[#7df3cf] to-[#6ae2ff] bg-clip-text text-transparent">Health</span> Assistant
+            <div className={`${bgClasses.textSecondary} font-semibold tracking-wider uppercase text-xs`}>AI-POWERED WELLNESS</div>
+            <h1 className={`text-5xl lg:text-6xl font-extrabold leading-tight mt-3 mb-2 tracking-tight ${bgClasses.text}`}>
+              {heroTitle || "Your Personal AI Health Assistant"}
             </h1>
-            <p className="text-[#b7c1d6] max-w-[680px] mt-2 mb-5 text-base">
-              Upload a health photo or report and get instant, privacy-first insights. 
-              Receive a clean PDF summary and have an AI consultant explain the results in simple language.
+            <p className={`${bgClasses.textSecondary} max-w-[680px] mt-2 mb-5 text-base`}>
+              {heroSubtitle || "Upload a health photo or report and get instant, privacy-first insights. Receive a clean PDF summary and have an AI consultant explain the results in simple language."}
             </p>
 
             {/* Steps grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
-              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
-                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+              <div className={`grid grid-cols-[56px_1fr] gap-4 items-start ${bgClasses.cardBg} border ${bgClasses.cardBorder} rounded-2xl p-4 min-h-[112px]`}>
+                <div className={`w-14 h-14 rounded-4 ${bgClasses.cardIconBg} border ${bgClasses.cardIconBorder} grid place-items-center`}>
                   <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                     <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>
                     <path d="M9 9h6v6H9z" fill="#7a86ff"/>
                   </svg>
                 </div>
                 <div>
-                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">STEP 1</small>
-                  <h4 className="mt-1 mb-1 text-base font-semibold">AI instantly analyzes</h4>
-                  <p className="text-[#9fb0cf] text-sm leading-relaxed">Upload a photo or health report.</p>
+                  <small className={`${bgClasses.textSecondary} font-bold tracking-wider uppercase text-xs`}>STEP 1</small>
+                  <h4 className={`mt-1 mb-1 text-base font-semibold ${bgClasses.text}`}>AI instantly analyzes</h4>
+                  <p className={`${bgClasses.textSecondary} text-sm leading-relaxed`}>Upload a photo or health report.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
-                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+              <div className={`grid grid-cols-[56px_1fr] gap-4 items-start ${bgClasses.cardBg} border ${bgClasses.cardBorder} rounded-2xl p-4 min-h-[112px]`}>
+                <div className={`w-14 h-14 rounded-4 ${bgClasses.cardIconBg} border ${bgClasses.cardIconBorder} grid place-items-center`}>
                   <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                     <path d="M7 3h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="#6ae2ff" strokeWidth="1.4"/>
                     <path d="M14 3v6h6" stroke="#6ae2ff" strokeWidth="1.4"/>
@@ -212,28 +271,28 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <div>
-                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">STEP 2</small>
-                  <h4 className="mt-1 mb-1 text-base font-semibold">Get a personalized Health Report</h4>
-                  <p className="text-[#9fb0cf] text-sm leading-relaxed">Clear metrics and ranges you can keep.</p>
+                  <small className={`${bgClasses.textSecondary} font-bold tracking-wider uppercase text-xs`}>STEP 2</small>
+                  <h4 className={`mt-1 mb-1 text-base font-semibold ${bgClasses.text}`}>Get a personalized Health Report</h4>
+                  <p className={`${bgClasses.textSecondary} text-sm leading-relaxed`}>Clear metrics and ranges you can keep.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
-                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+              <div className={`grid grid-cols-[56px_1fr] gap-4 items-start ${bgClasses.cardBg} border ${bgClasses.cardBorder} rounded-2xl p-4 min-h-[112px]`}>
+                <div className={`w-14 h-14 rounded-4 ${bgClasses.cardIconBg} border ${bgClasses.cardIconBorder} grid place-items-center`}>
                   <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                     <circle cx="12" cy="8" r="3.5" stroke="#b47bff" strokeWidth="1.4"/>
                     <rect x="6.5" y="13.5" width="11" height="5.5" rx="1.2" stroke="#b47bff" strokeWidth="1.4"/>
                   </svg>
                 </div>
                 <div>
-                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">STEP 3</small>
-                  <h4 className="mt-1 mb-1 text-base font-semibold">AI Consultant explains</h4>
-                  <p className="text-[#9fb0cf] text-sm leading-relaxed">Understand what your numbers mean.</p>
+                  <small className={`${bgClasses.textSecondary} font-bold tracking-wider uppercase text-xs`}>STEP 3</small>
+                  <h4 className={`mt-1 mb-1 text-base font-semibold ${bgClasses.text}`}>AI Consultant explains</h4>
+                  <p className={`${bgClasses.textSecondary} text-sm leading-relaxed`}>Understand what your numbers mean.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4 min-h-[112px]">
-                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+              <div className={`grid grid-cols-[56px_1fr] gap-4 items-start ${bgClasses.cardBg} border ${bgClasses.cardBorder} rounded-2xl p-4 min-h-[112px]`}>
+                <div className={`w-14 h-14 rounded-4 ${bgClasses.cardIconBg} border ${bgClasses.cardIconBorder} grid place-items-center`}>
                   <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                     <rect x="3" y="4" width="18" height="13" rx="3" stroke="#8cefcf" strokeWidth="1.4"/>
                     <path d="M8 10h8M8 7.8h8M8 12.2h5" stroke="#5de0b9" strokeWidth="1.4"/>
@@ -241,9 +300,9 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <div>
-                  <small className="text-[#8ea2c8] font-bold tracking-wider uppercase text-xs">PLUS</small>
-                  <h4 className="mt-1 mb-1 text-base font-semibold">Ask follow-up questions</h4>
-                  <p className="text-[#9fb0cf] text-sm leading-relaxed">24/7 assistant for quick answers.</p>
+                  <small className={`${bgClasses.textSecondary} font-bold tracking-wider uppercase text-xs`}>PLUS</small>
+                  <h4 className={`mt-1 mb-1 text-base font-semibold ${bgClasses.text}`}>Ask follow-up questions</h4>
+                  <p className={`${bgClasses.textSecondary} text-sm leading-relaxed`}>24/7 assistant for quick answers.</p>
                 </div>
               </div>
             </div>
@@ -292,22 +351,22 @@ export default function LandingPage() {
       {/* Showcase section disabled temporarily */}
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gradient-to-b from-[#0f1320] to-[#0a0e1a]">
+      <section id="features" className={`py-20 theme-bg ${'theme-text'} scheme-${featuresBackgroundColor}`}>
         <div className="container mx-auto px-6">
           <div className="text-center mb-15">
-            <div className="text-[#a8b1c6] font-semibold tracking-wider uppercase text-xs">KEY FEATURES</div>
-            <h2 className="text-5xl font-extrabold mt-4 mb-4 text-[#e7ecf5]">
+            <div className={`font-semibold tracking-wider uppercase text-xs theme-text-secondary`}>KEY FEATURES</div>
+            <h2 className={`text-5xl font-extrabold mt-4 mb-4 ${'theme-text'}`}>
               {featuresTitle || "Advanced AI Health Analysis"}
             </h2>
-            <p className="text-[#b7c1d6] max-w-[600px] mx-auto text-lg">
+            <p className={`max-w-[600px] mx-auto text-lg theme-text-secondary`}>
               {featuresSubtitle || "Experience the future of health monitoring with our cutting-edge AI technology"}
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature) => (
-              <div key={feature.id} className="grid grid-cols-[56px_1fr] gap-4 items-start bg-gradient-to-b from-[#12182c] to-[#0f1325] border border-[#1e2541] rounded-2xl p-4">
-                <div className="w-14 h-14 rounded-4 bg-gradient-to-br from-[#1a2040] to-[#10152d] border border-[#243055] grid place-items-center">
+              <div key={feature.id} className={`grid grid-cols-[56px_1fr] gap-4 items-start theme-card-bg border theme-card-border rounded-2xl p-4`}>
+                <div className={`w-14 h-14 rounded-4 theme-icon-bg border theme-icon-border grid place-items-center`}>
                   {feature.icon === 'image' ? (
                     <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
                       <rect x="4" y="4" width="16" height="16" rx="3" stroke="#7a86ff" strokeWidth="1.4"/>

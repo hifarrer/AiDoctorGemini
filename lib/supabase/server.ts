@@ -1,10 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-let cachedClient: SupabaseClient | null = null;
-
 export function getSupabaseServerClient(): SupabaseClient {
-  if (cachedClient) return cachedClient;
-
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -19,11 +15,10 @@ export function getSupabaseServerClient(): SupabaseClient {
     );
   }
 
-  cachedClient = createClient(url, serviceRoleKey, {
+  // Create a new client instance for each request to avoid caching issues
+  return createClient(url, serviceRoleKey, {
     auth: { persistSession: false },
   });
-
-  return cachedClient;
 }
 
 

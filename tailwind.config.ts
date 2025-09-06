@@ -8,6 +8,38 @@ const config = {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
 	],
+  safelist: [
+    // Background color classes for dynamic hero backgrounds
+    'bg-gradient-to-br',
+    'from-blue-500', 'to-blue-700',
+    'from-purple-500', 'to-purple-700',
+    'from-green-500', 'to-green-700',
+    'from-orange-500', 'to-orange-700',
+    'from-pink-500', 'to-pink-700',
+    'bg-white', 'bg-gray-200', 'bg-gray-800', 'bg-blue-600', 'bg-green-600',
+    'text-white', 'text-gray-900', 'text-gray-600', 'text-gray-700', 'text-gray-300',
+    'text-blue-100', 'text-purple-100', 'text-green-100', 'text-orange-100', 'text-pink-100',
+    // Card background classes
+    'bg-gradient-to-b', 'from-blue-600/20', 'to-blue-800/20',
+    'from-purple-600/20', 'to-purple-800/20',
+    'from-green-600/20', 'to-green-800/20',
+    'from-orange-600/20', 'to-orange-800/20',
+    'from-pink-600/20', 'to-pink-800/20',
+    'bg-gray-50', 'bg-gray-100', 'bg-gray-700/50', 'bg-blue-500/20', 'bg-green-500/20',
+    // Border classes
+    'border-blue-400/30', 'border-purple-400/30', 'border-green-400/30',
+    'border-orange-400/30', 'border-pink-400/30',
+    'border-gray-200', 'border-gray-300', 'border-gray-400', 'border-gray-600',
+    // Icon background classes
+    'bg-gradient-to-br', 'from-blue-500/30', 'to-blue-700/30',
+    'from-purple-500/30', 'to-purple-700/30',
+    'from-green-500/30', 'to-green-700/30',
+    'from-orange-500/30', 'to-orange-700/30',
+    'from-pink-500/30', 'to-pink-700/30',
+    'border-blue-400/50', 'border-purple-400/50', 'border-green-400/50',
+    'border-orange-400/50', 'border-pink-400/50',
+    'border-gray-500'
+  ],
   prefix: "",
   theme: {
     container: {

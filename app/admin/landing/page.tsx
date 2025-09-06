@@ -8,6 +8,7 @@ interface LandingHero {
 	title: string;
 	subtitle: string | null;
 	images: string[];
+	background_color: string | null;
 }
 
 // Showcase images section removed
@@ -19,10 +20,14 @@ export default function AdminLandingPage() {
 	const [chatSubtitle, setChatSubtitle] = useState<string>("");
 	const [featuresTitle, setFeaturesTitle] = useState<string>("");
 	const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
+	const [featuresBackgroundColor, setFeaturesBackgroundColor] = useState<string>('solid-blue');
 	const [features, setFeatures] = useState<Array<{ id?: string; title: string; description: string; icon?: string; order_index?: number; is_active?: boolean }>>([]);
 	const [isSaving, setIsSaving] = useState(false);
 
-	const isValid = useMemo(() => !!hero && (hero.title || "").trim().length > 0, [hero]);
+	const isValid = useMemo(() => {
+		console.log('🔍 [ADMIN] Validating hero:', { hasHero: !!hero, title: hero?.title, titleLength: hero?.title?.trim().length });
+		return !!hero && (hero.title || "").trim().length > 0;
+	}, [hero]);
 
     const ICON_OPTIONS: Array<{ value: string; label: string }> = [
         { value: 'message', label: 'Message' },
@@ -35,6 +40,19 @@ export default function AdminLandingPage() {
         { value: 'star', label: 'Star' },
         { value: 'bolt', label: 'Bolt' },
         { value: 'brain', label: 'Brain' },
+    ];
+
+    const BACKGROUND_COLOR_OPTIONS: Array<{ value: string; label: string; preview: string }> = [
+        { value: 'gradient-blue', label: 'Blue Gradient', preview: 'bg-gradient-to-br from-blue-500 to-blue-700' },
+        { value: 'gradient-purple', label: 'Purple Gradient', preview: 'bg-gradient-to-br from-purple-500 to-purple-700' },
+        { value: 'gradient-green', label: 'Green Gradient', preview: 'bg-gradient-to-br from-green-500 to-green-700' },
+        { value: 'gradient-orange', label: 'Orange Gradient', preview: 'bg-gradient-to-br from-orange-500 to-orange-700' },
+        { value: 'gradient-pink', label: 'Pink Gradient', preview: 'bg-gradient-to-br from-pink-500 to-pink-700' },
+        { value: 'solid-white', label: 'White', preview: 'bg-white border-2 border-gray-300' },
+        { value: 'solid-gray', label: 'Light Gray', preview: 'bg-gray-200' },
+        { value: 'solid-dark', label: 'Dark', preview: 'bg-gray-800' },
+        { value: 'solid-blue', label: 'Navy Blue', preview: 'bg-[#0f1325]' },
+        { value: 'solid-green', label: 'Green', preview: 'bg-green-600' },
     ];
 
     const iconEmoji = (key?: string) => {
@@ -71,15 +89,17 @@ export default function AdminLandingPage() {
 			if (heroRes.ok) {
 				const heroData = await heroRes.json();
 				console.log('📋 [ADMIN] Received hero data:', heroData);
-				if (heroData && (heroData.title || heroData.subtitle || heroData.images)) {
+				if (heroData) {
 					const heroState = {
 						id: 1,
 						title: heroData.title || "",
 						subtitle: heroData.subtitle || "",
 						images: Array.isArray(heroData.images) && heroData.images.length > 0 ? heroData.images : [],
+						background_color: heroData.background_color || "gradient-blue",
 					};
 					console.log('✅ [ADMIN] Setting hero state:', heroState);
 					setHero(heroState);
+					console.log('✅ [ADMIN] Hero state set, title:', heroState.title);
 				} else {
 					// No data from database, set empty state
 					console.log('⚠️ [ADMIN] No hero data found, setting empty state');
@@ -88,6 +108,7 @@ export default function AdminLandingPage() {
 						title: "",
 						subtitle: "",
 						images: [],
+						background_color: "gradient-blue",
 					});
 				}
 			} else {
@@ -115,10 +136,12 @@ export default function AdminLandingPage() {
 				if (featuresData?.section) {
 					setFeaturesTitle(featuresData.section.title || "");
 					setFeaturesSubtitle(featuresData.section.subtitle || "");
+					setFeaturesBackgroundColor(featuresData.section.background_color || 'solid-blue');
 				} else {
 					// No data from database, set empty state
 					setFeaturesTitle("");
 					setFeaturesSubtitle("");
+					setFeaturesBackgroundColor('solid-blue');
 				}
 				if (Array.isArray(featuresData?.items)) setFeatures(featuresData.items);
 			}
@@ -130,7 +153,11 @@ export default function AdminLandingPage() {
 	}
 
 	async function saveHero() {
-		if (!hero) return;
+		if (!hero) {
+			console.log('❌ [ADMIN] No hero data to save');
+			toast.error("No hero data to save");
+			return;
+		}
 		console.log('🔄 [ADMIN] Saving hero data:', hero);
 		setIsSaving(true);
 		try {
@@ -139,17 +166,25 @@ export default function AdminLandingPage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(hero),
 			});
+			
+			console.log('📋 [ADMIN] Save response status:', res.status);
+			
 			if (res.ok) {
 				const result = await res.json();
 				console.log('✅ [ADMIN] Hero save response:', result);
 				toast.success("Hero section saved successfully!");
 			} else {
-				console.log('❌ [ADMIN] Hero save failed:', res.status);
-				toast.error("Failed to save hero section");
+				const errorText = await res.text();
+				console.log('❌ [ADMIN] Hero save failed:', {
+					status: res.status,
+					statusText: res.statusText,
+					error: errorText
+				});
+				toast.error(`Failed to save hero section: ${res.status} ${res.statusText}`);
 			}
 		} catch (error) {
 			console.error("❌ [ADMIN] Error saving hero:", error);
-			toast.error("An error occurred while saving hero section");
+			toast.error(`An error occurred while saving hero section: ${error.message}`);
 		} finally {
 			setIsSaving(false);
 		}
@@ -183,7 +218,7 @@ export default function AdminLandingPage() {
 			const res = await fetch('/api/landing/features', { 
 				method: 'PUT', 
 				headers: { 'Content-Type': 'application/json' }, 
-				body: JSON.stringify({ title: featuresTitle, subtitle: featuresSubtitle }) 
+				body: JSON.stringify({ title: featuresTitle, subtitle: featuresSubtitle, background_color: featuresBackgroundColor }) 
 			});
 			if (res.ok) {
 				toast.success("Features section saved successfully!");
@@ -332,6 +367,29 @@ export default function AdminLandingPage() {
 							</label>
 						</div>
 					</div>
+					{/* Background Color Picker */}
+					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
+						<label className="block text-sm font-medium mb-3">Background Color</label>
+						<div className="grid grid-cols-5 gap-3">
+							{BACKGROUND_COLOR_OPTIONS.map((option) => (
+								<div key={option.value} className="flex flex-col items-center">
+									<button
+										type="button"
+										onClick={() => setHero(h => h ? { ...h, background_color: option.value } : h)}
+										className={`w-12 h-12 rounded-lg border-2 transition-all ${
+											hero?.background_color === option.value 
+												? 'border-blue-500 ring-2 ring-blue-200' 
+												: 'border-gray-300 hover:border-gray-400'
+										} ${option.preview}`}
+										title={option.label}
+									/>
+									<span className="text-xs mt-1 text-center text-gray-600 dark:text-gray-400">
+										{option.label}
+									</span>
+								</div>
+							))}
+						</div>
+					</div>
 					<div>
 						<button disabled={!isValid || isSaving} onClick={saveHero} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
 							{isSaving ? "Saving..." : "Save"}
@@ -347,6 +405,34 @@ export default function AdminLandingPage() {
 				<div className="grid gap-4">
 					<input className="border rounded p-2 bg-white dark:bg-gray-900" placeholder="Features Title" value={featuresTitle} onChange={(e) => setFeaturesTitle(e.target.value)} />
 					<textarea className="border rounded p-2 min-h-[100px] bg-white dark:bg-gray-900" placeholder="Features Subtitle" value={featuresSubtitle} onChange={(e) => setFeaturesSubtitle(e.target.value)} />
+					{/* Features Background Color Picker */}
+					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
+						<label className="block text-sm font-medium mb-3">Features Background Color</label>
+						<div className="grid grid-cols-5 gap-3">
+							{BACKGROUND_COLOR_OPTIONS.map((option) => (
+								<div key={`feat-${option.value}`} className="flex flex-col items-center">
+									<button
+										type="button"
+										onClick={() => setFeaturesBackgroundColor(option.value)}
+										className={`w-12 h-12 rounded-lg border-2 transition-all ${
+											featuresBackgroundColor === option.value
+												? 'border-blue-500 ring-2 ring-blue-200'
+												: 'border-gray-300 hover:border-gray-400'
+										} ${option.preview}`}
+										title={option.label}
+									/>
+									<span className="text-xs mt-1 text-center text-gray-600 dark:text-gray-400">
+										{option.label}
+									</span>
+								</div>
+							))}
+						</div>
+						<div className="mt-4">
+							<button disabled={isSaving} onClick={saveFeaturesSection} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+								{isSaving ? "Saving..." : "Save Section"}
+							</button>
+						</div>
+					</div>
 					<div className="flex items-center justify-between">
 						<span className="font-medium">Features</span>
 						<button onClick={addFeature} className="px-3 py-2 rounded bg-teal-500 text-white">Add Feature</button>

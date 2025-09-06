@@ -42,6 +42,15 @@ async function runMigration() {
       'utf8'
     );
     
+    const heroBackgroundColorMigration = fs.readFileSync(
+      path.join(__dirname, '../db/migration-add-hero-background-color.sql'),
+      'utf8'
+    );
+    const featuresBackgroundColorMigration = fs.readFileSync(
+      path.join(__dirname, '../db/migration-add-features-background-color.sql'),
+      'utf8'
+    );
+    
     console.log('Running plan columns migration...');
     try {
       const { error: planError } = await supabase.from('plans').select('stripe_product_id').limit(1);
@@ -115,6 +124,43 @@ async function runMigration() {
       }
     } catch (error) {
       console.error('Error checking site name migration:', error);
+    }
+    
+    console.log('Running hero background color migration...');
+    try {
+      // Check if background_color column exists
+      const { error: heroError } = await supabase.from('landing_hero').select('background_color').limit(1);
+      if (heroError && heroError.code === 'PGRST116') {
+        // Column doesn't exist, run migration
+        const { error } = await supabase.rpc('exec_sql', { sql: heroBackgroundColorMigration });
+        if (error) {
+          console.error('Error running hero background color migration:', error);
+        } else {
+          console.log('✅ Hero background color migration completed successfully');
+        }
+      } else {
+        console.log('✅ Hero background color column already exists, skipping migration');
+      }
+    } catch (error) {
+      console.error('Error checking hero background color migration:', error);
+    }
+
+    console.log('Running features background color migration...');
+    try {
+      // Check if background_color exists on landing_features_section
+      const { error: featErr } = await supabase.from('landing_features_section').select('background_color').limit(1);
+      if (featErr && featErr.code === 'PGRST116') {
+        const { error } = await supabase.rpc('exec_sql', { sql: featuresBackgroundColorMigration });
+        if (error) {
+          console.error('Error running features background color migration:', error);
+        } else {
+          console.log('✅ Features background color migration completed successfully');
+        }
+      } else {
+        console.log('✅ Features background color column already exists, skipping migration');
+      }
+    } catch (error) {
+      console.error('Error checking features background color migration:', error);
     }
     
     console.log('Migration completed!');

@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest) {
 		return NextResponse.json({ message: "Admin access required" }, { status: 403 });
 	}
 	const body = await request.json();
-	const updated = await upsertLandingFeaturesSection({ title: body.title, subtitle: body.subtitle });
+	const updated = await upsertLandingFeaturesSection({ title: body.title, subtitle: body.subtitle, background_color: body.background_color });
 	if (!updated) return NextResponse.json({ message: "Failed to save" }, { status: 500 });
 	return NextResponse.json(updated);
 }

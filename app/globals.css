@@ -119,3 +119,120 @@
 .prose blockquote {
   @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic;
 } 
+
+/* Landing page runtime theme utilities (no rebuild needed) */
+.theme-bg {
+  background-color: var(--bg-color, transparent);
+  background-image: var(--bg-image, none);
+}
+.theme-text { color: var(--text, #ffffff); }
+.theme-text-secondary { color: var(--text-secondary, #cbd5e1); }
+.theme-card-bg { background: var(--card-bg, rgba(255,255,255,0.06)); }
+.theme-card-border { border-color: var(--card-border, rgba(255,255,255,0.18)); }
+.theme-icon-bg { background: var(--icon-bg, rgba(255,255,255,0.12)); }
+.theme-icon-border { border-color: var(--icon-border, rgba(255,255,255,0.35)); }
+
+/* Gradient schemes */
+.scheme-gradient-blue {
+  --bg-color: transparent;
+  --bg-image: linear-gradient(to bottom right, #3b82f6, #1d4ed8);
+  --text: #ffffff;
+  --text-secondary: #dbeafe;
+  --card-bg: linear-gradient(to bottom, rgba(59,130,246,0.20), rgba(29,78,216,0.20));
+  --card-border: rgba(59,130,246,0.30);
+  --icon-bg: linear-gradient(to bottom right, rgba(59,130,246,0.30), rgba(29,78,216,0.30));
+  --icon-border: rgba(59,130,246,0.50);
+}
+.scheme-gradient-purple {
+  --bg-color: transparent;
+  --bg-image: linear-gradient(to bottom right, #a855f7, #7e22ce);
+  --text: #ffffff;
+  --text-secondary: #e9d5ff;
+  --card-bg: linear-gradient(to bottom, rgba(168,85,247,0.20), rgba(126,34,206,0.20));
+  --card-border: rgba(168,85,247,0.30);
+  --icon-bg: linear-gradient(to bottom right, rgba(168,85,247,0.30), rgba(126,34,206,0.30));
+  --icon-border: rgba(168,85,247,0.50);
+}
+.scheme-gradient-green {
+  --bg-color: transparent;
+  --bg-image: linear-gradient(to bottom right, #22c55e, #15803d);
+  --text: #ffffff;
+  --text-secondary: #bbf7d0;
+  --card-bg: linear-gradient(to bottom, rgba(34,197,94,0.20), rgba(21,128,61,0.20));
+  --card-border: rgba(34,197,94,0.30);
+  --icon-bg: linear-gradient(to bottom right, rgba(34,197,94,0.30), rgba(21,128,61,0.30));
+  --icon-border: rgba(34,197,94,0.50);
+}
+.scheme-gradient-orange {
+  --bg-color: transparent;
+  --bg-image: linear-gradient(to bottom right, #f97316, #c2410c);
+  --text: #ffffff;
+  --text-secondary: #ffedd5;
+  --card-bg: linear-gradient(to bottom, rgba(249,115,22,0.20), rgba(194,65,12,0.20));
+  --card-border: rgba(249,115,22,0.30);
+  --icon-bg: linear-gradient(to bottom right, rgba(249,115,22,0.30), rgba(194,65,12,0.30));
+  --icon-border: rgba(249,115,22,0.50);
+}
+.scheme-gradient-pink {
+  --bg-color: transparent;
+  --bg-image: linear-gradient(to bottom right, #ec4899, #be185d);
+  --text: #ffffff;
+  --text-secondary: #fbcfe8;
+  --card-bg: linear-gradient(to bottom, rgba(236,72,153,0.20), rgba(190,24,93,0.20));
+  --card-border: rgba(236,72,153,0.30);
+  --icon-bg: linear-gradient(to bottom right, rgba(236,72,153,0.30), rgba(190,24,93,0.30));
+  --icon-border: rgba(236,72,153,0.50);
+}
+
+/* Solid schemes */
+.scheme-solid-white {
+  --bg-color: #ffffff;
+  --bg-image: none;
+  --text: #111827;
+  --text-secondary: #4b5563;
+  --card-bg: #f9fafb;
+  --card-border: #e5e7eb;
+  --icon-bg: #f3f4f6;
+  --icon-border: #d1d5db;
+}
+.scheme-solid-gray {
+  --bg-color: #e5e7eb;
+  --bg-image: none;
+  --text: #111827;
+  --text-secondary: #374151;
+  --card-bg: #f3f4f6;
+  --card-border: #d1d5db;
+  --icon-bg: #e5e7eb;
+  --icon-border: #9ca3af;
+}
+.scheme-solid-dark {
+  --bg-color: #1f2937;
+  --bg-image: none;
+  --text: #ffffff;
+  --text-secondary: #d1d5db;
+  --card-bg: rgba(55,65,81,0.50);
+  --card-border: #4b5563;
+  --icon-bg: rgba(75,85,99,0.50);
+  --icon-border: #6b7280;
+}
+.scheme-solid-blue {
+  /* Navy blue scheme to match original site tone */
+  --bg-color: #0f1325; /* deep navy */
+  --bg-image: none;
+  --text: #e8edfb;
+  --text-secondary: #b8c2d8;
+  --card-bg: #11162a;
+  --card-border: #212a46;
+  --icon-bg: #1a2040;
+  --icon-border: #243055;
+}
+.scheme-solid-green {
+  --bg-color: #16a34a;
+  --bg-image: none;
+  --text: #ffffff;
+  --text-secondary: #bbf7d0;
+  --card-bg: rgba(34,197,94,0.20);
+  --card-border: rgba(34,197,94,0.30);
+  --icon-bg: rgba(34,197,94,0.30);
+  --icon-border: rgba(34,197,94,0.50);
+}

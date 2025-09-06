@@ -182,9 +182,10 @@ export default function AdminLandingPage() {
 				});
 				toast.error(`Failed to save hero section: ${res.status} ${res.statusText}`);
 			}
-		} catch (error) {
+		} catch (error: unknown) {
 			console.error("❌ [ADMIN] Error saving hero:", error);
-			toast.error(`An error occurred while saving hero section: ${error.message}`);
+			const msg = error instanceof Error ? error.message : String(error);
+			toast.error(`An error occurred while saving hero section: ${msg}`);
 		} finally {
 			setIsSaving(false);
 		}

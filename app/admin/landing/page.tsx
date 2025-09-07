@@ -16,6 +16,8 @@ interface LandingHero {
 export default function AdminLandingPage() {
 	const [hero, setHero] = useState<LandingHero | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [heroTitleAccent1, setHeroTitleAccent1] = useState<string>('#a855f7'); // purple
+	const [heroTitleAccent2, setHeroTitleAccent2] = useState<string>('#14b8a6'); // teal
 	const [chatTitle, setChatTitle] = useState<string>("");
 	const [chatSubtitle, setChatSubtitle] = useState<string>("");
 	const [featuresTitle, setFeaturesTitle] = useState<string>("");
@@ -101,6 +103,8 @@ export default function AdminLandingPage() {
 					};
 					console.log('✅ [ADMIN] Setting hero state:', heroState);
 					setHero(heroState);
+					setHeroTitleAccent1(heroData.title_accent1 || '#a855f7');
+					setHeroTitleAccent2(heroData.title_accent2 || '#14b8a6');
 					console.log('✅ [ADMIN] Hero state set, title:', heroState.title);
 				} else {
 					// No data from database, set empty state
@@ -170,7 +174,11 @@ export default function AdminLandingPage() {
 			const res = await fetch("/api/landing/hero", {
 				method: "PUT",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(hero),
+				body: JSON.stringify({
+					...hero,
+					title_accent1: heroTitleAccent1,
+					title_accent2: heroTitleAccent2
+				}),
 			});
 			
 			console.log('📋 [ADMIN] Save response status:', res.status);
@@ -401,6 +409,30 @@ export default function AdminLandingPage() {
 									</span>
 								</div>
 							))}
+						</div>
+					</div>
+					{/* Hero Title Accent Colors */}
+					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
+						<label className="block text-sm font-medium mb-3">Hero Title Accent Colors</label>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">&quot;AI&quot; Color</label>
+								<input
+									type="color"
+									value={heroTitleAccent1}
+									onChange={(e) => setHeroTitleAccent1(e.target.value)}
+									className="w-full h-10 rounded border border-gray-300"
+								/>
+							</div>
+							<div>
+								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">&quot;Health&quot; Color</label>
+								<input
+									type="color"
+									value={heroTitleAccent2}
+									onChange={(e) => setHeroTitleAccent2(e.target.value)}
+									className="w-full h-10 rounded border border-gray-300"
+								/>
+							</div>
 						</div>
 					</div>
 					<div>

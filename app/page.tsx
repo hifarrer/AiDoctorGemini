@@ -15,6 +15,8 @@ export default function LandingPage() {
   const [heroSubtitle, setHeroSubtitle] = useState<string>("");
   const [sliderImages, setSliderImages] = useState<string[]>([]);
   const [heroBackgroundColor, setHeroBackgroundColor] = useState<string>("gradient-blue");
+  const [heroTitleAccent1, setHeroTitleAccent1] = useState<string>('#a855f7');
+  const [heroTitleAccent2, setHeroTitleAccent2] = useState<string>('#14b8a6');
   const [featuresTitle, setFeaturesTitle] = useState<string>("");
   const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
@@ -53,13 +55,17 @@ export default function LandingPage() {
   const applyAccentColors = (title: string, accent1: string, accent2: string) => {
     if (!title) return title;
     
+    console.log('🎨 [LANDING_PAGE] applyAccentColors called with:', { title, accent1, accent2 });
+    
     // Split title into words and apply colors to "AI" and "Health"
     const words = title.split(' ');
     return words.map((word, index) => {
       const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
       if (cleanWord === 'ai') {
+        console.log('🎨 [LANDING_PAGE] Applying accent1 color to AI:', accent1);
         return <span key={index} style={{ color: accent1 }}>{word}</span>;
       } else if (cleanWord === 'health') {
+        console.log('🎨 [LANDING_PAGE] Applying accent2 color to Health:', accent2);
         return <span key={index} style={{ color: accent2 }}>{word}</span>;
       } else {
         return <span key={index}>{word}</span>;
@@ -95,7 +101,7 @@ export default function LandingPage() {
         // Fetch hero data directly from Supabase (client-side) to bypass any API caching
         const { data: hero, error: heroErr } = await supabaseBrowser
           .from('landing_hero')
-          .select('id, title, subtitle, images, background_color, updated_at')
+          .select('id, title, subtitle, images, background_color, title_accent1, title_accent2, updated_at')
           .eq('id', 1)
           .single();
 
@@ -121,6 +127,14 @@ export default function LandingPage() {
             } else {
               console.log("⚠️ [LANDING_PAGE] No background color found, using default");
               setHeroBackgroundColor("gradient-blue");
+            }
+            if (hero.title_accent1) {
+              console.log("🎨 [LANDING_PAGE] Setting hero accent1 color:", hero.title_accent1);
+              setHeroTitleAccent1(hero.title_accent1);
+            }
+            if (hero.title_accent2) {
+              console.log("🎨 [LANDING_PAGE] Setting hero accent2 color:", hero.title_accent2);
+              setHeroTitleAccent2(hero.title_accent2);
             }
           } else {
             console.log("⚠️ [LANDING_PAGE] No hero data found");
@@ -169,12 +183,15 @@ export default function LandingPage() {
         } else if (featuresSection) {
           console.log('✅ [LANDING_PAGE] Setting features section data:', featuresSection);
           if (featuresSection.background_color) {
+            console.log('🎨 [LANDING_PAGE] Setting background color:', featuresSection.background_color);
             setFeaturesBackgroundColor(featuresSection.background_color);
           }
           if (featuresSection.title_accent1) {
+            console.log('🎨 [LANDING_PAGE] Setting accent1 color:', featuresSection.title_accent1);
             setFeaturesTitleAccent1(featuresSection.title_accent1);
           }
           if (featuresSection.title_accent2) {
+            console.log('🎨 [LANDING_PAGE] Setting accent2 color:', featuresSection.title_accent2);
             setFeaturesTitleAccent2(featuresSection.title_accent2);
           }
         } else {
@@ -195,6 +212,9 @@ export default function LandingPage() {
   const bgClasses = getBackgroundClasses(heroBackgroundColor);
   
   console.log('🎨 [LANDING_PAGE] Current background color state:', heroBackgroundColor);
+  console.log('🎨 [LANDING_PAGE] Current features background color state:', featuresBackgroundColor);
+  console.log('🎨 [LANDING_PAGE] Current accent1 color state:', featuresTitleAccent1);
+  console.log('🎨 [LANDING_PAGE] Current accent2 color state:', featuresTitleAccent2);
   console.log('🎨 [LANDING_PAGE] getBackgroundClasses input:', heroBackgroundColor);
   console.log('🎨 [LANDING_PAGE] getBackgroundClasses output:', bgClasses);
   console.log('🎨 [LANDING_PAGE] Final CSS classes:', `min-h-screen ${bgClasses.background} ${bgClasses.text} relative overflow-hidden`);
@@ -273,7 +293,7 @@ export default function LandingPage() {
           <section>
             <div className={`${bgClasses.textSecondary} font-semibold tracking-wider uppercase text-xs`}>AI-POWERED WELLNESS</div>
             <h1 className={`text-5xl lg:text-6xl font-extrabold leading-tight mt-3 mb-2 tracking-tight ${bgClasses.text}`}>
-              {heroTitle || "Your Personal AI Health Assistant"}
+              {heroTitle ? applyAccentColors(heroTitle, heroTitleAccent1, heroTitleAccent2) : applyAccentColors("Your Personal AI Health Assistant", heroTitleAccent1, heroTitleAccent2)}
             </h1>
             <p className={`${bgClasses.textSecondary} max-w-[680px] mt-2 mb-5 text-base`}>
               {heroSubtitle || "Upload a health photo or report and get instant, privacy-first insights. Receive a clean PDF summary and have an AI consultant explain the results in simple language."}

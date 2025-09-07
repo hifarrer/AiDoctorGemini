@@ -1,12 +1,14 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface LandingHero {
-	id: number;
-	title: string;
-	subtitle: string | null;
-	images: string[];
-	background_color: string | null;
-	updated_at: string | null;
+  id: number;
+  title: string;
+  subtitle: string | null;
+  images: string[];
+  background_color: string | null;
+  title_accent1?: string | null;
+  title_accent2?: string | null;
+  updated_at: string | null;
 }
 
 export async function getLandingHero(): Promise<LandingHero | null> {
@@ -14,7 +16,7 @@ export async function getLandingHero(): Promise<LandingHero | null> {
 	const supabase = getSupabaseServerClient();
 	const { data, error } = await supabase
 		.from("landing_hero")
-		.select("id, title, subtitle, images, background_color, updated_at")
+		.select("id, title, subtitle, images, background_color, title_accent1, title_accent2, updated_at")
 		.eq("id", 1)
 		.single();
 	if (error) {
@@ -32,7 +34,7 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 	// Load current to safely merge undefined fields
 	const { data: current } = await supabase
 		.from("landing_hero")
-		.select("id, title, subtitle, images, background_color, updated_at")
+		.select("id, title, subtitle, images, background_color, title_accent1, title_accent2, updated_at")
 		.eq("id", 1)
 		.single();
 
@@ -44,6 +46,8 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 		subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
 		images: Array.isArray(input.images) ? input.images : (current?.images ?? []),
 		background_color: input.background_color ?? current?.background_color ?? "gradient-blue",
+		title_accent1: input.title_accent1 ?? (current as any)?.title_accent1 ?? "#a855f7",
+		title_accent2: input.title_accent2 ?? (current as any)?.title_accent2 ?? "#14b8a6",
 		updated_at: new Date().toISOString() as any,
 	};
 	
@@ -54,7 +58,7 @@ export async function upsertLandingHero(input: Partial<LandingHero>): Promise<La
 	const { data, error } = await supabase
 		.from("landing_hero")
 		.upsert(payload, { onConflict: "id" })
-		.select("id, title, subtitle, images, background_color, updated_at")
+		.select("id, title, subtitle, images, background_color, title_accent1, title_accent2, updated_at")
 		.single();
 	if (error) {
 		console.error("❌ [upsertLandingHero] Error:", error);

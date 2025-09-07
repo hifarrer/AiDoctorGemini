@@ -21,6 +21,8 @@ export default function AdminLandingPage() {
 	const [featuresTitle, setFeaturesTitle] = useState<string>("");
 	const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
 	const [featuresBackgroundColor, setFeaturesBackgroundColor] = useState<string>('solid-blue');
+	const [featuresTitleAccent1, setFeaturesTitleAccent1] = useState<string>('#a855f7'); // purple
+	const [featuresTitleAccent2, setFeaturesTitleAccent2] = useState<string>('#14b8a6'); // teal
 	const [features, setFeatures] = useState<Array<{ id?: string; title: string; description: string; icon?: string; order_index?: number; is_active?: boolean }>>([]);
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -137,11 +139,15 @@ export default function AdminLandingPage() {
 					setFeaturesTitle(featuresData.section.title || "");
 					setFeaturesSubtitle(featuresData.section.subtitle || "");
 					setFeaturesBackgroundColor(featuresData.section.background_color || 'solid-blue');
+					setFeaturesTitleAccent1(featuresData.section.title_accent1 || '#a855f7');
+					setFeaturesTitleAccent2(featuresData.section.title_accent2 || '#14b8a6');
 				} else {
 					// No data from database, set empty state
 					setFeaturesTitle("");
 					setFeaturesSubtitle("");
 					setFeaturesBackgroundColor('solid-blue');
+					setFeaturesTitleAccent1('#a855f7');
+					setFeaturesTitleAccent2('#14b8a6');
 				}
 				if (Array.isArray(featuresData?.items)) setFeatures(featuresData.items);
 			}
@@ -216,11 +222,17 @@ export default function AdminLandingPage() {
 	async function saveFeaturesSection() {
 		setIsSaving(true);
 		try {
-			const res = await fetch('/api/landing/features', { 
-				method: 'PUT', 
-				headers: { 'Content-Type': 'application/json' }, 
-				body: JSON.stringify({ title: featuresTitle, subtitle: featuresSubtitle, background_color: featuresBackgroundColor }) 
-			});
+		const res = await fetch('/api/landing/features', { 
+			method: 'PUT', 
+			headers: { 'Content-Type': 'application/json' }, 
+			body: JSON.stringify({ 
+				title: featuresTitle, 
+				subtitle: featuresSubtitle, 
+				background_color: featuresBackgroundColor,
+				title_accent1: featuresTitleAccent1,
+				title_accent2: featuresTitleAccent2
+			}) 
+		});
 			if (res.ok) {
 				toast.success("Features section saved successfully!");
 			} else {
@@ -427,6 +439,35 @@ export default function AdminLandingPage() {
 									</span>
 								</div>
 							))}
+						</div>
+						<div className="mt-4">
+							<button disabled={isSaving} onClick={saveFeaturesSection} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">
+								{isSaving ? "Saving..." : "Save Section"}
+							</button>
+						</div>
+					</div>
+					{/* Title Accent Colors */}
+					<div className="border rounded p-4 bg-gray-50 dark:bg-gray-700">
+						<label className="block text-sm font-medium mb-3">Title Accent Colors</label>
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">"AI" Color</label>
+								<input
+									type="color"
+									value={featuresTitleAccent1}
+									onChange={(e) => setFeaturesTitleAccent1(e.target.value)}
+									className="w-full h-10 rounded border border-gray-300"
+								/>
+							</div>
+							<div>
+								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">"Health" Color</label>
+								<input
+									type="color"
+									value={featuresTitleAccent2}
+									onChange={(e) => setFeaturesTitleAccent2(e.target.value)}
+									className="w-full h-10 rounded border border-gray-300"
+								/>
+							</div>
 						</div>
 						<div className="mt-4">
 							<button disabled={isSaving} onClick={saveFeaturesSection} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">

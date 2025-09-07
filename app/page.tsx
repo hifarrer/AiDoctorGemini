@@ -19,6 +19,8 @@ export default function LandingPage() {
   const [featuresSubtitle, setFeaturesSubtitle] = useState<string>("");
   const [features, setFeatures] = useState<Array<{ id: string; title: string; description: string; icon?: string }>>([]);
   const [featuresBackgroundColor, setFeaturesBackgroundColor] = useState<string>('solid-blue');
+  const [featuresTitleAccent1, setFeaturesTitleAccent1] = useState<string>('#a855f7');
+  const [featuresTitleAccent2, setFeaturesTitleAccent2] = useState<string>('#14b8a6');
   const [showcaseImages, setShowcaseImages] = useState<{ image1: string; image2: string; image3: string }>({
     image1: "",
     image2: "",
@@ -45,6 +47,27 @@ export default function LandingPage() {
       cardIconBg: 'theme-icon-bg',
       cardIconBorder: 'theme-icon-border'
     } as const;
+  };
+
+  // Function to apply accent colors to title words
+  const applyAccentColors = (title: string, accent1: string, accent2: string) => {
+    if (!title) return title;
+    
+    // Split title into words and apply colors to "AI" and "Health"
+    const words = title.split(' ');
+    return words.map((word, index) => {
+      const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+      if (cleanWord === 'ai') {
+        return <span key={index} style={{ color: accent1 }}>{word}</span>;
+      } else if (cleanWord === 'health') {
+        return <span key={index} style={{ color: accent2 }}>{word}</span>;
+      } else {
+        return <span key={index}>{word}</span>;
+      }
+    }).reduce((acc, curr, index) => {
+      if (index === 0) return [curr];
+      return [...acc, ' ', curr];
+    }, [] as React.ReactNode[]);
   };
 
   useEffect(() => {
@@ -135,20 +158,30 @@ export default function LandingPage() {
           }
         }
 
-        // Fetch features background color directly from Supabase to avoid any API caching
+        // Fetch features section data directly from Supabase to avoid any API caching
         const { data: featuresSection, error: featuresErr } = await supabaseBrowser
           .from('landing_features_section')
-          .select('background_color')
+          .select('background_color, title_accent1, title_accent2')
           .eq('id', 1)
           .single();
         if (featuresErr) {
           console.error('❌ [LANDING_PAGE] Error fetching features section from Supabase:', featuresErr);
-        } else if (featuresSection?.background_color) {
-          console.log('✅ [LANDING_PAGE] Setting features background color:', featuresSection.background_color);
-          setFeaturesBackgroundColor(featuresSection.background_color);
+        } else if (featuresSection) {
+          console.log('✅ [LANDING_PAGE] Setting features section data:', featuresSection);
+          if (featuresSection.background_color) {
+            setFeaturesBackgroundColor(featuresSection.background_color);
+          }
+          if (featuresSection.title_accent1) {
+            setFeaturesTitleAccent1(featuresSection.title_accent1);
+          }
+          if (featuresSection.title_accent2) {
+            setFeaturesTitleAccent2(featuresSection.title_accent2);
+          }
         } else {
-          console.log('⚠️ [LANDING_PAGE] No features background color found, using default solid-blue');
+          console.log('⚠️ [LANDING_PAGE] No features section data found, using defaults');
           setFeaturesBackgroundColor('solid-blue');
+          setFeaturesTitleAccent1('#a855f7');
+          setFeaturesTitleAccent2('#14b8a6');
         }
       } catch (error) {
         console.error('Error fetching landing data:', error);
@@ -356,7 +389,7 @@ export default function LandingPage() {
           <div className="text-center mb-15">
             <div className={`font-semibold tracking-wider uppercase text-xs theme-text-secondary`}>KEY FEATURES</div>
             <h2 className={`text-5xl font-extrabold mt-4 mb-4 ${'theme-text'}`}>
-              {featuresTitle || "Advanced AI Health Analysis"}
+              {featuresTitle ? applyAccentColors(featuresTitle, featuresTitleAccent1, featuresTitleAccent2) : applyAccentColors("Advanced AI Health Analysis", featuresTitleAccent1, featuresTitleAccent2)}
             </h2>
             <p className={`max-w-[600px] mx-auto text-lg theme-text-secondary`}>
               {featuresSubtitle || "Experience the future of health monitoring with our cutting-edge AI technology"}

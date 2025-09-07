@@ -117,6 +117,8 @@ export interface LandingFeaturesSection {
   title: string;
   subtitle: string | null;
   background_color?: string | null;
+  title_accent1?: string | null;
+  title_accent2?: string | null;
   updated_at: string | null;
 }
 
@@ -133,7 +135,7 @@ export interface LandingFeatureItem {
 export async function getLandingFeatures(): Promise<{ section: LandingFeaturesSection | null; items: LandingFeatureItem[]; }> {
   const supabase = getSupabaseServerClient();
   const [{ data: section }, { data: items }] = await Promise.all([
-    supabase.from('landing_features_section').select('id, title, subtitle, background_color, updated_at').eq('id', 1).single(),
+    supabase.from('landing_features_section').select('id, title, subtitle, background_color, title_accent1, title_accent2, updated_at').eq('id', 1).single(),
     supabase.from('landing_features_items').select('id, title, description, icon, order_index, is_active, updated_at').eq('is_active', true).order('order_index', { ascending: true }),
   ]);
   return { section: (section as any) || null, items: (items as any) || [] };
@@ -141,18 +143,20 @@ export async function getLandingFeatures(): Promise<{ section: LandingFeaturesSe
 
 export async function upsertLandingFeaturesSection(input: Partial<LandingFeaturesSection>): Promise<LandingFeaturesSection | null> {
   const supabase = getSupabaseServerClient();
-  const { data: current } = await supabase.from('landing_features_section').select('id, title, subtitle, background_color, updated_at').eq('id', 1).single();
+  const { data: current } = await supabase.from('landing_features_section').select('id, title, subtitle, background_color, title_accent1, title_accent2, updated_at').eq('id', 1).single();
   const payload = {
     id: 1,
     title: input.title ?? current?.title ?? "",
     subtitle: input.subtitle ?? (current ? current.subtitle : null) ?? null,
     background_color: input.background_color ?? (current ? (current as any).background_color : null) ?? 'solid-blue',
+    title_accent1: input.title_accent1 ?? (current ? (current as any).title_accent1 : null) ?? '#a855f7',
+    title_accent2: input.title_accent2 ?? (current ? (current as any).title_accent2 : null) ?? '#14b8a6',
     updated_at: new Date().toISOString() as any,
   };
   const { data, error } = await supabase
     .from('landing_features_section')
     .upsert(payload as any, { onConflict: 'id' })
-    .select('id, title, subtitle, background_color, updated_at')
+    .select('id, title, subtitle, background_color, title_accent1, title_accent2, updated_at')
     .single();
   if (error) {
     console.error('upsertLandingFeaturesSection error:', error);

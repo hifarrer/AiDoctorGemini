@@ -451,7 +451,7 @@ export default function AdminLandingPage() {
 						<label className="block text-sm font-medium mb-3">Title Accent Colors</label>
 						<div className="grid grid-cols-2 gap-4">
 							<div>
-								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">"AI" Color</label>
+								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">&quot;AI&quot; Color</label>
 								<input
 									type="color"
 									value={featuresTitleAccent1}
@@ -460,7 +460,7 @@ export default function AdminLandingPage() {
 								/>
 							</div>
 							<div>
-								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">"Health" Color</label>
+								<label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">&quot;Health&quot; Color</label>
 								<input
 									type="color"
 									value={featuresTitleAccent2}

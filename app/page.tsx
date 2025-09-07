@@ -190,7 +190,7 @@ export default function LandingPage() {
       }
     };
     fetchAll();
-  }, []);
+  }, [supabaseBrowser]);
 
   const bgClasses = getBackgroundClasses(heroBackgroundColor);
   

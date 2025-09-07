@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from '@supabase/supabase-js'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
  
@@ -31,10 +31,10 @@ export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Client-side Supabase for live reads (avoids API caching)
-  const supabaseBrowser = createClient(
+  const supabaseBrowser = useMemo(() => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-  );
+  ), []);
 
   // Function returns stable theme utility classes; the actual colors are driven by CSS variables
   const getBackgroundClasses = (_bgColor: string) => {
@@ -190,7 +190,7 @@ export default function LandingPage() {
       }
     };
     fetchAll();
-  }, [supabaseBrowser]);
+  }, []);
 
   const bgClasses = getBackgroundClasses(heroBackgroundColor);
   

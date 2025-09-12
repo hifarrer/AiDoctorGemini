@@ -119,7 +119,7 @@ function extractSummary(analysis: string): string {
 function extractKeyFindings(analysis: string): string[] {
   if (!analysis || typeof analysis !== 'string') return [];
   
-  const findingsMatch = analysis.match(/\*\*Key Findings\*\*:?\s*([^*]+?)(?=\*\*|$)/is);
+  const findingsMatch = analysis.match(/\*\*Key Findings\*\*:?\s*([\s\S]*?)(?=\*\*|$)/i);
   if (!findingsMatch || !findingsMatch[1]) return [];
   
   const findings = findingsMatch[1]
@@ -133,7 +133,7 @@ function extractKeyFindings(analysis: string): string[] {
 function extractRecommendations(analysis: string): string[] {
   if (!analysis || typeof analysis !== 'string') return [];
   
-  const recommendationsMatch = analysis.match(/\*\*Recommendations\*\*:?\s*([^*]+?)(?=\*\*|$)/is);
+  const recommendationsMatch = analysis.match(/\*\*Recommendations\*\*:?\s*([\s\S]*?)(?=\*\*|$)/i);
   if (!recommendationsMatch || !recommendationsMatch[1]) return [];
   
   const recommendations = recommendationsMatch[1]

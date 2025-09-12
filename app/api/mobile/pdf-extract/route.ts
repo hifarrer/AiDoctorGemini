@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const pdfjsLib = await import('pdfjs-dist');
     
     // Configure worker for server-side usage (disable worker)
-    pdfjsLib.GlobalWorkerOptions.workerSrc = false;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
     // Load PDF document
     const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;

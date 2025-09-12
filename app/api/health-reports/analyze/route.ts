@@ -4,14 +4,19 @@ import { authOptions } from '@/lib/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
+  let body: any = null;
+  let content: string = '';
+  let reportType: string = '';
+  let filename: string = '';
+
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { content, reportType, filename } = body;
+    body = await request.json();
+    ({ content, reportType, filename } = body);
 
     if (!content) {
       return NextResponse.json({ error: 'No content provided' }, { status: 400 });
@@ -88,9 +93,9 @@ Please analyze the following health report content:`;
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      contentLength: body?.content?.length || 0,
-      reportType: body?.reportType,
-      filename: body?.filename
+      contentLength: content?.length || 0,
+      reportType: reportType,
+      filename: filename
     });
     return NextResponse.json({ 
       error: 'Failed to analyze health report',

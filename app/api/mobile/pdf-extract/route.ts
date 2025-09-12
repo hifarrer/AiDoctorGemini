@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import pdf from 'pdf-parse';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,16 +31,41 @@ export async function POST(request: NextRequest) {
 
     console.log(`📄 Processing PDF: ${file.name} (${file.size} bytes)`);
 
-    // Convert file to Buffer for pdf-parse
+    // Convert file to ArrayBuffer for pdfjs-dist
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Parse PDF using pdf-parse
-    const pdfData = await pdf(buffer);
-    console.log(`📊 PDF parsed: ${pdfData.numpages} pages`);
+    // Dynamically import pdfjs-dist to avoid build-time issues
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Configure worker for server-side usage (disable worker)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = false;
 
-    // Extract text content
-    const extractedText = pdfData.text;
+    // Load PDF document
+    const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+    console.log(`📊 PDF loaded: ${pdf.numPages} pages`);
+
+    let extractedText = '';
+
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      const pageText = textContent.items
+        .map((item: any) => {
+          if ('str' in item) {
+            return item.str;
+          }
+          return '';
+        })
+        .join(' ')
+        .trim();
+
+      if (pageText) {
+        extractedText += pageText + '\n\n';
+      }
+    }
     
     // Clean up the extracted text
     const cleanedText = extractedText
@@ -56,18 +80,9 @@ export async function POST(request: NextRequest) {
       success: true,
       filename: file.name,
       fileSize: file.size,
-      pageCount: pdfData.numpages,
+      pageCount: pdf.numPages,
       extractedText: cleanedText,
-      characterCount: cleanedText.length,
-      metadata: {
-        title: pdfData.info?.Title || null,
-        author: pdfData.info?.Author || null,
-        subject: pdfData.info?.Subject || null,
-        creator: pdfData.info?.Creator || null,
-        producer: pdfData.info?.Producer || null,
-        creationDate: pdfData.info?.CreationDate || null,
-        modificationDate: pdfData.info?.ModDate || null
-      }
+      characterCount: cleanedText.length
     });
 
   } catch (error) {

@@ -40,16 +40,7 @@ multipart/form-data
   "fileSize": 1024000,
   "pageCount": 5,
   "extractedText": "Full extracted text content...",
-  "characterCount": 5000,
-  "metadata": {
-    "title": "Document Title",
-    "author": "Author Name",
-    "subject": "Document Subject",
-    "creator": "Creator Application",
-    "producer": "PDF Producer",
-    "creationDate": "2024-01-01T00:00:00.000Z",
-    "modificationDate": "2024-01-01T00:00:00.000Z"
-  }
+  "characterCount": 5000
 }
 ```
 
@@ -136,16 +127,16 @@ curl -X POST \
 ## Technical Details
 
 ### PDF Processing
-- Uses `pdf-parse` library for server-side PDF parsing
-- Extracts text from all pages in a single operation
+- Uses `pdfjs-dist` library with dynamic imports for server-side compatibility
+- Extracts text from all pages sequentially
 - Handles various PDF formats and encodings
 - Cleans and normalizes extracted text
-- Extracts PDF metadata (title, author, creation date, etc.)
+- No worker dependencies for server-side deployment
 
 ### Performance
 - Processes PDFs up to 10MB
-- Extracts text from all pages in a single operation
-- Returns full text content and PDF metadata
+- Extracts text from all pages sequentially
+- Returns full text content with page count
 - Optimized for mobile network conditions
 - Server-side processing for better reliability
 

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import pdf from 'pdf-parse';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,38 +32,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`📄 Processing PDF: ${file.name} (${file.size} bytes)`);
 
-    // Convert file to ArrayBuffer
+    // Convert file to Buffer for pdf-parse
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Load PDF document
-    const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
-    console.log(`📊 PDF loaded: ${pdf.numPages} pages`);
+    // Parse PDF using pdf-parse
+    const pdfData = await pdf(buffer);
+    console.log(`📊 PDF parsed: ${pdfData.numpages} pages`);
 
-    let extractedText = '';
-    const allText: string[] = [];
-
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      const pageText = textContent.items
-        .map((item: any) => {
-          if ('str' in item) {
-            return item.str;
-          }
-          return '';
-        })
-        .join(' ')
-        .trim();
-
-      if (pageText) {
-        allText.push(`--- Page ${pageNum} ---\n${pageText}`);
-        extractedText += pageText + '\n\n';
-      }
-    }
-
+    // Extract text content
+    const extractedText = pdfData.text;
+    
     // Clean up the extracted text
     const cleanedText = extractedText
       .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
@@ -80,10 +56,18 @@ export async function POST(request: NextRequest) {
       success: true,
       filename: file.name,
       fileSize: file.size,
-      pageCount: pdf.numPages,
+      pageCount: pdfData.numpages,
       extractedText: cleanedText,
-      pageTexts: allText, // Optional: individual page texts
-      characterCount: cleanedText.length
+      characterCount: cleanedText.length,
+      metadata: {
+        title: pdfData.info?.Title || null,
+        author: pdfData.info?.Author || null,
+        subject: pdfData.info?.Subject || null,
+        creator: pdfData.info?.Creator || null,
+        producer: pdfData.info?.Producer || null,
+        creationDate: pdfData.info?.CreationDate || null,
+        modificationDate: pdfData.info?.ModDate || null
+      }
     });
 
   } catch (error) {

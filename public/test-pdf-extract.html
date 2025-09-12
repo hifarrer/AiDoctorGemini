@@ -250,6 +250,20 @@
                     result.className = 'result success';
                     resultTitle.textContent = '✅ Text Extraction Successful';
                     
+                    let metadataHtml = '';
+                    if (data.metadata && Object.values(data.metadata).some(v => v !== null)) {
+                        metadataHtml = `
+                            <h4>PDF Metadata:</h4>
+                            <div class="file-info">
+                                ${data.metadata.title ? `<p><strong>Title:</strong> ${data.metadata.title}</p>` : ''}
+                                ${data.metadata.author ? `<p><strong>Author:</strong> ${data.metadata.author}</p>` : ''}
+                                ${data.metadata.subject ? `<p><strong>Subject:</strong> ${data.metadata.subject}</p>` : ''}
+                                ${data.metadata.creator ? `<p><strong>Creator:</strong> ${data.metadata.creator}</p>` : ''}
+                                ${data.metadata.producer ? `<p><strong>Producer:</strong> ${data.metadata.producer}</p>` : ''}
+                            </div>
+                        `;
+                    }
+
                     resultContent.innerHTML = `
                         <div class="file-info">
                             <p><strong>Filename:</strong> ${data.filename}</p>
@@ -257,6 +271,8 @@
                             <p><strong>Pages:</strong> ${data.pageCount}</p>
                             <p><strong>Characters:</strong> ${data.characterCount.toLocaleString()}</p>
                         </div>
+                        
+                        ${metadataHtml}
                         
                         <h4>Extracted Text:</h4>
                         <div class="extracted-text">

@@ -37,18 +37,18 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen" style={{
-      '--bg': '#0f1320',
-      '--text': '#e7ecf5',
-      '--muted': '#9aa4b2',
+      '--bg': chatTheme === 'light' ? '#ffffff' : '#0f1320',
+      '--text': chatTheme === 'light' ? '#1a1a1a' : '#e7ecf5',
+      '--muted': chatTheme === 'light' ? '#6b7280' : '#9aa4b2',
       '--cta': '#8856ff',
       '--cta-2': '#a854ff',
       '--accent': '#6ae2ff'
     } as React.CSSProperties}>
       <style jsx global>{`
         :root {
-          --bg: #0f1320;
-          --text: #e7ecf5;
-          --muted: #9aa4b2;
+          --bg: ${chatTheme === 'light' ? '#ffffff' : '#0f1320'};
+          --text: ${chatTheme === 'light' ? '#1a1a1a' : '#e7ecf5'};
+          --muted: ${chatTheme === 'light' ? '#6b7280' : '#9aa4b2'};
           --cta: #8856ff;
           --cta-2: #a854ff;
           --accent: #6ae2ff;
@@ -59,10 +59,11 @@ export default function DashboardPage() {
         body {
           margin: 0;
           font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-          background:
-            radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),
-            radial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),
-            var(--bg);
+          background: ${chatTheme === 'light' 
+            ? 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)'
+            : `radial-gradient(1200px 600px at -10% -10%, #1a1f35 2%, transparent 60%),
+               radial-gradient(900px 500px at 110% -5%, #1a1f35 5%, transparent 65%),
+               var(--bg)`};
           color: var(--text);
         }
         a {
@@ -140,16 +141,18 @@ export default function DashboardPage() {
           background: linear-gradient(90deg, #ff5252, #ff7676);
         }
         .dashboard-content {
-          background: linear-gradient(180deg, #12182c, #0f1325);
-          border: 1px solid #1e2541;
+          background: ${chatTheme === 'light' 
+            ? 'linear-gradient(180deg, #ffffff, #f8fafc)' 
+            : 'linear-gradient(180deg, #12182c, #0f1325)'};
+          border: 1px solid ${chatTheme === 'light' ? '#e5e7eb' : '#1e2541'};
           border-radius: 20px;
           padding: 32px;
           margin: 24px 0;
           min-height: calc(100vh - 200px);
         }
         .footer {
-          background: #0a0e1a;
-          border-top: 1px solid #1e2541;
+          background: ${chatTheme === 'light' ? '#f8fafc' : '#0a0e1a'};
+          border-top: 1px solid ${chatTheme === 'light' ? '#e5e7eb' : '#1e2541'};
           padding: 24px;
           margin-top: auto;
         }
@@ -247,6 +250,9 @@ export default function DashboardPage() {
             >
               Profile
             </button>
+            <Link href="/health-history" className="btn" style={{ padding: '10px 12px' }}>
+              Health History
+            </Link>
             {isAdmin && (
               <Link href="/admin" className="btn admin" style={{ padding: '10px 12px' }}>
                 Admin Panel
@@ -265,6 +271,7 @@ export default function DashboardPage() {
           <div className="mobile-menu" onMouseLeave={() => setIsMenuOpen(false)}>
             <button onClick={() => { setActiveSection('chat'); setIsMenuOpen(false); }}>Chat</button>
             <button onClick={() => { setActiveSection('profile'); setIsMenuOpen(false); }}>Profile</button>
+            <Link href="/health-history" onClick={() => setIsMenuOpen(false)}>Health History</Link>
             {isAdmin && (
               <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>
             )}
@@ -312,7 +319,7 @@ export default function DashboardPage() {
 
       <footer className="footer">
         <div className="footer-content">
-          <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
+          <p style={{ color: chatTheme === 'light' ? '#6b7280' : '#9aa4b2', fontSize: '14px' }}>
             © 2025 HealthConsultant. All rights reserved.
           </p>
           <div className="footer-links">

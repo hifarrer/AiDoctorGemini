@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   console.error('CHAT ROUTE CALLED - THIS SHOULD BE VISIBLE');
   
   try {
-    const { messages, image, document } = await req.json();
+    const { messages, image, document, healthReport } = await req.json();
     const userMessage = messages[messages.length - 1];
     const session = await getServerSession(authOptions as any);
 
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       messageCount: messages?.length,
       hasImage: !!image,
       hasDocument: !!document,
+      hasHealthReport: !!healthReport,
       userEmail: (session as any)?.user?.email || 'anonymous'
     });
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
           if (userPlan) {
             const interactionType: 'chat' | 'image_analysis' | 'health_report' = image
               ? 'image_analysis'
-              : document
+              : (document || healthReport)
               ? 'health_report'
               : 'chat';
 
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
       let prompts = 1; // Base interaction
       if (image) prompts += 1; // Image analysis
       if (document) prompts += 1; // Document analysis
+      if (healthReport) prompts += 1; // Health report analysis
       const userIdentifier = (session as any)?.user?.email || 'anonymous';
       console.log(`Recording usage aggregate for ${userIdentifier}: ${prompts} prompts`);
       await recordInteraction(userIdentifier, userIdentifier, prompts);
@@ -116,8 +118,8 @@ export async function POST(req: NextRequest) {
       console.error('Failed to record usage aggregate:', error);
     }
 
-    if (!userMessage?.content && !image && !document) {
-      return NextResponse.json({ error: 'No message content, image, or document found.' }, { status: 400 });
+    if (!userMessage?.content && !image && !document && !healthReport) {
+      return NextResponse.json({ error: 'No message content, image, document, or health report found.' }, { status: 400 });
     }
 
     // Build the parts array for the multi-modal request
@@ -135,6 +137,27 @@ export async function POST(req: NextRequest) {
             textContent += '\n\nDocument content:\n' + document;
         } else {
             textContent = 'Document content:\n' + document;
+        }
+    }
+    
+    if (healthReport) {
+        console.log('Health report detected, adding context to request.');
+        const healthContext = `
+Health Report Context:
+- Title: ${healthReport.title}
+- Type: ${healthReport.reportType}
+- Risk Level: ${healthReport.riskLevel}
+- Summary: ${healthReport.summary}
+- Key Findings: ${healthReport.keyFindings?.join(', ') || 'None'}
+- Recommendations: ${healthReport.recommendations?.join(', ') || 'None'}
+
+The user is asking questions about this health report. Please provide helpful, accurate medical information based on the report analysis. Always remind the user to consult with their healthcare provider for medical decisions.
+        `;
+        
+        if (textContent) {
+            textContent += '\n\n' + healthContext;
+        } else {
+            textContent = healthContext;
         }
     }
     

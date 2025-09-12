@@ -358,8 +358,14 @@ export default function PlansPage() {
             <a href="/contact">Contact</a>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <Link className="btn" href="/auth/login">Sign In</Link>
-            <Link className="btn primary" href="/auth/signup">Get Started</Link>
+            {session ? (
+              <Link className="btn primary" href="/dashboard">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link className="btn" href="/auth/login">Sign In</Link>
+                <Link className="btn primary" href="/auth/signup">Get Started</Link>
+              </>
+            )}
           </div>
         </nav>
       </header>

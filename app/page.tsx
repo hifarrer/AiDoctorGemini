@@ -4,10 +4,12 @@ import Link from "next/link"
 import { useState, useEffect, useMemo } from "react"
 import { createClient } from '@supabase/supabase-js'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
+import { useSession } from "next-auth/react"
  
 import ThemeToggle from "@/components/ThemeToggle"
 
 export default function LandingPage() {
+  const { data: session } = useSession();
   const [siteName, setSiteName] = useState("");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
@@ -254,8 +256,14 @@ export default function LandingPage() {
           </div>
           
           <div className="hidden sm:flex gap-3">
-            <Link href="/auth/login" className="px-4 py-3 rounded-xl border border-[#2a2f44] bg-[#161a2c] text-[#e8edfb] font-semibold hover:bg-[#1e2541] hover:border-[#3a4161] transition-all">Sign In</Link>
-            <Link href="/auth/signup" className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#8856ff] to-[#a854ff] text-white font-semibold hover:from-[#7a4bff] hover:to-[#9a44ff] transition-all">Get Started</Link>
+            {session ? (
+              <Link href="/dashboard" className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#8856ff] to-[#a854ff] text-white font-semibold hover:from-[#7a4bff] hover:to-[#9a44ff] transition-all">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/auth/login" className="px-4 py-3 rounded-xl border border-[#2a2f44] bg-[#161a2c] text-[#e8edfb] font-semibold hover:bg-[#1e2541] hover:border-[#3a4161] transition-all">Sign In</Link>
+                <Link href="/auth/signup" className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#8856ff] to-[#a854ff] text-white font-semibold hover:from-[#7a4bff] hover:to-[#9a44ff] transition-all">Get Started</Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -280,8 +288,14 @@ export default function LandingPage() {
             <a href="#faq" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>FAQ</a>
             <Link href="/plans" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Pricing</Link>
             <Link href="/contact" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Contact</Link>
-            <Link href="/auth/login" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
-            <Link href="/auth/signup" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+            {session ? (
+              <Link href="/dashboard" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/auth/login" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+                <Link href="/auth/signup" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+              </>
+            )}
           </div>
         )}
       </header>
@@ -442,6 +456,68 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-20 bg-gradient-to-b from-[#0f1320] to-[#0a0e1a]">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-15">
+            <div className="text-[#a8b1c6] font-semibold tracking-wider uppercase text-xs">HOW IT WORKS</div>
+            <h2 className="text-5xl font-extrabold mt-4 mb-4 text-[#e7ecf5]">
+              Simple Steps to Better Health
+            </h2>
+            <p className="max-w-[600px] mx-auto text-lg text-[#9fb0cf]">
+              Get instant health insights in just three easy steps
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {/* Step 1 */}
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-[#7a86ff] to-[#5a67d8] rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">1</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-[#e7ecf5]">Upload Your Image</h3>
+              <p className="text-[#9fb0cf] text-sm leading-relaxed">
+                Take a photo of your health document, lab results, or medical image and upload it securely to our platform.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-[#93ffc7] to-[#68d391] rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">2</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-[#e7ecf5]">AI Analysis</h3>
+              <p className="text-[#9fb0cf] text-sm leading-relaxed">
+                Our advanced AI analyzes your document and provides detailed insights, explanations, and recommendations.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-[#6ae2ff] to-[#4299e1] rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">3</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3 text-[#e7ecf5]">Get Your Results</h3>
+              <p className="text-[#9fb0cf] text-sm leading-relaxed">
+                Receive a comprehensive PDF report and chat with our AI consultant for personalized explanations.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA Button */}
+          <div className="text-center mt-12">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#7a86ff] to-[#5a67d8] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-[#6a75e6] hover:to-[#4c51bf] transition-all duration-200 shadow-lg hover:shadow-xl">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Start Your Health Journey
+            </Link>
           </div>
         </div>
       </section>

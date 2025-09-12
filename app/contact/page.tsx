@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import toast, { Toaster } from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 export default function ContactPage() {
+  const { data: session } = useSession();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -303,8 +305,14 @@ export default function ContactPage() {
             <a href="/contact">Contact</a>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <Link className="btn" href="/auth/login">Sign In</Link>
-            <Link className="btn primary" href="/auth/signup">Get Started</Link>
+            {session ? (
+              <Link className="btn primary" href="/dashboard">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link className="btn" href="/auth/login">Sign In</Link>
+                <Link className="btn primary" href="/auth/signup">Get Started</Link>
+              </>
+            )}
           </div>
         </nav>
       </header>

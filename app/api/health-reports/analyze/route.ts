@@ -23,17 +23,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate environment variables
-    if (!process.env.GOOGLE_VERTEX_PROJECT) {
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+
+    if (!projectId) {
       console.error('GOOGLE_VERTEX_PROJECT environment variable is not set');
       return NextResponse.json({ error: 'AI service configuration error' }, { status: 500 });
     }
 
-    // Call the AI analysis API directly using VertexAI
+    if (!credentialsBase64) {
+      console.error('GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable is not set');
+      return NextResponse.json({ error: 'AI service credentials not configured' }, { status: 500 });
+    }
+
+    // Parse credentials
+    let parsedCredentials;
+    try {
+      const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
+      parsedCredentials = JSON.parse(credentialsJson);
+    } catch (e: any) {
+      console.error('Failed to decode/parse credentials from Base64:', e.message);
+      return NextResponse.json({ error: 'Invalid server credentials format.' }, { status: 500 });
+    }
+
+    // Call the AI analysis API directly using VertexAI with explicit credentials
     const { VertexAI } = await import('@google-cloud/vertexai');
     
     const vertexAI = new VertexAI({
-      project: process.env.GOOGLE_VERTEX_PROJECT!,
-      location: process.env.GOOGLE_VERTEX_LOCATION || 'us-central1',
+      project: projectId,
+      location: location,
+      googleAuthOptions: {
+        credentials: {
+          client_email: parsedCredentials.client_email,
+          private_key: parsedCredentials.private_key,
+        },
+      },
     });
 
     const model = vertexAI.getGenerativeModel({

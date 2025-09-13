@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     const prompt = formData.get('prompt') as string;
     const image = formData.get('image') as File | null;
     const pdf = formData.get('pdf') as File | null;
+    const pdfText = formData.get('pdf_text') as string | null;
 
     // Validate required parameters
     if (!userId) {
@@ -133,60 +134,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'PDF file too large (max 10MB)' }, { status: 400 });
       }
 
-      try {
-        // Use pdf-parse for server-side PDF text extraction
-        console.log(`📄 Starting PDF extraction for: ${pdf.name}`);
-        
-        const arrayBuffer = await pdf.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        
-        // Import pdf-parse with proper error handling
-        let pdfParse;
-        try {
-          pdfParse = await import('pdf-parse');
-          console.log(`📄 pdf-parse imported successfully`);
-        } catch (importError) {
-          console.error('Failed to import pdf-parse:', importError);
-          throw new Error('PDF parsing library not available');
-        }
-        
-        // Extract text using pdf-parse
-        let pdfData;
-        try {
-          pdfData = await pdfParse.default(buffer);
-          console.log(`📄 pdf-parse completed: ${pdfData.numpages} pages, ${pdfData.text.length} characters`);
-        } catch (parseError) {
-          console.error('pdf-parse failed:', parseError);
-          throw new Error('Failed to parse PDF content');
-        }
-        
-        const extractedText = pdfData.text.trim();
-        
-        if (extractedText && extractedText.length > 10) {
-          // Clean up the extracted text
-          const cleanedText = extractedText
-            .replace(/\s+/g, ' ')
-            .replace(/\n\s*\n/g, '\n')
-            .trim();
-          
-          // Add the PDF content directly to the prompt
-          content.push({
-            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pdfData.numpages} pages):\n\n${cleanedText}`
-          });
-          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${pdfData.numpages} pages, ${cleanedText.length} characters)`);
-          console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
-        } else {
-          content.push({
-            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pdfData.numpages} pages) but was unable to extract any readable text content from it. This might be a scanned document or image-based PDF.`
-          });
-          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pdfData.numpages} pages)`);
-        }
-      } catch (pdfError) {
-        console.error('Error processing PDF:', pdfError);
-        content.push({
-          text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB) - Could not extract text content due to server-side processing limitations. Please provide the text content manually for analysis.]`
-        });
-      }
+      console.log(`📄 PDF file received: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB)`);
+      
+      // For now, inform the user that PDF text extraction should be done client-side
+      // This matches how the dashboard chatbot works - PDF extraction happens in the browser
+      content.push({
+        text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB). For optimal PDF analysis, please extract the text content from the PDF and include it in your message, or use the dashboard chatbot which has client-side PDF extraction capabilities.`
+      });
+      
+      console.log(`📄 PDF file processed: ${pdf.name}`);
+    }
+
+    // Handle pre-extracted PDF text if provided
+    if (pdfText && pdfText.trim().length > 0) {
+      const cleanedPdfText = pdfText.trim();
+      content.push({
+        text: `\n\nHere is the PDF content provided:\n\n${cleanedPdfText}`
+      });
+      console.log(`📄 Pre-extracted PDF text received: ${cleanedPdfText.length} characters`);
+      console.log(`📄 First 200 chars: ${cleanedPdfText.substring(0, 200)}...`);
     }
 
     // Debug: Log the content being sent to AI

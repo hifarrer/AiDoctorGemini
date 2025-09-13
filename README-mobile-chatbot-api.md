@@ -34,6 +34,7 @@ multipart/form-data
 | `prompt` | string | Yes | Chat message/prompt | Text content for AI |
 | `image` | File | No | Image attachment | Max 10MB, image formats |
 | `pdf` | File | No | PDF attachment | Max 10MB, PDF format |
+| `pdf_text` | string | No | Pre-extracted PDF text | Alternative to PDF file |
 
 ### Example Request
 

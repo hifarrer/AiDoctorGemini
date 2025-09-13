@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Chatbot API Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -297,8 +298,21 @@
                     formData.append('image', imageFile);
                 }
                 
+                // Extract PDF text on client-side before sending
                 if (pdfFile) {
-                    formData.append('pdf', pdfFile);
+                    try {
+                        console.log('📄 Extracting PDF text on client-side...');
+                        const pdfText = await extractPdfText(pdfFile);
+                        if (pdfText && pdfText.trim().length > 0) {
+                            formData.append('pdf_text', pdfText);
+                            console.log(`📄 PDF text extracted: ${pdfText.length} characters`);
+                        } else {
+                            formData.append('pdf', pdfFile); // Fallback to file upload
+                        }
+                    } catch (pdfError) {
+                        console.error('PDF extraction failed:', pdfError);
+                        formData.append('pdf', pdfFile); // Fallback to file upload
+                    }
                 }
                 
                 const response = await fetch('/api/mobile/chat', {
@@ -388,6 +402,38 @@
             // Re-enable submit button
             submitBtn.disabled = false;
         });
+
+        // PDF text extraction function (same as dashboard chatbot)
+        async function extractPdfText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    try {
+                        // Configure PDF.js worker
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+                        
+                        const typedarray = new Uint8Array(event.target.result);
+                        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                        let fullText = "";
+                        
+                        // Extract text from each page
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map(item => item.str).join(" ");
+                            fullText += pageText + "\n";
+                        }
+                        
+                        resolve(fullText.trim());
+                    } catch (error) {
+                        console.error('Error extracting PDF text:', error);
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
     </script>
 </body>
 </html>

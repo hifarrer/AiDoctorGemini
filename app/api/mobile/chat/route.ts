@@ -134,18 +134,41 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'PDF file too large (max 10MB)' }, { status: 400 });
       }
 
-      console.log(`📄 PDF file received: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB)`);
+      console.log(`📄 Starting server-side PDF extraction: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB)`);
       
-      // For now, inform the user that PDF text extraction should be done client-side
-      // This matches how the dashboard chatbot works - PDF extraction happens in the browser
-      content.push({
-        text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB). For optimal PDF analysis, please extract the text content from the PDF and include it in your message, or use the dashboard chatbot which has client-side PDF extraction capabilities.`
-      });
-      
-      console.log(`📄 PDF file processed: ${pdf.name}`);
+      try {
+        // Convert PDF file to buffer
+        const arrayBuffer = await pdf.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Try pdf-extraction library
+        const pdfExtract = await import('pdf-extraction');
+        const extractedData = await pdfExtract.default(buffer);
+        
+        if (extractedData && extractedData.text && extractedData.text.trim().length > 0) {
+          const cleanedText = extractedData.text.trim();
+          
+          content.push({
+            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${extractedData.pages || 'unknown'} pages):\n\n${cleanedText}`
+          });
+          
+          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${cleanedText.length} characters)`);
+          console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
+        } else {
+          content.push({
+            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but was unable to extract readable text content. This might be a scanned document or image-based PDF.`
+          });
+          console.log(`📄 PDF processed but no text extracted: ${pdf.name}`);
+        }
+      } catch (pdfError) {
+        console.error('Error extracting PDF text:', pdfError);
+        content.push({
+          text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content. Please ensure the PDF contains readable text and try again.`
+        });
+      }
     }
 
-    // Handle pre-extracted PDF text if provided
+    // Handle pre-extracted PDF text if provided (fallback option)
     if (pdfText && pdfText.trim().length > 0) {
       const cleanedPdfText = pdfText.trim();
       content.push({

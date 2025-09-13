@@ -34,18 +34,22 @@ multipart/form-data
 | `prompt` | string | Yes | Chat message/prompt | Text content for AI |
 | `image` | File | No | Image attachment | Max 10MB, image formats |
 | `pdf` | File | No | PDF attachment | Max 10MB, PDF format |
-| `pdf_text` | string | No | Pre-extracted PDF text | Alternative to PDF file |
+| `pdf_text` | string | No | Pre-extracted PDF text | Optional fallback if server extraction fails |
 
 ### Example Request
 
-#### JavaScript/Fetch
+#### JavaScript/Fetch (Simple - API handles PDF extraction)
 ```javascript
 const formData = new FormData();
 formData.append('user_id', 'user-uuid-here');
-formData.append('prompt', 'What can you tell me about this image?');
+formData.append('prompt', 'Analyze this health report');
 
 if (imageFile) {
   formData.append('image', imageFile);
+}
+
+if (pdfFile) {
+  formData.append('pdf', pdfFile); // API extracts text automatically
 }
 
 const response = await fetch('/api/mobile/chat', {
@@ -175,6 +179,28 @@ curl -X POST \
 }
 ```
 
+## 📄 PDF Processing
+
+The API handles PDF text extraction automatically on the server-side. Mobile developers simply need to upload the PDF file - no client-side processing required.
+
+### How It Works
+
+1. **Upload PDF**: Include PDF file in your request
+2. **Server Processing**: API extracts text automatically using `pdf-extraction` library
+3. **AI Analysis**: Extracted text is sent to AI for analysis
+4. **Response**: Get full AI analysis of the PDF content
+
+### Simple Usage
+
+```javascript
+// Just upload the PDF file - that's it!
+if (pdfFile) {
+  formData.append('pdf', pdfFile);
+}
+```
+
+The API will handle all the complexity of PDF text extraction and provide the same quality analysis as the dashboard chatbot.
+
 ## 🧪 Testing
 
 ### Using the Test Form
@@ -182,9 +208,9 @@ curl -X POST \
 1. Navigate to: `https://healthconsultant.ai/test-mobile-chat.html`
 2. Enter your user ID
 3. Type your message
-4. Optionally attach an image or PDF
+4. Optionally attach an image or PDF (PDF text extraction is automatic)
 5. Click "Send Message"
-6. View the AI response
+6. View the AI response with full PDF analysis
 
 ### Using cURL
 
@@ -228,6 +254,7 @@ const sendChatMessage = async (userId, prompt, imageUri = null, pdfUri = null) =
     }
     
     if (pdfUri) {
+      // Simply upload the PDF - the API will extract text automatically
       formData.append('pdf', {
         uri: pdfUri,
         type: 'application/pdf',
@@ -469,7 +496,7 @@ The API uses the following environment variables:
 
 - **Model:** Google VertexAI Gemini 2.5 Pro
 - **Image Analysis:** Full image understanding and description
-- **PDF Processing:** Basic PDF attachment (content extraction in development)
+- **PDF Processing:** Full text extraction and analysis (hybrid client/server approach)
 - **Text Processing:** Natural language understanding and generation
 
 ### Performance
@@ -499,7 +526,13 @@ The API automatically tracks usage for analytics:
 
 ### PDF Processing
 
-**Full PDF Text Extraction:** PDF attachments are now fully processed with text extraction. The AI can analyze the complete content of uploaded PDFs, providing the same functionality as the dashboard chatbot.
+**Automatic Server-Side Extraction:** The API automatically extracts text from uploaded PDF files using server-side processing. Simply upload the PDF file and the API will:
+
+1. **Extract text content** from the PDF automatically
+2. **Send to AI** for analysis and response
+3. **Handle errors gracefully** if extraction fails
+
+Mobile apps just need to upload the PDF file - no client-side processing required. This provides the same AI analysis quality as the dashboard chatbot with zero complexity for mobile developers.
 
 ### What Works:
 - ✅ Text chat with AI
@@ -539,5 +572,5 @@ This API is part of the MedGemma health application system.
 ---
 
 **Last Updated:** January 2025  
-**Version:** 1.0.0  
-**Status:** Functional (text and image chat, PDF attachment support)
+**Version:** 1.1.0  
+**Status:** Fully Functional (text chat, image analysis, PDF text extraction and analysis)

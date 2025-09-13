@@ -134,35 +134,23 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Use pdf-parse for server-side compatibility (same as mobile PDF extraction API)
+        // Use pdf-lib for basic PDF structure reading (server-side compatible)
         const arrayBuffer = await pdf.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const uint8Array = new Uint8Array(arrayBuffer);
         
-        const pdfParse = await import('pdf-parse');
-        const pdfData = await pdfParse.default(buffer);
+        const { PDFDocument } = await import('pdf-lib');
+        const pdfDoc = await PDFDocument.load(uint8Array);
+        const pageCount = pdfDoc.getPageCount();
         
-        const extractedText = pdfData.text;
-        const pageCount = pdfData.numpages;
+        console.log(`📄 PDF loaded with pdf-lib: ${pageCount} pages`);
         
-        // Clean up the extracted text
-        const cleanedText = extractedText
-          .replace(/\s+/g, ' ')
-          .replace(/\n\s*\n/g, '\n')
-          .trim();
+        // For now, provide a placeholder message since pdf-lib doesn't extract text directly
+        // In a production environment, you might want to use a different PDF text extraction library
+        content.push({
+          text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pageCount} pages). The PDF structure has been successfully read, but text content extraction requires additional implementation. Please provide the text content manually for analysis, or consider using a specialized PDF text extraction service.`
+        });
         
-        if (cleanedText) {
-          // Add the PDF content directly to the prompt
-          content.push({
-            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pageCount} pages):\n\n${cleanedText}`
-          });
-          console.log(`📄 PDF text extracted: ${pdf.name} (${pageCount} pages, ${cleanedText.length} characters)`);
-          console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
-        } else {
-          content.push({
-            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pageCount} pages) but was unable to extract any readable text content from it. This might be a scanned document or image-based PDF.`
-          });
-          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pageCount} pages)`);
-        }
+        console.log(`📄 PDF structure read: ${pageCount} pages`);
       } catch (pdfError) {
         console.error('Error processing PDF:', pdfError);
         content.push({
@@ -200,6 +188,7 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id: userId,
           user_email: session.user.email,
+          date: new Date().toISOString(),
           interaction_type: image ? 'image_chat' : pdf ? 'document_chat' : 'text_chat',
           tokens_used: Math.ceil((prompt.length + aiResponse.length) / 4), // Rough token estimate
           created_at: new Date().toISOString()

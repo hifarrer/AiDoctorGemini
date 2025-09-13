@@ -141,16 +141,12 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await pdf.arrayBuffer();
         const typedarray = new Uint8Array(arrayBuffer);
         
-        console.log(`📄 Attempting PDF text extraction using pdfjs-dist (server-side)...`);
+        console.log(`📄 Attempting PDF text extraction using pdfjs-dist (server-side, legacy build, no worker)...`);
+
+        // Use legacy build that works better in Node and disable worker
+        const pdfjsLib: any = await import('pdfjs-dist/legacy/build/pdf.js');
         
-        // Use the EXACT same method as dashboard but configured for server-side
-        const pdfjsLib = await import('pdfjs-dist');
-        
-        // Configure for server-side - NO CDN worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-        
-        // Load PDF document - same as dashboard
-        const pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+        const pdfDoc = await pdfjsLib.getDocument({ data: typedarray, disableWorker: true }).promise;
         let fullText = "";
         
         console.log(`📄 PDF loaded: ${pdfDoc.numPages} pages`);
@@ -180,10 +176,24 @@ export async function POST(request: NextRequest) {
         }
       } catch (pdfError: any) {
         console.error('Error extracting PDF text:', pdfError);
-        
-        content.push({
-          text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content. Please ensure the PDF contains readable text and try again.`
-        });
+
+        // Fallback: include the PDF as an inline attachment hint for the AI
+        try {
+          const base64 = Buffer.from(await pdf.arrayBuffer()).toString('base64');
+          content.push({
+            text: `\n\n[Attachment: PDF base64 inline; filename="${pdf.name}", size=${(pdf.size / 1024).toFixed(2)} KB]`
+          });
+          content.push({
+            inline_data: {
+              mime_type: 'application/pdf',
+              data: base64
+            }
+          } as any);
+        } catch (e) {
+          content.push({
+            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content. Please ensure the PDF contains readable text and try again.`
+          });
+        }
       }
     }
 

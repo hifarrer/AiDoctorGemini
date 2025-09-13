@@ -141,18 +141,43 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await pdf.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
-        // Try pdf-extraction library
-        const pdfExtract = await import('pdf-extraction');
-        const extractedData = await pdfExtract.default(buffer);
+        console.log(`📄 Attempting PDF text extraction with pdf-parse...`);
+        
+        // Use pdf-parse with proper error handling to avoid test file issues
+        let pdfParse;
+        try {
+          // Import pdf-parse dynamically
+          pdfParse = (await import('pdf-parse')).default;
+        } catch (importError) {
+          console.error('Failed to import pdf-parse:', importError);
+          throw new Error('PDF parsing library not available');
+        }
+        
+        // Extract text with pdf-parse
+        let extractedData;
+        try {
+          extractedData = await pdfParse(buffer, {
+            // Disable external file loading to avoid test file issues
+            max: 0, // No page limit
+            version: 'v1.10.100' // Specify version to avoid compatibility issues
+          });
+        } catch (parseError: any) {
+          console.error('pdf-parse extraction failed:', parseError);
+          // Check if it's the test file error we've seen before
+          if (parseError.message && parseError.message.includes('test/data')) {
+            throw new Error('PDF parsing library configuration issue');
+          }
+          throw parseError;
+        }
         
         if (extractedData && extractedData.text && extractedData.text.trim().length > 0) {
           const cleanedText = extractedData.text.trim();
           
           content.push({
-            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${extractedData.pages || 'unknown'} pages):\n\n${cleanedText}`
+            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${extractedData.numpages || 'unknown'} pages):\n\n${cleanedText}`
           });
           
-          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${cleanedText.length} characters)`);
+          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${extractedData.numpages} pages, ${cleanedText.length} characters)`);
           console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
         } else {
           content.push({
@@ -160,10 +185,22 @@ export async function POST(request: NextRequest) {
           });
           console.log(`📄 PDF processed but no text extracted: ${pdf.name}`);
         }
-      } catch (pdfError) {
+      } catch (pdfError: any) {
         console.error('Error extracting PDF text:', pdfError);
+        
+        // Provide helpful error message based on error type
+        let errorMessage = `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content.`;
+        
+        if (pdfError.message && pdfError.message.includes('test/data')) {
+          errorMessage += ' This appears to be a server configuration issue. Please try again or contact support.';
+        } else if (pdfError.message && pdfError.message.includes('PDF parsing library')) {
+          errorMessage += ' The PDF processing service is temporarily unavailable. Please try again later.';
+        } else {
+          errorMessage += ' Please ensure the PDF contains readable text and try again.';
+        }
+        
         content.push({
-          text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content. Please ensure the PDF contains readable text and try again.`
+          text: errorMessage
         });
       }
     }

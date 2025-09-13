@@ -134,23 +134,42 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Use pdf-lib for basic PDF structure reading (server-side compatible)
+        // Use the EXACT SAME method as the dashboard chatbot
         const arrayBuffer = await pdf.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        const typedarray = new Uint8Array(arrayBuffer);
         
-        const { PDFDocument } = await import('pdf-lib');
-        const pdfDoc = await PDFDocument.load(uint8Array);
-        const pageCount = pdfDoc.getPageCount();
+        // Import pdfjs-dist dynamically (same as dashboard)
+        const pdfjsLib = await import('pdfjs-dist');
         
-        console.log(`📄 PDF loaded with pdf-lib: ${pageCount} pages`);
+        // Use CDN worker (same as dashboard)
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
         
-        // For now, provide a placeholder message since pdf-lib doesn't extract text directly
-        // In a production environment, you might want to use a different PDF text extraction library
-        content.push({
-          text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pageCount} pages). The PDF structure has been successfully read, but text content extraction requires additional implementation. Please provide the text content manually for analysis, or consider using a specialized PDF text extraction service.`
-        });
+        const pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+        let fullText = "";
         
-        console.log(`📄 PDF structure read: ${pageCount} pages`);
+        // Extract text from each page (same as dashboard)
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(" ");
+          fullText += pageText + "\n";
+        }
+        
+        const extractedText = fullText.trim();
+        
+        if (extractedText) {
+          // Add the PDF content directly to the prompt
+          content.push({
+            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pdfDoc.numPages} pages):\n\n${extractedText}`
+          });
+          console.log(`📄 PDF text extracted: ${pdf.name} (${pdfDoc.numPages} pages, ${extractedText.length} characters)`);
+          console.log(`📄 First 200 chars: ${extractedText.substring(0, 200)}...`);
+        } else {
+          content.push({
+            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pdfDoc.numPages} pages) but was unable to extract any readable text content from it. This might be a scanned document or image-based PDF.`
+          });
+          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pdfDoc.numPages} pages)`);
+        }
       } catch (pdfError) {
         console.error('Error processing PDF:', pdfError);
         content.push({

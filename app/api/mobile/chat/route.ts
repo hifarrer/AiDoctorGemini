@@ -173,13 +173,15 @@ export async function POST(request: NextRequest) {
           .trim();
         
         if (cleanedText) {
+          // Add the PDF content directly to the prompt without brackets
           content.push({
-            text: `\n\n[PDF Content from ${pdf.name} (${pageCount} pages):\n\n${cleanedText}]`
+            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pageCount} pages):\n\n${cleanedText}`
           });
           console.log(`📄 PDF text extracted: ${pdf.name} (${pageCount} pages, ${cleanedText.length} characters)`);
+          console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
         } else {
           content.push({
-            text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB, ${pageCount} pages) - No text content could be extracted from this PDF.]`
+            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pageCount} pages) but was unable to extract any readable text content from it. This might be a scanned document or image-based PDF.`
           });
           console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pageCount} pages)`);
         }
@@ -191,9 +193,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Debug: Log the content being sent to AI
+    console.log(`📤 Content being sent to AI:`, JSON.stringify(content, null, 2));
+
     // Generate AI response
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: content }],
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `You are a helpful AI assistant. When a user provides PDF content, analyze it thoroughly and provide insights. If the content appears to be a health report or medical document, provide medical analysis and recommendations. Always work with the content provided to you.`
+            }
+          ]
+        },
+        { role: 'user', parts: content }
+      ],
     });
 
     const aiResponse = result.response.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';

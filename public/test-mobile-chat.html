@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Chatbot API Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #8856ff;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="file"]:hover {
+            border-color: #8856ff;
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #8856ff, #a854ff);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #8856ff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+        }
+        
+        .result.error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+        }
+        
+        .result h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .chat-response {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid #e9ecef;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .attachments {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid #e9ecef;
+        }
+        
+        .attachments h4 {
+            margin-top: 0;
+            color: #555;
+        }
+        
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        
+        .attachment-icon {
+            width: 24px;
+            height: 24px;
+            background: #8856ff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .error-message {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .file-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            border: 1px solid #0ea5e9;
+        }
+        
+        .file-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Mobile Chatbot API Test</h1>
+        
+        <form id="chatForm">
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input type="text" id="userId" name="user_id" placeholder="Enter your user ID" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="prompt">Prompt:</label>
+                <textarea id="prompt" name="prompt" placeholder="Enter your message or question..." required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="image">Image (Optional):</label>
+                <input type="file" id="image" name="image" accept="image/*">
+                <small style="color: #666; font-size: 14px;">
+                    Maximum file size: 10MB
+                </small>
+                <div id="imagePreview" class="file-preview" style="display: none;">
+                    <img id="imagePreviewImg" src="" alt="Image preview">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="pdf">PDF (Optional):</label>
+                <input type="file" id="pdf" name="pdf" accept=".pdf">
+                <small style="color: #666; font-size: 14px;">
+                    Maximum file size: 10MB
+                </small>
+            </div>
+            
+            <button type="submit" id="submitBtn">Send Message</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your message...</p>
+        </div>
+        
+        <div class="result" id="result">
+            <h3 id="resultTitle"></h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Image preview functionality
+        document.getElementById('image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('imagePreviewImg');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const prompt = document.getElementById('prompt').value;
+            const imageFile = document.getElementById('image').files[0];
+            const pdfFile = document.getElementById('pdf').files[0];
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultContent = document.getElementById('resultContent');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                formData.append('prompt', prompt);
+                
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
+                
+                if (pdfFile) {
+                    formData.append('pdf', pdfFile);
+                }
+                
+                const response = await fetch('/api/mobile/chat', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include' // Include session cookies
+                });
+                
+                const data = await response.json();
+                
+                // Hide loading
+                loading.style.display = 'none';
+                
+                if (response.ok && data.success) {
+                    // Success
+                    result.className = 'result success';
+                    resultTitle.textContent = '✅ Chat Response Received';
+                    
+                    let attachmentsHtml = '';
+                    if (data.attachments && (data.attachments.image || data.attachments.pdf)) {
+                        attachmentsHtml = '<div class="attachments"><h4>Attachments:</h4>';
+                        
+                        if (data.attachments.image) {
+                            attachmentsHtml += `
+                                <div class="attachment-item">
+                                    <div class="attachment-icon">IMG</div>
+                                    <div>
+                                        <strong>${data.attachments.image.name}</strong><br>
+                                        <small>${(data.attachments.image.size / 1024).toFixed(2)} KB • ${data.attachments.image.type}</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (data.attachments.pdf) {
+                            attachmentsHtml += `
+                                <div class="attachment-item">
+                                    <div class="attachment-icon">PDF</div>
+                                    <div>
+                                        <strong>${data.attachments.pdf.name}</strong><br>
+                                        <small>${(data.attachments.pdf.size / 1024).toFixed(2)} KB • ${data.attachments.pdf.type}</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        attachmentsHtml += '</div>';
+                    }
+                    
+                    resultContent.innerHTML = `
+                        <div class="chat-response">${data.response}</div>
+                        ${attachmentsHtml}
+                        <div style="margin-top: 15px; font-size: 14px; color: #666;">
+                            <strong>User ID:</strong> ${data.user_id}<br>
+                            <strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}
+                        </div>
+                    `;
+                    
+                } else {
+                    // Error
+                    result.className = 'result error';
+                    resultTitle.textContent = '❌ Chat Failed';
+                    resultContent.innerHTML = `
+                        <div class="error-message">
+                            <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                            ${data.details ? `<p><strong>Details:</strong> ${data.details}</p>` : ''}
+                        </div>
+                    `;
+                }
+                
+                result.style.display = 'block';
+                
+            } catch (error) {
+                // Network or other error
+                loading.style.display = 'none';
+                result.className = 'result error';
+                resultTitle.textContent = '❌ Request Failed';
+                resultContent.innerHTML = `
+                    <div class="error-message">
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Please check your internet connection and try again.</p>
+                    </div>
+                `;
+                result.style.display = 'block';
+            }
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>

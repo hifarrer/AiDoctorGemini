@@ -137,70 +137,52 @@ export async function POST(request: NextRequest) {
       console.log(`📄 Starting server-side PDF extraction: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB)`);
       
       try {
-        // Convert PDF file to buffer
+        // Convert PDF file to buffer - same as dashboard
         const arrayBuffer = await pdf.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const typedarray = new Uint8Array(arrayBuffer);
         
-        console.log(`📄 Attempting PDF text extraction with pdf-parse...`);
+        console.log(`📄 Attempting PDF text extraction using pdfjs-dist (server-side)...`);
         
-        // Use pdf-parse with proper error handling to avoid test file issues
-        let pdfParse;
-        try {
-          // Import pdf-parse dynamically
-          pdfParse = (await import('pdf-parse')).default;
-        } catch (importError) {
-          console.error('Failed to import pdf-parse:', importError);
-          throw new Error('PDF parsing library not available');
+        // Use the EXACT same method as dashboard but configured for server-side
+        const pdfjsLib = await import('pdfjs-dist');
+        
+        // Configure for server-side - NO CDN worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        
+        // Load PDF document - same as dashboard
+        const pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+        let fullText = "";
+        
+        console.log(`📄 PDF loaded: ${pdfDoc.numPages} pages`);
+        
+        // Extract text from each page - EXACT same logic as dashboard
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(" ");
+          fullText += pageText + "\n";
         }
         
-        // Extract text with pdf-parse
-        let extractedData;
-        try {
-          extractedData = await pdfParse(buffer, {
-            // Disable external file loading to avoid test file issues
-            max: 0, // No page limit
-            version: 'v1.10.100' // Specify version to avoid compatibility issues
-          });
-        } catch (parseError: any) {
-          console.error('pdf-parse extraction failed:', parseError);
-          // Check if it's the test file error we've seen before
-          if (parseError.message && parseError.message.includes('test/data')) {
-            throw new Error('PDF parsing library configuration issue');
-          }
-          throw parseError;
-        }
+        const extractedText = fullText.trim();
         
-        if (extractedData && extractedData.text && extractedData.text.trim().length > 0) {
-          const cleanedText = extractedData.text.trim();
-          
+        if (extractedText && extractedText.length > 10) {
           content.push({
-            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${extractedData.numpages || 'unknown'} pages):\n\n${cleanedText}`
+            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pdfDoc.numPages} pages):\n\n${extractedText}`
           });
           
-          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${extractedData.numpages} pages, ${cleanedText.length} characters)`);
-          console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
+          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${pdfDoc.numPages} pages, ${extractedText.length} characters)`);
+          console.log(`📄 First 200 chars: ${extractedText.substring(0, 200)}...`);
         } else {
           content.push({
-            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but was unable to extract readable text content. This might be a scanned document or image-based PDF.`
+            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pdfDoc.numPages} pages) but was unable to extract readable text content. This might be a scanned document or image-based PDF.`
           });
-          console.log(`📄 PDF processed but no text extracted: ${pdf.name}`);
+          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pdfDoc.numPages} pages)`);
         }
       } catch (pdfError: any) {
         console.error('Error extracting PDF text:', pdfError);
         
-        // Provide helpful error message based on error type
-        let errorMessage = `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content.`;
-        
-        if (pdfError.message && pdfError.message.includes('test/data')) {
-          errorMessage += ' This appears to be a server configuration issue. Please try again or contact support.';
-        } else if (pdfError.message && pdfError.message.includes('PDF parsing library')) {
-          errorMessage += ' The PDF processing service is temporarily unavailable. Please try again later.';
-        } else {
-          errorMessage += ' Please ensure the PDF contains readable text and try again.';
-        }
-        
         content.push({
-          text: errorMessage
+          text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB) but encountered an error while extracting the text content. Please ensure the PDF contains readable text and try again.`
         });
       }
     }

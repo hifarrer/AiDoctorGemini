@@ -186,7 +186,7 @@ The API handles PDF text extraction automatically on the server-side. Mobile dev
 ### How It Works
 
 1. **Upload PDF**: Include PDF file in your request
-2. **Server Processing**: API extracts text automatically using `pdf-parse` library
+2. **Server Processing**: API extracts text automatically using `pdfjs-dist` library (same as dashboard)
 3. **AI Analysis**: Extracted text is sent to AI for analysis
 4. **Response**: Get full AI analysis of the PDF content
 

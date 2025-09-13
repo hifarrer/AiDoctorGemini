@@ -133,13 +133,62 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'PDF file too large (max 10MB)' }, { status: 400 });
       }
 
-      // For now, we'll add a note about PDF content
-      // In the future, we can implement PDF text extraction here
-      content.push({
-        text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB) - Content analysis not yet implemented]`
-      });
+      try {
+        // Extract text from PDF using pdfjs-dist (same as dashboard)
+        const arrayBuffer = await pdf.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        
+        const pdfDoc = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+        const pageCount = pdfDoc.numPages;
+        
+        let extractedText = '';
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+          const page = await pdfDoc.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          const pageText = textContent.items
+            .map((item: any) => {
+              if ('str' in item) {
+                return item.str;
+              }
+              return '';
+            })
+            .join(' ')
+            .trim();
 
-      console.log(`📄 PDF attached: ${pdf.name} (${pdf.size} bytes)`);
+          if (pageText) {
+            extractedText += pageText + '\n\n';
+          }
+        }
+        
+        // Clean up the extracted text
+        const cleanedText = extractedText
+          .replace(/\s+/g, ' ')
+          .replace(/\n\s*\n/g, '\n')
+          .trim();
+        
+        if (cleanedText) {
+          content.push({
+            text: `\n\n[PDF Content from ${pdf.name} (${pageCount} pages):\n\n${cleanedText}]`
+          });
+          console.log(`📄 PDF text extracted: ${pdf.name} (${pageCount} pages, ${cleanedText.length} characters)`);
+        } else {
+          content.push({
+            text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB, ${pageCount} pages) - No text content could be extracted from this PDF.]`
+          });
+          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pageCount} pages)`);
+        }
+      } catch (pdfError) {
+        console.error('Error processing PDF:', pdfError);
+        content.push({
+          text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB) - Could not extract text content. Please provide the text content manually for analysis.]`
+        });
+      }
     }
 
     // Generate AI response

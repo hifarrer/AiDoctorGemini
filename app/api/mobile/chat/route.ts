@@ -134,46 +134,57 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Use the EXACT SAME method as the dashboard chatbot
+        // Use pdf-parse for server-side PDF text extraction
+        console.log(`📄 Starting PDF extraction for: ${pdf.name}`);
+        
         const arrayBuffer = await pdf.arrayBuffer();
-        const typedarray = new Uint8Array(arrayBuffer);
+        const buffer = Buffer.from(arrayBuffer);
         
-        // Import pdfjs-dist dynamically (same as dashboard)
-        const pdfjsLib = await import('pdfjs-dist');
-        
-        // Use CDN worker (same as dashboard)
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        
-        const pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
-        let fullText = "";
-        
-        // Extract text from each page (same as dashboard)
-        for (let i = 1; i <= pdfDoc.numPages; i++) {
-          const page = await pdfDoc.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(" ");
-          fullText += pageText + "\n";
+        // Import pdf-parse with proper error handling
+        let pdfParse;
+        try {
+          pdfParse = await import('pdf-parse');
+          console.log(`📄 pdf-parse imported successfully`);
+        } catch (importError) {
+          console.error('Failed to import pdf-parse:', importError);
+          throw new Error('PDF parsing library not available');
         }
         
-        const extractedText = fullText.trim();
+        // Extract text using pdf-parse
+        let pdfData;
+        try {
+          pdfData = await pdfParse.default(buffer);
+          console.log(`📄 pdf-parse completed: ${pdfData.numpages} pages, ${pdfData.text.length} characters`);
+        } catch (parseError) {
+          console.error('pdf-parse failed:', parseError);
+          throw new Error('Failed to parse PDF content');
+        }
         
-        if (extractedText) {
+        const extractedText = pdfData.text.trim();
+        
+        if (extractedText && extractedText.length > 10) {
+          // Clean up the extracted text
+          const cleanedText = extractedText
+            .replace(/\s+/g, ' ')
+            .replace(/\n\s*\n/g, '\n')
+            .trim();
+          
           // Add the PDF content directly to the prompt
           content.push({
-            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pdfDoc.numPages} pages):\n\n${extractedText}`
+            text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pdfData.numpages} pages):\n\n${cleanedText}`
           });
-          console.log(`📄 PDF text extracted: ${pdf.name} (${pdfDoc.numPages} pages, ${extractedText.length} characters)`);
-          console.log(`📄 First 200 chars: ${extractedText.substring(0, 200)}...`);
+          console.log(`📄 PDF text extracted successfully: ${pdf.name} (${pdfData.numpages} pages, ${cleanedText.length} characters)`);
+          console.log(`📄 First 200 chars: ${cleanedText.substring(0, 200)}...`);
         } else {
           content.push({
-            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pdfDoc.numPages} pages) but was unable to extract any readable text content from it. This might be a scanned document or image-based PDF.`
+            text: `\n\nI received a PDF file named "${pdf.name}" (${(pdf.size / 1024).toFixed(2)} KB, ${pdfData.numpages} pages) but was unable to extract any readable text content from it. This might be a scanned document or image-based PDF.`
           });
-          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pdfDoc.numPages} pages)`);
+          console.log(`📄 PDF processed but no text extracted: ${pdf.name} (${pdfData.numpages} pages)`);
         }
       } catch (pdfError) {
         console.error('Error processing PDF:', pdfError);
         content.push({
-          text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB) - Could not extract text content. Please provide the text content manually for analysis.]`
+          text: `\n\n[PDF file attached: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB) - Could not extract text content due to server-side processing limitations. Please provide the text content manually for analysis.]`
         });
       }
     }

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Validate environment variables
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
-    const credentialsBase64 = process.env.GOOGLE_CLOUD_CREDENTIALS;
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
 
     if (!projectId) {
       console.error('GOOGLE_VERTEX_PROJECT environment variable is not set');
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!credentialsBase64) {
-      console.error('GOOGLE_CLOUD_CREDENTIALS environment variable is not set');
+      console.error('GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable is not set');
       return NextResponse.json({ error: 'AI service credentials not configured' }, { status: 500 });
     }
 

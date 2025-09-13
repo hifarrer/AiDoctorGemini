@@ -16,11 +16,23 @@ export async function POST(request: NextRequest) {
 
     // Validate required parameters
     if (!userId) {
-      return NextResponse.json({ error: 'user_id is required' }, { status: 400 });
+      return NextResponse.json({ error: 'user_id is required' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     if (!prompt) {
-      return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+      return NextResponse.json({ error: 'prompt is required' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     // Validate that user exists in database
@@ -32,7 +44,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { 
+        status: 404,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     console.log(`🤖 Mobile chat request from user ${userId}: ${prompt.substring(0, 100)}...`);
@@ -44,12 +62,24 @@ export async function POST(request: NextRequest) {
 
     if (!projectId) {
       console.error('GOOGLE_VERTEX_PROJECT environment variable is not set');
-      return NextResponse.json({ error: 'AI service configuration error' }, { status: 500 });
+      return NextResponse.json({ error: 'AI service configuration error' }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     if (!credentialsBase64) {
       console.error('GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable is not set');
-      return NextResponse.json({ error: 'AI service credentials not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'AI service credentials not configured' }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     // Parse credentials
@@ -59,7 +89,13 @@ export async function POST(request: NextRequest) {
       parsedCredentials = JSON.parse(credentialsJson);
     } catch (e: any) {
       console.error('Failed to decode/parse credentials from Base64:', e.message);
-      return NextResponse.json({ error: 'Invalid server credentials format.' }, { status: 500 });
+      return NextResponse.json({ error: 'Invalid server credentials format.' }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     // Initialize VertexAI with explicit credentials
@@ -89,12 +125,24 @@ export async function POST(request: NextRequest) {
     if (image && image.size > 0) {
       // Validate image file
       if (!image.type.startsWith('image/')) {
-        return NextResponse.json({ error: 'Invalid image file type' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid image file type' }, { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Credentials': 'true',
+          }
+        });
       }
 
       // Validate image size (max 10MB)
       if (image.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Image file too large (max 10MB)' }, { status: 400 });
+        return NextResponse.json({ error: 'Image file too large (max 10MB)' }, { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Credentials': 'true',
+          }
+        });
       }
 
       const imageBuffer = await image.arrayBuffer();
@@ -114,12 +162,24 @@ export async function POST(request: NextRequest) {
     if (pdf && pdf.size > 0) {
       // Validate PDF file
       if (pdf.type !== 'application/pdf') {
-        return NextResponse.json({ error: 'Invalid PDF file type' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid PDF file type' }, { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Credentials': 'true',
+          }
+        });
       }
 
       // Validate PDF size (max 10MB)
       if (pdf.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: 'PDF file too large (max 10MB)' }, { status: 400 });
+        return NextResponse.json({ error: 'PDF file too large (max 10MB)' }, { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Credentials': 'true',
+          }
+        });
       }
 
       console.log(`📄 Starting server-side PDF extraction: ${pdf.name} (${(pdf.size / 1024).toFixed(2)} KB)`);
@@ -255,6 +315,11 @@ export async function POST(request: NextRequest) {
           type: pdf.type
         } : null
       }
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:8081',
+        'Access-Control-Allow-Credentials': 'true',
+      }
     });
 
   } catch (error) {
@@ -264,7 +329,13 @@ export async function POST(request: NextRequest) {
       success: false,
       error: 'Failed to process chat request',
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:8081',
+        'Access-Control-Allow-Credentials': 'true',
+      }
+    });
   }
 }
 
@@ -273,9 +344,10 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'http://localhost:8081',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }

@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { VertexAI } from '@google-cloud/vertexai';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Parse multipart/form-data
     const formData = await request.formData();
     
@@ -31,20 +23,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
 
-    // Validate user_id matches session user
+    // Validate that user exists in database
     const supabase = getSupabaseServerClient();
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, email')
-      .eq('email', session.user.email)
+      .eq('id', userId)
       .single();
 
     if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    if (user.id !== userId) {
-      return NextResponse.json({ error: 'user_id does not match authenticated user' }, { status: 403 });
     }
 
     console.log(`🤖 Mobile chat request from user ${userId}: ${prompt.substring(0, 100)}...`);
@@ -235,7 +223,7 @@ export async function POST(request: NextRequest) {
         .from('usage_records')
         .insert({
           user_id: userId,
-          user_email: session.user.email,
+          user_email: user.email,
           date: new Date().toISOString(),
           interaction_type: image ? 'image_chat' : pdf ? 'document_chat' : 'text_chat',
           tokens_used: Math.ceil((prompt.length + aiResponse.length) / 4), // Rough token estimate

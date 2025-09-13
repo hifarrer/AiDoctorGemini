@@ -134,37 +134,15 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Extract text from PDF using pdfjs-dist (same as dashboard)
+        // Use pdf-parse for server-side compatibility (same as mobile PDF extraction API)
         const arrayBuffer = await pdf.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        const buffer = Buffer.from(arrayBuffer);
         
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        const pdfParse = await import('pdf-parse');
+        const pdfData = await pdfParse.default(buffer);
         
-        const pdfDoc = await pdfjsLib.getDocument({ data: uint8Array }).promise;
-        const pageCount = pdfDoc.numPages;
-        
-        let extractedText = '';
-        
-        // Extract text from each page
-        for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
-          const page = await pdfDoc.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          
-          const pageText = textContent.items
-            .map((item: any) => {
-              if ('str' in item) {
-                return item.str;
-              }
-              return '';
-            })
-            .join(' ')
-            .trim();
-
-          if (pageText) {
-            extractedText += pageText + '\n\n';
-          }
-        }
+        const extractedText = pdfData.text;
+        const pageCount = pdfData.numpages;
         
         // Clean up the extracted text
         const cleanedText = extractedText
@@ -173,7 +151,7 @@ export async function POST(request: NextRequest) {
           .trim();
         
         if (cleanedText) {
-          // Add the PDF content directly to the prompt without brackets
+          // Add the PDF content directly to the prompt
           content.push({
             text: `\n\nHere is the content from the PDF file "${pdf.name}" (${pageCount} pages):\n\n${cleanedText}`
           });
@@ -221,6 +199,7 @@ export async function POST(request: NextRequest) {
         .from('usage_records')
         .insert({
           user_id: userId,
+          user_email: session.user.email,
           interaction_type: image ? 'image_chat' : pdf ? 'document_chat' : 'text_chat',
           tokens_used: Math.ceil((prompt.length + aiResponse.length) / 4), // Rough token estimate
           created_at: new Date().toISOString()

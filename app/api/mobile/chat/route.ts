@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { VertexAI } from '@google-cloud/vertexai';
+import { recordUserInteraction, canUserInteract } from '@/lib/server/user-interactions';
+import { findUserById } from '@/lib/server/users';
+import { getPlans } from '@/lib/server/plans';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,15 +38,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Validate that user exists in database
-    const supabase = getSupabaseServerClient();
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, email')
-      .eq('id', userId)
-      .single();
-
-    if (userError || !user) {
+    // Validate that user exists in database and get full user data
+    const user = await findUserById(userId);
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { 
         status: 404,
         headers: {
@@ -53,7 +50,59 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Get user's plan information
+    const plans = await getPlans();
+    const userPlan = plans.find(plan => plan.title === user.plan) || plans.find(plan => plan.title === 'Free');
+    
+    if (!userPlan) {
+      return NextResponse.json({ error: 'User plan not found' }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
+    }
+
     console.log(`🤖 Mobile chat request from user ${userId}: ${prompt.substring(0, 100)}...`);
+
+    // Determine interaction type based on content
+    const interactionType: 'chat' | 'image_analysis' | 'health_report' = image
+      ? 'image_analysis'
+      : (pdf || pdfText)
+      ? 'health_report'
+      : 'chat';
+
+    // Check if user can interact based on plan limits
+    try {
+      const canInteract = await canUserInteract(user.id, userPlan.id);
+      if (!canInteract.canInteract) {
+        return NextResponse.json({
+          error: 'Interaction limit reached',
+          message: 'You have reached your monthly interaction limit. Please upgrade your plan.',
+          remaining: canInteract.remainingInteractions ?? 0,
+          limit: canInteract.limit ?? null,
+        }, { 
+          status: 429,
+          headers: {
+            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Credentials': 'true',
+          }
+        });
+      }
+
+      // Record the interaction immediately after passing the limit check
+      try {
+        await recordUserInteraction(user.id, userPlan.id, interactionType);
+        console.log(`✅ User interaction recorded: ${interactionType} for user ${user.email}`);
+      } catch (recErr) {
+        console.error('Failed to record user interaction:', recErr);
+        // Don't block the request if recording fails
+      }
+    } catch (error) {
+      console.error('Failed to enforce interaction limit:', error);
+      // On enforcement error, do not block the user; continue
+    }
 
     // Validate environment variables
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
@@ -281,6 +330,7 @@ IMPORTANT: Do not include any disclaimers about being an AI assistant, medical a
 
     // Record usage for analytics
     try {
+      const supabase = getSupabaseServerClient();
       const { error: usageError } = await supabase
         .from('usage_records')
         .insert({

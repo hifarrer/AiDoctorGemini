@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create transporter
-    const transporter = nodemailer.createTransporter(smtpConfig);
+    const transporter = nodemailer.createTransport(smtpConfig);
 
     // Verify connection configuration
     await transporter.verify();

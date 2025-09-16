@@ -33,7 +33,11 @@ export async function GET(request: NextRequest) {
         recommendations,
         risk_level,
         created_at,
-        updated_at
+        updated_at,
+        image_data,
+        image_filename,
+        image_mime_type,
+        analysis_type
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });

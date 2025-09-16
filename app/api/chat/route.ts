@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import { recordUserInteraction, canUserInteract, getUserInteractionStats } from '@/lib/server/user-interactions';
 import { findUserByEmail } from '@/lib/server/users';
 import { getPlans } from '@/lib/server/plans';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,64 @@ function iteratorToReadableStream(iterator: AsyncGenerator<string>) {
       }
     },
   });
+}
+
+// Helper function to save image analysis results
+async function saveImageAnalysis(
+  userId: string, 
+  imageData: string, 
+  imageMimeType: string, 
+  imageFilename: string, 
+  aiResponse: string
+) {
+  try {
+    const supabase = getSupabaseServerClient();
+    
+    // Create a health report entry for the image analysis
+    const { data: healthReport, error } = await supabase
+      .from('health_reports')
+      .insert({
+        user_id: userId,
+        title: `Image Analysis - ${imageFilename}`,
+        report_type: 'image_analysis',
+        original_filename: imageFilename,
+        file_content: aiResponse, // Store the full AI analysis
+        file_size: Math.round(imageData.length * 0.75), // Approximate size
+        mime_type: imageMimeType,
+        ai_analysis: aiResponse,
+        ai_summary: aiResponse.substring(0, 500) + (aiResponse.length > 500 ? '...' : ''), // Truncated summary
+        key_findings: [], // Could be extracted from AI response in the future
+        recommendations: [], // Could be extracted from AI response in the future
+        risk_level: 'normal', // Default risk level
+        image_data: imageData, // Store the base64 image data
+        image_filename: imageFilename,
+        image_mime_type: imageMimeType,
+        analysis_type: 'image'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving image analysis:', error);
+      return null;
+    }
+
+    // Add history entry
+    await supabase
+      .from('health_report_history')
+      .insert({
+        health_report_id: healthReport.id,
+        user_id: userId,
+        action: 'image_analyzed',
+        details: { title: healthReport.title, image_filename: imageFilename }
+      });
+
+    console.log('✅ Image analysis saved successfully:', healthReport.id);
+    return healthReport;
+  } catch (error) {
+    console.error('Error in saveImageAnalysis:', error);
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -242,6 +301,53 @@ The user is asking questions about this health report. Please provide helpful, a
     };
     const googleStreamResult = await generativeModel.generateContentStream(request);
     console.log('Successfully received stream from Google model.');
+
+    // If this is an image analysis, we need to collect the full response to save it
+    if (image && session?.user?.email) {
+      try {
+        // Get the user ID for saving the analysis
+        const user = await findUserByEmail(session.user.email);
+        if (user) {
+          // Collect the full response
+          let fullResponse = '';
+          for await (const chunk of googleStreamResult.stream) {
+            if (chunk?.candidates?.[0]?.content?.parts?.[0]?.text) {
+              fullResponse += chunk.candidates[0].content.parts[0].text;
+            }
+          }
+          
+          // Save the image analysis
+          const imageMatch = image.match(/^data:(.*);base64,(.*)$/);
+          if (imageMatch) {
+            const imageMimeType = imageMatch[1];
+            const imageData = imageMatch[2];
+            const imageFilename = `image_${Date.now()}.${imageMimeType.split('/')[1] || 'jpg'}`;
+            
+            await saveImageAnalysis(user.id, imageData, imageMimeType, imageFilename, fullResponse);
+          }
+          
+          // Create a new stream from the collected response
+          const responseChunks = fullResponse.split(' ').map(word => `0:${JSON.stringify(word + ' ')}\n`);
+          const readableStream = new ReadableStream({
+            start(controller) {
+              for (const chunk of responseChunks) {
+                controller.enqueue(new TextEncoder().encode(chunk));
+              }
+              controller.close();
+            }
+          });
+          
+          return new Response(readableStream, {
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error saving image analysis:', error);
+        // Continue with normal streaming if saving fails
+      }
+    }
 
     const transformedIterator = streamTransformer(googleStreamResult.stream);
     const readableStream = iteratorToReadableStream(transformedIterator);

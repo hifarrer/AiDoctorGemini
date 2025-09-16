@@ -93,6 +93,57 @@ export async function GET(
     });
     yPosition -= 40;
 
+    // Add image if this is an image analysis report
+    if (healthReport.analysis_type === 'image' && healthReport.image_data) {
+      try {
+        // Embed the image
+        const imageBytes = Buffer.from(healthReport.image_data, 'base64');
+        let image;
+        
+        if (healthReport.image_mime_type === 'image/png') {
+          image = await pdfDoc.embedPng(imageBytes);
+        } else if (healthReport.image_mime_type === 'image/jpeg' || healthReport.image_mime_type === 'image/jpg') {
+          image = await pdfDoc.embedJpg(imageBytes);
+        } else {
+          // Try to embed as PNG by default
+          image = await pdfDoc.embedPng(imageBytes);
+        }
+        
+        // Calculate image dimensions (max width 300px, maintain aspect ratio)
+        const maxWidth = 300;
+        const maxHeight = 200;
+        const imageDims = image.scale(1);
+        const scale = Math.min(maxWidth / imageDims.width, maxHeight / imageDims.height);
+        const scaledWidth = imageDims.width * scale;
+        const scaledHeight = imageDims.height * scale;
+        
+        // Add image title
+        yPosition = addText('ANALYZED IMAGE', 50, yPosition, width - 100, 16, true);
+        yPosition -= 10;
+        
+        // Draw the image
+        page.drawImage(image, {
+          x: 50,
+          y: yPosition - scaledHeight,
+          width: scaledWidth,
+          height: scaledHeight,
+        });
+        
+        yPosition -= scaledHeight + 20;
+        
+        // Add image filename if available
+        if (healthReport.image_filename) {
+          yPosition = addText(`Image: ${healthReport.image_filename}`, 50, yPosition, width - 100, 10);
+          yPosition -= 15;
+        }
+      } catch (imageError) {
+        console.error('Error embedding image in PDF:', imageError);
+        // Continue without image if there's an error
+        yPosition = addText('Image could not be included in PDF', 50, yPosition, width - 100, 12);
+        yPosition -= 20;
+      }
+    }
+
     // Report details
     yPosition = addText(`Report Title: ${healthReport.title || 'N/A'}`, 50, yPosition, width - 100, 14, true);
     yPosition = addText(`Report Type: ${healthReport.report_type || 'N/A'}`, 50, yPosition, width - 100, 12);

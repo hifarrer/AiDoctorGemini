@@ -18,6 +18,10 @@ interface HealthReport {
   risk_level: string;
   created_at: string;
   updated_at: string;
+  image_data?: string;
+  image_filename?: string;
+  image_mime_type?: string;
+  analysis_type?: string;
 }
 
 export default function HealthHistoryPage() {
@@ -159,6 +163,7 @@ export default function HealthHistoryPage() {
                 <option value="imaging">Imaging</option>
                 <option value="medical_report">Medical Report</option>
                 <option value="general_report">General Report</option>
+                <option value="image_analysis">Image Analysis</option>
               </select>
             </div>
             <div>
@@ -224,6 +229,11 @@ export default function HealthHistoryPage() {
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                           {getTypeDisplayName(report.report_type)}
                         </span>
+                        {report.analysis_type === 'image' && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                            📷 IMAGE
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         Original file: {report.original_filename}
@@ -282,7 +292,7 @@ export default function HealthHistoryPage() {
 
         {/* Stats */}
         {healthReports.length > 0 && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{healthReports.length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Total Reports</div>
@@ -298,6 +308,10 @@ export default function HealthHistoryPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
               <div className="text-2xl font-bold text-green-600">{healthReports.filter(r => r.report_type === 'imaging').length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Imaging</div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <div className="text-2xl font-bold text-purple-600">{healthReports.filter(r => r.analysis_type === 'image').length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Image Analysis</div>
             </div>
           </div>
         )}

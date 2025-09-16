@@ -55,20 +55,30 @@ export async function GET(
         .trim();
     };
 
-    // Helper function to add text with word wrapping
+    // Helper function to add text with word wrapping and page breaks
     const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12, isBold: boolean = false) => {
       const fontToUse = isBold ? boldFont : font;
       const sanitizedText = sanitizeText(text);
       const words = sanitizedText.split(' ');
       let line = '';
       let currentY = y;
+      let currentPage = page;
 
       for (const word of words) {
         const testLine = line + word + ' ';
         const textWidth = fontToUse.widthOfTextAtSize(testLine, fontSize);
         
         if (textWidth > maxWidth && line !== '') {
-          page.drawText(line, { x, y: currentY, size: fontSize, font: fontToUse });
+          // Check if we need a new page before drawing the line
+          if (currentY < 100) {
+            console.log('📄 Adding new page, currentY was:', currentY);
+            const newPage = pdfDoc.addPage([595.28, 841.89]);
+            currentPage = newPage;
+            currentY = newPage.getSize().height - 50;
+            console.log('📄 New page added, new yPosition:', currentY);
+          }
+          
+          currentPage.drawText(line, { x, y: currentY, size: fontSize, font: fontToUse });
           line = word + ' ';
           currentY -= fontSize + 5;
         } else {
@@ -77,7 +87,15 @@ export async function GET(
       }
       
       if (line) {
-        page.drawText(line, { x, y: currentY, size: fontSize, font: fontToUse });
+        // Check if we need a new page before drawing the final line
+        if (currentY < 100) {
+          console.log('📄 Adding new page for final line, currentY was:', currentY);
+          const newPage = pdfDoc.addPage([595.28, 841.89]);
+          currentPage = newPage;
+          currentY = newPage.getSize().height - 50;
+          console.log('📄 New page added for final line, new yPosition:', currentY);
+        }
+        currentPage.drawText(line, { x, y: currentY, size: fontSize, font: fontToUse });
       }
       
       return currentY - fontSize - 5;
@@ -167,10 +185,6 @@ export async function GET(
       for (const finding of healthReport.key_findings) {
         if (finding && typeof finding === 'string') {
           yPosition = addText(`• ${finding}`, 60, yPosition, width - 120, 12);
-          if (yPosition < 100) {
-            const newPage = pdfDoc.addPage([595.28, 841.89]);
-            yPosition = newPage.getSize().height - 50;
-          }
         }
       }
       yPosition -= 20;
@@ -184,10 +198,6 @@ export async function GET(
       for (const recommendation of healthReport.recommendations) {
         if (recommendation && typeof recommendation === 'string') {
           yPosition = addText(`• ${recommendation}`, 60, yPosition, width - 120, 12);
-          if (yPosition < 100) {
-            const newPage = pdfDoc.addPage([595.28, 841.89]);
-            yPosition = newPage.getSize().height - 50;
-          }
         }
       }
       yPosition -= 20;
@@ -195,9 +205,11 @@ export async function GET(
 
     // Full Analysis
     if (healthReport.ai_analysis) {
+      console.log('📄 Adding detailed analysis to PDF, length:', healthReport.ai_analysis.length);
       yPosition = addText('DETAILED ANALYSIS', 50, yPosition, width - 100, 16, true);
       yPosition -= 10;
       yPosition = addText(healthReport.ai_analysis, 50, yPosition, width - 100, 11);
+      console.log('📄 Detailed analysis added, final yPosition:', yPosition);
     }
 
     // Footer

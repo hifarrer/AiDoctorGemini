@@ -40,9 +40,27 @@ export async function GET(
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     
-    // Use TimesRoman which has better Unicode support than Helvetica
-    const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    // Try different fonts in order of Unicode support
+    let font, boldFont;
+    const fontOptions = [
+      { name: 'Helvetica', normal: StandardFonts.Helvetica, bold: StandardFonts.HelveticaBold },
+      { name: 'TimesRoman', normal: StandardFonts.TimesRoman, bold: StandardFonts.TimesRomanBold },
+      { name: 'Courier', normal: StandardFonts.Courier, bold: StandardFonts.CourierBold }
+    ];
+    
+    for (const fontOption of fontOptions) {
+      try {
+        font = await pdfDoc.embedFont(fontOption.normal);
+        boldFont = await pdfDoc.embedFont(fontOption.bold);
+        console.log(`✅ Using ${fontOption.name} fonts for Unicode support`);
+        break;
+      } catch (error) {
+        console.warn(`⚠️ ${fontOption.name} fonts not available, trying next option:`, error);
+        if (fontOption === fontOptions[fontOptions.length - 1]) {
+          throw new Error('No suitable fonts available for PDF generation');
+        }
+      }
+    }
 
     const { width, height } = page.getSize();
     let yPosition = height - 50;
@@ -105,17 +123,91 @@ export async function GET(
         page.drawText(text, options);
       } catch (error) {
         console.warn('Unicode character rendering issue, attempting fallback:', error);
-        // Fallback: replace problematic characters with placeholders
-        // Support major Unicode blocks: Basic Latin, Cyrillic, Arabic, Chinese, etc.
+        
+        // First attempt: Try with different font encoding
+        try {
+          // Try to encode the text as Latin-1 and then decode back
+          const latin1Text = Buffer.from(text, 'latin1').toString('latin1');
+          page.drawText(latin1Text, options);
+          return;
+        } catch (latin1Error) {
+          console.warn('Latin-1 encoding failed, trying ASCII:', latin1Error);
+        }
+        
+        // Second attempt: Try ASCII encoding
+        try {
+          const asciiText = Buffer.from(text, 'ascii').toString('ascii');
+          page.drawText(asciiText, options);
+          return;
+        } catch (asciiError) {
+          console.warn('ASCII encoding failed, trying normalization:', asciiError);
+        }
+        
+        // Third attempt: Try to normalize the text
+        try {
+          const normalizedText = text.normalize('NFD');
+          page.drawText(normalizedText, options);
+          return;
+        } catch (normalizeError) {
+          console.warn('Text normalization failed, trying UTF-8:', normalizeError);
+        }
+        
+        // Fourth attempt: Convert to UTF-8 bytes and try again
+        try {
+          const utf8Text = Buffer.from(text, 'utf8').toString('utf8');
+          page.drawText(utf8Text, options);
+          return;
+        } catch (utf8Error) {
+          console.warn('UTF-8 conversion failed, trying character replacement:', utf8Error);
+        }
+        
+        // Final attempt: Replace problematic characters with safe alternatives
         const fallbackText = text
-          .replace(/[^\x20-\x7E\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F\u0600-\u06FF\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u2B820-\u2CEAF\uF900-\uFAFF\u2F800-\u2FA1F]/g, '?')
+          // Replace Cyrillic characters with transliterated equivalents
+          .replace(/[А-Яа-я]/g, (char) => {
+            const cyrillicMap: { [key: string]: string } = {
+              'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E', 'Ж': 'Zh',
+              'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
+              'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
+              'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+              'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh',
+              'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+              'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+              'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+            };
+            return cyrillicMap[char] || '?';
+          })
+          // Replace Chinese characters with [Chinese] placeholder
+          .replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u2B820-\u2CEAF\uF900-\uFAFF\u2F800-\u2FA1F]/g, '[Chinese]')
+          // Replace Arabic characters with [Arabic] placeholder
+          .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '[Arabic]')
+          // Replace other unsupported Unicode characters
+          .replace(/[^\x20-\x7E]/g, '?')
           .replace(/\s+/g, ' ');
+        
         try {
           page.drawText(fallbackText, options);
         } catch (fallbackError) {
-          console.error('Fallback text rendering also failed:', fallbackError);
-          // Last resort: draw a placeholder
-          page.drawText('[Text contains unsupported characters]', options);
+          console.error('All fallback attempts failed:', fallbackError);
+          // Last resort: try to draw just the first few characters
+          try {
+            const shortText = text.substring(0, 50) + '...';
+            page.drawText(shortText, options);
+          } catch (shortError) {
+            console.error('Even short text failed:', shortError);
+            // Try to draw just ASCII characters
+            try {
+              const asciiOnly = text.replace(/[^\x20-\x7E]/g, '');
+              if (asciiOnly.length > 0) {
+                page.drawText(asciiOnly.substring(0, 50) + '...', options);
+              } else {
+                page.drawText('[Text contains unsupported characters]', options);
+              }
+            } catch (asciiError) {
+              console.error('Even ASCII-only text failed:', asciiError);
+              page.drawText('[Text contains unsupported characters]', options);
+            }
+          }
         }
       }
     };

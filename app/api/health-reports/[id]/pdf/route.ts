@@ -47,6 +47,47 @@ export async function GET(
     const { width, height } = page.getSize();
     let yPosition = height - 50;
 
+    // Helper function to format AI response text for better PDF presentation
+    const formatAIText = (text: string): string => {
+      if (!text) return '';
+      
+      const originalText = text;
+      const formattedText = text
+        // Remove markdown headers (###, ##, #) and add proper spacing
+        .replace(/^#{1,6}\s+/gm, '\n')
+        // Convert bold markdown (**text** or __text__) to clean text
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        // Convert italic markdown (*text* or _text_) to clean text
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/_([^_]+)_/g, '$1')
+        // Convert bullet points to clean format with proper spacing
+        .replace(/^\s*[-*+]\s+/gm, '\n• ')
+        // Remove numbered lists formatting but keep content
+        .replace(/^\s*\d+\.\s+/gm, '\n')
+        // Handle specific patterns like "* **Color:**" -> "Color:"
+        .replace(/\*\s*\*\*([^*]+)\*\*:\s*/g, '$1: ')
+        // Handle patterns like "* **Shape and Border:**" -> "Shape and Border:"
+        .replace(/\*\s*\*\*([^*]+)\*\*:\s*/g, '$1: ')
+        // Clean up multiple line breaks and spaces
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        // Remove any remaining markdown artifacts
+        .replace(/[#*_`~]/g, '')
+        // Clean up any double spaces that might have been created
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Debug logging to show formatting changes
+      if (originalText !== formattedText) {
+        console.log('📝 Text formatting applied:');
+        console.log('Original:', originalText.substring(0, 200) + '...');
+        console.log('Formatted:', formattedText.substring(0, 200) + '...');
+      }
+      
+      return formattedText;
+    };
+
     // Helper function to sanitize text for PDF (supports Unicode including Cyrillic, Arabic, Chinese, etc.)
     const sanitizeText = (text: string): string => {
       if (!text) return '';
@@ -80,9 +121,11 @@ export async function GET(
     };
 
     // Helper function to add text with word wrapping and page breaks
-    const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12, isBold: boolean = false) => {
+    const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12, isBold: boolean = false, isAIContent: boolean = false) => {
       const fontToUse = isBold ? boldFont : font;
-      const sanitizedText = sanitizeText(text);
+      // Format AI content to remove markdown, otherwise just sanitize
+      const processedText = isAIContent ? formatAIText(text) : text;
+      const sanitizedText = sanitizeText(processedText);
       const words = sanitizedText.split(' ');
       let line = '';
       let currentY = y;
@@ -197,7 +240,7 @@ export async function GET(
     if (healthReport.ai_summary) {
       yPosition = addText('SUMMARY', 50, yPosition, width - 100, 16, true);
       yPosition -= 10;
-      yPosition = addText(healthReport.ai_summary, 50, yPosition, width - 100, 12);
+      yPosition = addText(healthReport.ai_summary, 50, yPosition, width - 100, 12, false, true);
       yPosition -= 20;
     }
 
@@ -208,7 +251,7 @@ export async function GET(
       
       for (const finding of healthReport.key_findings) {
         if (finding && typeof finding === 'string') {
-          yPosition = addText(`• ${finding}`, 60, yPosition, width - 120, 12);
+          yPosition = addText(`• ${finding}`, 60, yPosition, width - 120, 12, false, true);
         }
       }
       yPosition -= 20;
@@ -221,7 +264,7 @@ export async function GET(
       
       for (const recommendation of healthReport.recommendations) {
         if (recommendation && typeof recommendation === 'string') {
-          yPosition = addText(`• ${recommendation}`, 60, yPosition, width - 120, 12);
+          yPosition = addText(`• ${recommendation}`, 60, yPosition, width - 120, 12, false, true);
         }
       }
       yPosition -= 20;
@@ -232,7 +275,7 @@ export async function GET(
       console.log('📄 Adding detailed analysis to PDF, length:', healthReport.ai_analysis.length);
       yPosition = addText('DETAILED ANALYSIS', 50, yPosition, width - 100, 16, true);
       yPosition -= 10;
-      yPosition = addText(healthReport.ai_analysis, 50, yPosition, width - 100, 11);
+      yPosition = addText(healthReport.ai_analysis, 50, yPosition, width - 100, 11, false, true);
       console.log('📄 Detailed analysis added, final yPosition:', yPosition);
     }
 

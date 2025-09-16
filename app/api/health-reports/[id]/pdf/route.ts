@@ -41,7 +41,7 @@ export async function GET(
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     
     // Try different fonts in order of Unicode support
-    let font, boldFont;
+    let font: any, boldFont: any;
     const fontOptions = [
       { name: 'Helvetica', normal: StandardFonts.Helvetica, bold: StandardFonts.HelveticaBold },
       { name: 'TimesRoman', normal: StandardFonts.TimesRoman, bold: StandardFonts.TimesRomanBold },

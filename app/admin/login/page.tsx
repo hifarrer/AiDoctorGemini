@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,23 @@ export default function AdminLogin() {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [siteName, setSiteName] = useState("Health Consultant AI");
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchSiteName = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setSiteName(data.siteName || "Health Consultant AI");
+        }
+      } catch (error) {
+        console.error('Error fetching site name:', error);
+      }
+    };
+    fetchSiteName();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +69,7 @@ export default function AdminLogin() {
             Admin Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Access the Medical AI Assistant admin panel
+            Access the {siteName} admin panel
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -111,7 +127,7 @@ export default function AdminLogin() {
               href="/"
               className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
             >
-              ← Back to Medical AI Assistant
+              ← Back to {siteName}
             </a>
           </div>
         </form>

@@ -9,6 +9,18 @@ import { findUserByEmail } from '@/lib/server/users';
 import { getPlans } from '@/lib/server/plans';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
+// Define the session type based on our auth configuration
+interface SessionUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  isAdmin: boolean;
+}
+
+interface Session {
+  user: SessionUser;
+}
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -113,7 +125,7 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, image, document, healthReport } = await req.json();
     const userMessage = messages[messages.length - 1];
-    const session = await getServerSession(authOptions as any);
+    const session = await getServerSession(authOptions as any) as Session | null;
 
     console.log('Chat request received:', {
       hasMessages: !!messages,

@@ -1,12 +1,30 @@
 import Link from "next/link"
+import { getSettings } from "@/lib/server/settings"
+import type { Metadata } from "next"
 
-export default function PrivacyPolicyPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const settings = await getSettings();
+    return {
+      title: `Privacy Policy - ${settings.siteName}`,
+      description: `Privacy Policy for ${settings.siteName}`,
+    };
+  } catch (error) {
+    return {
+      title: "Privacy Policy - Health Consultant AI",
+      description: "Privacy Policy for Health Consultant AI",
+    };
+  }
+}
+
+export default async function PrivacyPolicyPage() {
+  const settings = await getSettings();
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" href="/">
           <MountainIcon className="h-6 w-6" />
-          <span className="sr-only">Medical AI Assistant</span>
+          <span className="sr-only">{settings.siteName}</span>
         </Link>
       </header>
       <main className="flex-1 py-12 md:py-24 lg:py-32">
@@ -39,7 +57,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 Medical AI Assistant. All rights reserved.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">© 2025 {settings.siteName}. All rights reserved.</p>
       </footer>
     </div>
   )

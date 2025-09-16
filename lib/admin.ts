@@ -1,4 +1,4 @@
-// Admin system for Medical AI Assistant app
+// Admin system for Health Consultant AI app
 import { getUsers, deleteUser as deleteUserFromDB } from "./server/users";
 import { getSettings } from "./server/settings";
 

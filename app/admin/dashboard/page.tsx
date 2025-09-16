@@ -71,32 +71,36 @@ export default function AdminDashboard() {
     maxUsersPerDay: 1000,
     maintenanceMode: false,
   });
+  const [siteName, setSiteName] = useState("Health Consultant AI");
   const router = useRouter();
 
   const fetchData = useCallback(async () => {
     console.log("🔄 Starting admin dashboard data fetch...");
     try {
       console.log("📡 Fetching users, stats, and settings...");
-      const [usersRes, statsRes, configRes] = await Promise.all([
+      const [usersRes, statsRes, configRes, settingsRes] = await Promise.all([
         fetch("/api/admin/users"),
         fetch("/api/admin/stats"),
         fetch("/api/admin/config"),
+        fetch("/api/settings"),
       ]);
 
       console.log("📊 API Response Status:", {
         users: usersRes.status,
         stats: statsRes.status,
-        config: configRes.status
+        config: configRes.status,
+        settings: settingsRes.status
       });
 
-      if (!usersRes.ok || !statsRes.ok || !configRes.ok) {
+      if (!usersRes.ok || !statsRes.ok || !configRes.ok || !settingsRes.ok) {
         console.error("❌ API Error Details:", {
           users: { status: usersRes.status, statusText: usersRes.statusText },
           stats: { status: statsRes.status, statusText: statsRes.statusText },
-          config: { status: configRes.status, statusText: configRes.statusText }
+          config: { status: configRes.status, statusText: configRes.statusText },
+          settings: { status: settingsRes.status, statusText: settingsRes.statusText }
         });
         
-        if (usersRes.status === 401 || statsRes.status === 401 || configRes.status === 401) {
+        if (usersRes.status === 401 || statsRes.status === 401 || configRes.status === 401 || settingsRes.status === 401) {
           console.log("🔒 Unauthorized - redirecting to login");
           router.push("/admin/login");
           return;
@@ -105,21 +109,24 @@ export default function AdminDashboard() {
       }
 
       console.log("✅ All API calls successful, parsing responses...");
-      const [usersData, statsData, configData] = await Promise.all([
+      const [usersData, statsData, configData, settingsData] = await Promise.all([
         usersRes.json(),
         statsRes.json(),
         configRes.json(),
+        settingsRes.json(),
       ]);
 
       console.log("📋 Parsed Data:", {
         users: usersData,
         stats: statsData,
-        config: configData
+        config: configData,
+        settings: settingsData
       });
 
       setUsers(usersData.users || []);
       setStats(statsData);
       setConfig(configData);
+      setSiteName(settingsData.siteName || "Health Consultant AI");
       setSiteForm({
         contactEmail: configData?.siteSettings?.contactEmail || "",
         supportEmail: configData?.siteSettings?.supportEmail || "",
@@ -242,7 +249,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Medical AI Assistant Admin
+                {siteName} Admin
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Welcome, {config?.username}

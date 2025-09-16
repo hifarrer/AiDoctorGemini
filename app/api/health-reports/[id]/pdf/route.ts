@@ -116,108 +116,79 @@ export async function GET(
         .trim();
     };
 
-    // Helper function to safely draw text with Unicode support
+    // Helper function to pre-process text for PDF compatibility
+    const preprocessTextForPDF = (text: string): string => {
+      if (!text) return '';
+      
+      const originalText = text;
+      const processedText = text
+        // Replace Cyrillic characters with transliterated equivalents
+        .replace(/[А-Яа-я]/g, (char) => {
+          const cyrillicMap: { [key: string]: string } = {
+            'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E', 'Ж': 'Zh',
+            'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
+            'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
+            'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh',
+            'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+            'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+            'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+          };
+          return cyrillicMap[char] || '?';
+        })
+        // Replace Chinese characters with [Chinese] placeholder
+        .replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u2B820-\u2CEAF\uF900-\uFAFF\u2F800-\u2FA1F]/g, '[Chinese]')
+        // Replace Arabic characters with [Arabic] placeholder
+        .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '[Arabic]')
+        // Replace other unsupported Unicode characters
+        .replace(/[^\x20-\x7E]/g, '?')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Debug logging to show preprocessing changes
+      console.log('🔤 Text preprocessing applied:');
+      console.log('Original:', originalText.substring(0, 200) + '...');
+      console.log('Processed:', processedText.substring(0, 200) + '...');
+      console.log('Has Cyrillic:', /[А-Яа-я]/.test(originalText));
+      console.log('Has Chinese:', /[\u4E00-\u9FFF]/.test(originalText));
+      console.log('Still has Cyrillic after processing:', /[А-Яа-я]/.test(processedText));
+      console.log('Still has Chinese after processing:', /[\u4E00-\u9FFF]/.test(processedText));
+      
+      return processedText;
+    };
+
+    // Helper function to safely draw text (text should already be preprocessed)
     const safeDrawText = (page: any, text: string, options: any) => {
       try {
-        // Try to draw the text as-is first
+        // Text should already be preprocessed, so this should work
         page.drawText(text, options);
       } catch (error) {
-        console.warn('Unicode character rendering issue, attempting fallback:', error);
-        
-        // First attempt: Try with different font encoding
-        try {
-          // Try to encode the text as Latin-1 and then decode back
-          const latin1Text = Buffer.from(text, 'latin1').toString('latin1');
-          page.drawText(latin1Text, options);
-          return;
-        } catch (latin1Error) {
-          console.warn('Latin-1 encoding failed, trying ASCII:', latin1Error);
-        }
-        
-        // Second attempt: Try ASCII encoding
-        try {
-          const asciiText = Buffer.from(text, 'ascii').toString('ascii');
-          page.drawText(asciiText, options);
-          return;
-        } catch (asciiError) {
-          console.warn('ASCII encoding failed, trying normalization:', asciiError);
-        }
-        
-        // Third attempt: Try to normalize the text
-        try {
-          const normalizedText = text.normalize('NFD');
-          page.drawText(normalizedText, options);
-          return;
-        } catch (normalizeError) {
-          console.warn('Text normalization failed, trying UTF-8:', normalizeError);
-        }
-        
-        // Fourth attempt: Convert to UTF-8 bytes and try again
-        try {
-          const utf8Text = Buffer.from(text, 'utf8').toString('utf8');
-          page.drawText(utf8Text, options);
-          return;
-        } catch (utf8Error) {
-          console.warn('UTF-8 conversion failed, trying character replacement:', utf8Error);
-        }
-        
-        // Final attempt: Replace problematic characters with safe alternatives
-        const fallbackText = text
-          // Replace Cyrillic characters with transliterated equivalents
-          .replace(/[А-Яа-я]/g, (char) => {
-            const cyrillicMap: { [key: string]: string } = {
-              'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E', 'Ж': 'Zh',
-              'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
-              'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
-              'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
-              'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh',
-              'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-              'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
-              'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-            };
-            return cyrillicMap[char] || '?';
-          })
-          // Replace Chinese characters with [Chinese] placeholder
-          .replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u2B820-\u2CEAF\uF900-\uFAFF\u2F800-\u2FA1F]/g, '[Chinese]')
-          // Replace Arabic characters with [Arabic] placeholder
-          .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '[Arabic]')
-          // Replace other unsupported Unicode characters
-          .replace(/[^\x20-\x7E]/g, '?')
-          .replace(/\s+/g, ' ');
-        
-        try {
-          page.drawText(fallbackText, options);
-        } catch (fallbackError) {
-          console.error('All fallback attempts failed:', fallbackError);
-          // Last resort: try to draw just the first few characters
-          try {
-            const shortText = text.substring(0, 50) + '...';
-            page.drawText(shortText, options);
-          } catch (shortError) {
-            console.error('Even short text failed:', shortError);
-            // Try to draw just ASCII characters
-            try {
-              const asciiOnly = text.replace(/[^\x20-\x7E]/g, '');
-              if (asciiOnly.length > 0) {
-                page.drawText(asciiOnly.substring(0, 50) + '...', options);
-              } else {
-                page.drawText('[Text contains unsupported characters]', options);
-              }
-            } catch (asciiError) {
-              console.error('Even ASCII-only text failed:', asciiError);
-              page.drawText('[Text contains unsupported characters]', options);
-            }
-          }
-        }
+        console.error('PDF text rendering failed even after preprocessing:', error);
+        console.error('Problematic text:', text.substring(0, 100));
+        // Last resort: draw a placeholder
+        page.drawText('[Text rendering error]', options);
       }
     };
 
     // Helper function to add text with word wrapping and page breaks
     const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12, isBold: boolean = false, isAIContent: boolean = false) => {
       const fontToUse = isBold ? boldFont : font;
-      // Format AI content to remove markdown, otherwise just sanitize
-      const processedText = isAIContent ? formatAIText(text) : text;
+      
+      console.log('📊 Processing text for PDF:');
+      console.log('Step 0 - Original:', text.substring(0, 100) + '...');
+      
+      // Step 1: Format AI content to remove markdown
+      let processedText = isAIContent ? formatAIText(text) : text;
+      console.log('Step 1 - After markdown formatting:', processedText.substring(0, 100) + '...');
+      
+      // Step 2: Pre-process text for PDF compatibility (handle Unicode characters)
+      processedText = preprocessTextForPDF(processedText);
+      console.log('Step 2 - After Unicode preprocessing:', processedText.substring(0, 100) + '...');
+      
+      // Step 3: Final sanitization
       const sanitizedText = sanitizeText(processedText);
+      console.log('Step 3 - Final sanitized text:', sanitizedText.substring(0, 100) + '...');
+      
       const words = sanitizedText.split(' ');
       let line = '';
       let currentY = y;
@@ -261,7 +232,7 @@ export async function GET(
     };
 
     // Header
-    safeDrawText(page, 'Health Report Summary', { 
+    safeDrawText(page, preprocessTextForPDF('Health Report Summary'), { 
       x: 50, 
       y: yPosition, 
       size: 20, 
@@ -373,7 +344,7 @@ export async function GET(
 
     // Footer
     const lastPage = pdfDoc.getPages()[pdfDoc.getPages().length - 1];
-    safeDrawText(lastPage, 'Generated by HealthConsultant AI', { 
+    safeDrawText(lastPage, preprocessTextForPDF('Generated by HealthConsultant AI'), { 
       x: 50, 
       y: 30, 
       size: 10, 

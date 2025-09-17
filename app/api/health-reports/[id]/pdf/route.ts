@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, PDFFont } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 
 export async function GET(
   request: NextRequest,
@@ -39,28 +40,44 @@ export async function GET(
     // Create PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    
-    // Try different fonts in order of Unicode support
-    let font: any, boldFont: any;
-    const fontOptions = [
-      { name: 'Helvetica', normal: StandardFonts.Helvetica, bold: StandardFonts.HelveticaBold },
-      { name: 'TimesRoman', normal: StandardFonts.TimesRoman, bold: StandardFonts.TimesRomanBold },
-      { name: 'Courier', normal: StandardFonts.Courier, bold: StandardFonts.CourierBold }
-    ];
-    
-    for (const fontOption of fontOptions) {
-      try {
-        font = await pdfDoc.embedFont(fontOption.normal);
-        boldFont = await pdfDoc.embedFont(fontOption.bold);
-        console.log(`✅ Using ${fontOption.name} fonts for Unicode support`);
-        break;
-      } catch (error) {
-        console.warn(`⚠️ ${fontOption.name} fonts not available, trying next option:`, error);
-        if (fontOption === fontOptions[fontOptions.length - 1]) {
-          throw new Error('No suitable fonts available for PDF generation');
-        }
+
+    // Enable embedding of Unicode fonts
+    pdfDoc.registerFontkit(fontkit);
+
+    // Load Unicode-capable fonts (Latin + Cyrillic) and CJK font for Chinese
+    const NOTO_SANS_URL = 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf';
+    const NOTO_SANS_BOLD_URL = 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf';
+    const NOTO_CJK_SC_URL = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf';
+    const NOTO_CJK_SC_BOLD_URL = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf';
+
+    const loadFontBytes = async (url: string): Promise<Uint8Array> => {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch font at ${url}`);
       }
-    }
+      const buf = await res.arrayBuffer();
+      return new Uint8Array(buf);
+    };
+
+    const [notoSansBytes, notoSansBoldBytes, cjkBytes, cjkBoldBytes] = await Promise.all([
+      loadFontBytes(NOTO_SANS_URL),
+      loadFontBytes(NOTO_SANS_BOLD_URL),
+      loadFontBytes(NOTO_CJK_SC_URL),
+      loadFontBytes(NOTO_CJK_SC_BOLD_URL),
+    ]);
+
+    const unicodeFont: PDFFont = await pdfDoc.embedFont(notoSansBytes, { subset: true });
+    const unicodeBoldFont: PDFFont = await pdfDoc.embedFont(notoSansBoldBytes, { subset: true });
+    const cjkFont: PDFFont = await pdfDoc.embedFont(cjkBytes, { subset: true });
+    const cjkBoldFont: PDFFont = await pdfDoc.embedFont(cjkBoldBytes, { subset: true });
+
+    // Base Latin/Cyrillic fonts; we will dynamically switch to CJK when needed
+    let font: PDFFont = unicodeFont;
+    let boldFont: PDFFont = unicodeBoldFont;
+
+    const containsCJK = (text: string): boolean => /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/u.test(text);
+    const getFontFor = (text: string, isBold: boolean): PDFFont =>
+      containsCJK(text) ? (isBold ? cjkBoldFont : cjkFont) : (isBold ? boldFont : font);
 
     const { width, height } = page.getSize();
     let yPosition = height - 50;
@@ -116,48 +133,8 @@ export async function GET(
         .trim();
     };
 
-    // Helper function to pre-process text for PDF compatibility
-    const preprocessTextForPDF = (text: string): string => {
-      if (!text) return '';
-      
-      const originalText = text;
-      let processedText = text;
-      
-      // Step 1: Replace Cyrillic characters with transliterated equivalents
-      processedText = processedText.replace(/[А-Яа-я]/g, (char) => {
-        const cyrillicMap: { [key: string]: string } = {
-          'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E', 'Ж': 'Zh',
-          'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
-          'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
-          'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
-          'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh',
-          'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-          'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
-          'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-        };
-        return cyrillicMap[char] || '?';
-      });
-      
-      // Step 2: Replace Chinese characters with [Chinese] placeholder
-      processedText = processedText.replace(/[\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u2B820-\u2CEAF\uF900-\uFAFF\u2F800-\u2FA1F]/g, '[Chinese]');
-      
-      // Step 3: Replace Arabic characters with [Arabic] placeholder
-      processedText = processedText.replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '[Arabic]');
-      
-      // Step 4: Clean up multiple spaces
-      processedText = processedText.replace(/\s+/g, ' ').trim();
-      
-      // Debug logging to show preprocessing changes
-      console.log('🔤 Text preprocessing applied:');
-      console.log('Original:', originalText.substring(0, 200) + '...');
-      console.log('Processed:', processedText.substring(0, 200) + '...');
-      console.log('Has Cyrillic:', /[А-Яа-я]/.test(originalText));
-      console.log('Has Chinese:', /[\u4E00-\u9FFF]/.test(originalText));
-      console.log('Still has Cyrillic after processing:', /[А-Яа-я]/.test(processedText));
-      console.log('Still has Chinese after processing:', /[\u4E00-\u9FFF]/.test(processedText));
-      
-      return processedText;
-    };
+    // We no longer mutate non-Latin text. We rely on Unicode fonts instead.
+    const preprocessTextForPDF = (text: string): string => text || '';
 
     // Helper function to safely draw text (text should already be preprocessed)
     const safeDrawText = (page: any, text: string, options: any) => {
@@ -198,7 +175,8 @@ export async function GET(
 
       for (const word of words) {
         const testLine = line + word + ' ';
-        const textWidth = fontToUse.widthOfTextAtSize(testLine, fontSize);
+        const dynamicFont = getFontFor(testLine, isBold);
+        const textWidth = dynamicFont.widthOfTextAtSize(testLine, fontSize);
         
         if (textWidth > maxWidth && line !== '') {
           // Check if we need a new page before drawing the line
@@ -210,7 +188,7 @@ export async function GET(
             console.log('📄 New page added, new yPosition:', currentY);
           }
           
-          safeDrawText(currentPage, line, { x, y: currentY, size: fontSize, font: fontToUse });
+          safeDrawText(currentPage, line, { x, y: currentY, size: fontSize, font: getFontFor(line, isBold) });
           line = word + ' ';
           currentY -= fontSize + 5;
         } else {
@@ -227,18 +205,18 @@ export async function GET(
           currentY = newPage.getSize().height - 50;
           console.log('📄 New page added for final line, new yPosition:', currentY);
         }
-        safeDrawText(currentPage, line, { x, y: currentY, size: fontSize, font: fontToUse });
+        safeDrawText(currentPage, line, { x, y: currentY, size: fontSize, font: getFontFor(line, isBold) });
       }
       
       return currentY - fontSize - 5;
     };
 
     // Header
-    safeDrawText(page, preprocessTextForPDF('Health Report Summary'), { 
+    safeDrawText(page, 'Health Report Summary', { 
       x: 50, 
       y: yPosition, 
       size: 20, 
-      font: boldFont,
+      font: getFontFor('Health Report Summary', true),
       color: rgb(0.2, 0.2, 0.2)
     });
     yPosition -= 40;
@@ -346,11 +324,11 @@ export async function GET(
 
     // Footer
     const lastPage = pdfDoc.getPages()[pdfDoc.getPages().length - 1];
-    safeDrawText(lastPage, preprocessTextForPDF('Generated by HealthConsultant AI'), { 
+    safeDrawText(lastPage, 'Generated by HealthConsultant AI', { 
       x: 50, 
       y: 30, 
       size: 10, 
-      font: font,
+      font: getFontFor('Generated by HealthConsultant AI', false),
       color: rgb(0.5, 0.5, 0.5)
     });
 

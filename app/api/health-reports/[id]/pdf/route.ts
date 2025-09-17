@@ -75,7 +75,8 @@ export async function GET(
     let font: PDFFont = unicodeFont;
     let boldFont: PDFFont = unicodeBoldFont;
 
-    const containsCJK = (text: string): boolean => /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/u.test(text);
+    // Avoid the 'u' flag for environments targeting < ES6
+    const containsCJK = (text: string): boolean => /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text);
     const getFontFor = (text: string, isBold: boolean): PDFFont =>
       containsCJK(text) ? (isBold ? cjkBoldFont : cjkFont) : (isBold ? boldFont : font);
 

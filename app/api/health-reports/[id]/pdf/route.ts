@@ -66,10 +66,10 @@ export async function GET(
       loadFontBytes(NOTO_CJK_SC_BOLD_URL),
     ]);
 
-    const unicodeFont: PDFFont = await pdfDoc.embedFont(notoSansBytes, { subset: true });
-    const unicodeBoldFont: PDFFont = await pdfDoc.embedFont(notoSansBoldBytes, { subset: true });
-    const cjkFont: PDFFont = await pdfDoc.embedFont(cjkBytes, { subset: true });
-    const cjkBoldFont: PDFFont = await pdfDoc.embedFont(cjkBoldBytes, { subset: true });
+    const unicodeFont: PDFFont = await pdfDoc.embedFont(notoSansBytes, { subset: false });
+    const unicodeBoldFont: PDFFont = await pdfDoc.embedFont(notoSansBoldBytes, { subset: false });
+    const cjkFont: PDFFont = await pdfDoc.embedFont(cjkBytes, { subset: false });
+    const cjkBoldFont: PDFFont = await pdfDoc.embedFont(cjkBoldBytes, { subset: false });
 
     // Base Latin/Cyrillic fonts; we will dynamically switch to CJK when needed
     let font: PDFFont = unicodeFont;
@@ -140,8 +140,9 @@ export async function GET(
     // Helper function to safely draw text (text should already be preprocessed)
     const safeDrawText = (page: any, text: string, options: any) => {
       try {
-        // Text should already be preprocessed, so this should work
-        page.drawText(text, options);
+        // Replace any remaining forbidden control bytes defensively
+        const safe = (text || '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        page.drawText(safe, options);
       } catch (error) {
         console.error('PDF text rendering failed even after preprocessing:', error);
         console.error('Problematic text:', text.substring(0, 100));

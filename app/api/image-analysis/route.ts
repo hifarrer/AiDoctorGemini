@@ -42,7 +42,16 @@ export async function POST(request: NextRequest) {
     let finalRisk: string | null = typeof riskLevel === 'string' ? riskLevel : null;
 
     // If the summary is missing/weak or clearly a trimmed copy of the analysis, ask the AI to return JSON with both
-    if (!finalSummary || (finalSummary && (finalSummary.length < 60 || (finalAnalysis && isSummaryRedundant(finalAnalysis, finalSummary))))) {
+    const isRedundant = finalAnalysis && finalSummary && isSummaryRedundant(finalAnalysis, finalSummary);
+    console.log('🔍 Summary redundancy check:', {
+      hasSummary: !!finalSummary,
+      summaryLength: finalSummary?.length || 0,
+      isRedundant,
+      summaryPreview: finalSummary?.substring(0, 100) + '...',
+      analysisPreview: finalAnalysis?.substring(0, 100) + '...'
+    });
+    
+    if (!finalSummary || (finalSummary && (finalSummary.length < 60 || isRedundant))) {
       try {
         // Validate environment variables for Vertex
         const projectId = process.env.GOOGLE_VERTEX_PROJECT;
@@ -169,13 +178,29 @@ function extractJSON(input: string): string | null {
 
 function isSummaryRedundant(analysis: string, summary: string): boolean {
   if (!analysis || !summary) return false;
-  const a = sanitize(analysis).slice(0, 600);
+  
+  // Normalize both texts
+  const a = sanitize(analysis);
   const s = sanitize(summary);
-  if (s.length < 40) return true;
-  // If summary is mostly contained at the start of analysis or has high overlap, treat as redundant
-  const containment = a.includes(s);
-  const overlap = jaccardSimilarity(a, s) > 0.6; // 60% token overlap threshold
-  return containment || overlap;
+  
+  // If summary is very short, it's likely incomplete
+  if (s.length < 50) return true;
+  
+  // Check if summary is contained in the first part of analysis (truncated copy)
+  const analysisStart = a.slice(0, Math.max(s.length * 1.5, 400));
+  const containment = analysisStart.includes(s) || s.includes(analysisStart.slice(0, s.length));
+  
+  // Check word overlap - if more than 70% of summary words are in analysis start, it's redundant
+  const summaryWords = s.split(' ').filter(w => w.length > 2); // ignore short words
+  const analysisStartWords = analysisStart.split(' ').filter(w => w.length > 2);
+  const matchingWords = summaryWords.filter(word => analysisStartWords.includes(word));
+  const wordOverlap = summaryWords.length > 0 ? matchingWords.length / summaryWords.length : 0;
+  
+  // Check if summary ends abruptly (indicates truncation)
+  const endsAbruptly = s.endsWith('...') || s.endsWith('textur') || s.endsWith('appear') || 
+                      s.endsWith('surfac') || s.endsWith('color') || s.endsWith('lesion');
+  
+  return containment || wordOverlap > 0.7 || endsAbruptly;
 }
 
 function sanitize(text: string): string {

@@ -108,19 +108,21 @@ Rules:\n- summary: 3-6 sentences, layperson language, no markdown\n- analysis: f
       }
     }
 
-    // If summary is still missing or redundant, try an AI-only concise summary, then a heuristic summarizer
+    // ALWAYS generate a separate, distinct AI summary - never use analysis text
     if (finalAnalysis) {
-      const needsBetterSummary = !finalSummary || (finalSummary && isSummaryRedundant(finalAnalysis, finalSummary));
-      if (needsBetterSummary) {
-        try {
-          const aiSummaryOnly = await summarizeWithAI(finalAnalysis);
-          if (aiSummaryOnly && !isSummaryRedundant(finalAnalysis, aiSummaryOnly)) {
-            finalSummary = aiSummaryOnly;
-          }
-        } catch {}
-        if (!finalSummary || isSummaryRedundant(finalAnalysis, finalSummary)) {
+      console.log('🔄 Generating separate AI summary...');
+      try {
+        const aiSummaryOnly = await generateDistinctSummary(finalAnalysis);
+        if (aiSummaryOnly && !isSummaryRedundant(finalAnalysis, aiSummaryOnly)) {
+          finalSummary = aiSummaryOnly;
+          console.log('✅ Generated distinct AI summary');
+        } else {
+          console.log('⚠️ AI summary still redundant, using heuristic');
           finalSummary = deriveSummaryHeuristic(finalAnalysis);
         }
+      } catch (error) {
+        console.log('❌ AI summary generation failed, using heuristic');
+        finalSummary = deriveSummaryHeuristic(finalAnalysis);
       }
 
       // Fallback extraction for other fields only (avoid substring summary fallback)
@@ -232,13 +234,13 @@ function jaccardSimilarity(a: string, b: string): number {
   return unionCount === 0 ? 0 : intersectionCount / unionCount;
 }
 
-async function summarizeWithAI(analysis: string): Promise<string | null> {
+async function generateDistinctSummary(analysis: string): Promise<string | null> {
   try {
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
     const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
     if (!projectId || !credentialsBase64) return null;
-
+    
     const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
     const parsedCredentials = JSON.parse(credentialsJson);
     const { VertexAI } = await import('@google-cloud/vertexai');
@@ -248,12 +250,34 @@ async function summarizeWithAI(analysis: string): Promise<string | null> {
       googleAuthOptions: { credentials: { client_email: parsedCredentials.client_email, private_key: parsedCredentials.private_key } },
     });
     const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
-    const prompt = `Write a concise 3-5 sentence layperson summary of the following medical image analysis. No markdown, no lists, no repetition.\n\n${analysis}`;
+    
+    // STRICT instructions to create a completely different summary
+    const prompt = `You are a medical AI creating a patient-friendly summary. 
+
+CRITICAL REQUIREMENTS:
+- Write 3-4 sentences that are COMPLETELY DIFFERENT from the detailed analysis
+- Use different words, phrases, and sentence structure
+- Focus on the main conclusion and key takeaway
+- Write in simple, layperson language
+- Do NOT repeat any exact phrases from the analysis
+- Do NOT start with "Based on" or "The image shows"
+- Do NOT describe visual characteristics in detail
+
+Create a summary that answers: "What should the patient know about this finding?"
+
+Detailed analysis to summarize:
+${analysis}`;
+
     const result = await model.generateContent(prompt);
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = (text || '').replace(/[\*#`_~]/g, '').replace(/\s+/g, ' ').trim();
+    const cleaned = (text || '')
+      .replace(/[\*#`_~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
     return cleaned || null;
-  } catch {
+  } catch (error) {
+    console.error('Error generating distinct summary:', error);
     return null;
   }
 }

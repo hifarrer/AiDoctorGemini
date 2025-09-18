@@ -125,21 +125,21 @@ Analyze the following content:`;
     }
 
     // If JSON parse failed, fall back to parsing text
-    let summary: string = aiSummary || '';
-    if (!summary || isSummaryRedundant(aiAnalysis, summary)) {
-      const aiSum = await summarizeWithAI(aiAnalysis);
+    // ALWAYS generate a separate, distinct AI summary - never use analysis text
+    console.log('🔄 Generating separate AI summary for health report...');
+    let summary: string = '';
+    try {
+      const aiSum = await generateDistinctSummary(aiAnalysis);
       if (aiSum && !isSummaryRedundant(aiAnalysis, aiSum)) {
         summary = normalizeSummary(aiSum);
+        console.log('✅ Generated distinct AI summary for health report');
       } else {
-        const aiSum2 = await summarizeWithAI(aiAnalysis, true);
-        if (aiSum2 && !isSummaryRedundant(aiAnalysis, aiSum2)) {
-          summary = normalizeSummary(aiSum2);
-        } else {
-          summary = normalizeSummary(deriveSummaryHeuristic(aiAnalysis));
-        }
+        console.log('⚠️ AI summary still redundant, using heuristic');
+        summary = normalizeSummary(deriveSummaryHeuristic(aiAnalysis));
       }
-    } else {
-      summary = normalizeSummary(summary);
+    } catch (error) {
+      console.log('❌ AI summary generation failed, using heuristic');
+      summary = normalizeSummary(deriveSummaryHeuristic(aiAnalysis));
     }
     const keyFindings = aiKeyFindings ?? extractKeyFindings(aiAnalysis);
     const recommendations = aiRecommendations ?? extractRecommendations(aiAnalysis);
@@ -281,12 +281,13 @@ function isSummaryRedundant(analysis: string, summary: string): boolean {
   return containment || wordOverlap > 0.7 || endsAbruptly;
 }
 
-async function summarizeWithAI(analysis: string, strongerParaphrase: boolean = false): Promise<string | null> {
+async function generateDistinctSummary(analysis: string): Promise<string | null> {
   try {
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
     const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
     if (!projectId || !credentialsBase64) return null;
+    
     const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
     const parsedCredentials = JSON.parse(credentialsJson);
     const { VertexAI } = await import('@google-cloud/vertexai');
@@ -296,14 +297,34 @@ async function summarizeWithAI(analysis: string, strongerParaphrase: boolean = f
       googleAuthOptions: { credentials: { client_email: parsedCredentials.client_email, private_key: parsedCredentials.private_key } },
     });
     const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
-    const baseInstr = 'Write a concise 3-5 sentence layperson summary. No markdown, no lists.';
-    const extra = strongerParaphrase ? ' Avoid phrasing overlap with the source. Do not start with "Based on".' : '';
-    const prompt = `${baseInstr}${extra}\n\nSource content:\n${analysis}`;
+    
+    // STRICT instructions to create a completely different summary
+    const prompt = `You are a medical AI creating a patient-friendly summary. 
+
+CRITICAL REQUIREMENTS:
+- Write 3-4 sentences that are COMPLETELY DIFFERENT from the detailed analysis
+- Use different words, phrases, and sentence structure
+- Focus on the main conclusion and key takeaway
+- Write in simple, layperson language
+- Do NOT repeat any exact phrases from the analysis
+- Do NOT start with "Based on" or "The image shows"
+- Do NOT describe visual characteristics in detail
+
+Create a summary that answers: "What should the patient know about this finding?"
+
+Detailed analysis to summarize:
+${analysis}`;
+
     const result = await model.generateContent(prompt);
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = (text || '').replace(/[\*#`_~]/g, '').replace(/\s+/g, ' ').trim();
+    const cleaned = (text || '')
+      .replace(/[\*#`_~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
     return cleaned || null;
-  } catch {
+  } catch (error) {
+    console.error('Error generating distinct summary:', error);
     return null;
   }
 }

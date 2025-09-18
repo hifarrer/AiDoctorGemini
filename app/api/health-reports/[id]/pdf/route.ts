@@ -6,6 +6,12 @@ import { authOptions } from '@/lib/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { PDFDocument, rgb, PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+// Typed global cache for font bytes to avoid re-reading on every request
+declare global {
+  // eslint-disable-next-line no-var
+  var __fontBytesCache: Record<string, Uint8Array> | undefined;
+}
+
 
 export async function GET(
   request: NextRequest,
@@ -47,12 +53,8 @@ export async function GET(
     pdfDoc.registerFontkit(fontkit);
 
     // Cache font bytes in module scope between requests
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    if (!global.__fontBytesCache) global.__fontBytesCache = {} as Record<string, Uint8Array>;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const fontCache: Record<string, Uint8Array> = global.__fontBytesCache;
+    if (!globalThis.__fontBytesCache) globalThis.__fontBytesCache = {} as Record<string, Uint8Array>;
+    const fontCache: Record<string, Uint8Array> = globalThis.__fontBytesCache;
 
     const publicDir = path.join(process.cwd(), 'public', 'fonts');
     const files = {

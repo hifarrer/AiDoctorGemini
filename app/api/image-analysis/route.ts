@@ -219,6 +219,25 @@ PATIENT SUMMARY:`;
 
 // NEW FUNCTIONS FOR TWO-STEP ANALYSIS
 
+// Helper function to detect the primary language of text
+function detectLanguage(text: string): string {
+  // Count characters from different language families
+  const cyrillicCount = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const chineseCount = (text.match(/[\u4E00-\u9FFF]/g) || []).length;
+  const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const spanishCount = (text.match(/[ñáéíóúü]/gi) || []).length;
+  
+  // If more than 20% of characters are from a specific language family, use that language
+  const totalChars = text.length;
+  if (cyrillicCount > totalChars * 0.2) return 'Russian';
+  if (chineseCount > totalChars * 0.2) return 'Chinese';
+  if (arabicCount > totalChars * 0.2) return 'Arabic';
+  if (spanishCount > totalChars * 0.1) return 'Spanish';
+  
+  // Default to English
+  return 'English';
+}
+
 async function generateDetailedAnalysis(imageData: string, imageMimeType: string): Promise<string> {
   try {
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
@@ -292,6 +311,9 @@ async function generateSeparateSummary(detailedAnalysis: string): Promise<{
   recommendations: string[];
   riskLevel: string;
 }> {
+  // Detect the language of the detailed analysis
+  const detectedLanguage = detectLanguage(detailedAnalysis);
+  console.log(`🌍 Detected language: ${detectedLanguage}`);
   try {
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
@@ -322,18 +344,20 @@ async function generateSeparateSummary(detailedAnalysis: string): Promise<{
 
 CRITICAL: Your response must be COMPLETELY DIFFERENT from the detailed analysis. Do not copy or paraphrase the analysis text.
 
+LANGUAGE REQUIREMENT: Respond ONLY in ${detectedLanguage}. Do not provide translations in other languages.
+
 REQUIREMENTS:
 - Create a SHORT summary (3-4 sentences) that tells the patient what they need to know
 - Use simple, non-medical language
 - Focus on conclusions and next steps, NOT detailed descriptions
 - Remove all markdown symbols (no **, ###, *, etc.)
-- Support multiple languages (English, Spanish, Russian, Chinese)
+- Respond ONLY in ${detectedLanguage} - do not include English translations or other languages
 - Return as JSON with this exact structure:
 
 {
-  "summary": "Patient-friendly summary in simple language",
-  "keyFindings": ["Finding 1", "Finding 2", "Finding 3"],
-  "recommendations": ["Recommendation 1", "Recommendation 2"],
+  "summary": "Patient-friendly summary in ${detectedLanguage} only",
+  "keyFindings": ["Finding 1 in ${detectedLanguage}", "Finding 2 in ${detectedLanguage}", "Finding 3 in ${detectedLanguage}"],
+  "recommendations": ["Recommendation 1 in ${detectedLanguage}", "Recommendation 2 in ${detectedLanguage}"],
   "riskLevel": "low|normal|moderate|high|critical"
 }
 

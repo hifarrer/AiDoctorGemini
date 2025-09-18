@@ -246,6 +246,26 @@ function extractRiskLevel(analysis: string): string {
 }
 
 // --- Helpers to ensure distinct, paraphrased summaries ---
+
+// Helper function to detect the primary language of text
+function detectLanguage(text: string): string {
+  // Count characters from different language families
+  const cyrillicCount = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const chineseCount = (text.match(/[\u4E00-\u9FFF]/g) || []).length;
+  const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const spanishCount = (text.match(/[ñáéíóúü]/gi) || []).length;
+  
+  // If more than 20% of characters are from a specific language family, use that language
+  const totalChars = text.length;
+  if (cyrillicCount > totalChars * 0.2) return 'Russian';
+  if (chineseCount > totalChars * 0.2) return 'Chinese';
+  if (arabicCount > totalChars * 0.2) return 'Arabic';
+  if (spanishCount > totalChars * 0.1) return 'Spanish';
+  
+  // Default to English
+  return 'English';
+}
+
 function normalizeSummary(text: string): string {
   const t = (text || '')
     .replace(/[\*#`_~]/g, '')
@@ -283,6 +303,10 @@ function isSummaryRedundant(analysis: string, summary: string): boolean {
 
 async function generateDistinctSummary(analysis: string): Promise<string | null> {
   try {
+    // Detect the language of the analysis
+    const detectedLanguage = detectLanguage(analysis);
+    console.log(`🌍 Detected language for summary: ${detectedLanguage}`);
+    
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
     const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
@@ -301,6 +325,8 @@ async function generateDistinctSummary(analysis: string): Promise<string | null>
     // STRICT instructions to create a completely different summary
     const prompt = `You are a medical AI creating a patient-friendly summary. 
 
+LANGUAGE REQUIREMENT: Respond ONLY in ${detectedLanguage}. Do not provide translations in other languages.
+
 CRITICAL REQUIREMENTS:
 - Write 3-4 sentences that are COMPLETELY DIFFERENT from the detailed analysis
 - Use different words, phrases, and sentence structure
@@ -309,6 +335,7 @@ CRITICAL REQUIREMENTS:
 - Do NOT repeat any exact phrases from the analysis
 - Do NOT start with "Based on" or "The image shows"
 - Do NOT describe visual characteristics in detail
+- Respond ONLY in ${detectedLanguage} - do not include English translations or other languages
 
 Create a summary that answers: "What should the patient know about this finding?"
 

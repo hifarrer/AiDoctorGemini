@@ -27,111 +27,33 @@ export async function POST(request: NextRequest) {
       imageData, 
       imageFilename, 
       imageMimeType,
-      aiAnalysis,
-      aiSummary,
-      keyFindings,
-      recommendations,
-      riskLevel
+      aiAnalysis
     } = body;
 
-    // Ensure we have a true AI-generated summary/structure
-    let finalSummary: string | null = typeof aiSummary === 'string' ? aiSummary : null;
-    let finalAnalysis: string | null = typeof aiAnalysis === 'string' ? aiAnalysis : null;
-    let finalFindings: string[] | null = Array.isArray(keyFindings) ? keyFindings : null;
-    let finalRecs: string[] | null = Array.isArray(recommendations) ? recommendations : null;
-    let finalRisk: string | null = typeof riskLevel === 'string' ? riskLevel : null;
-
-    // If the summary is missing/weak or clearly a trimmed copy of the analysis, ask the AI to return JSON with both
-    const isRedundant = finalAnalysis && finalSummary && isSummaryRedundant(finalAnalysis, finalSummary);
-    console.log('🔍 Summary redundancy check:', {
-      hasSummary: !!finalSummary,
-      summaryLength: finalSummary?.length || 0,
-      isRedundant,
-      summaryPreview: finalSummary?.substring(0, 100) + '...',
-      analysisPreview: finalAnalysis?.substring(0, 100) + '...'
-    });
+    // STEP 1: Get detailed analysis from AI (if not provided)
+    console.log('🔍 Starting two-step image analysis process...');
+    let detailedAnalysis: string;
     
-    if (!finalSummary || (finalSummary && (finalSummary.length < 60 || isRedundant))) {
-      try {
-        // Validate environment variables for Vertex
-        const projectId = process.env.GOOGLE_VERTEX_PROJECT;
-        const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
-        const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-
-        if (!projectId || !credentialsBase64) {
-          throw new Error('AI configuration missing');
-        }
-
-        const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
-        const parsedCredentials = JSON.parse(credentialsJson);
-
-        const { VertexAI } = await import('@google-cloud/vertexai');
-        const vertexAI = new VertexAI({
-          project: projectId,
-          location,
-          googleAuthOptions: {
-            credentials: {
-              client_email: parsedCredentials.client_email,
-              private_key: parsedCredentials.private_key,
-            },
-          },
-        });
-
-        const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
-
-        const systemPrompt = `You are a medical AI analyzing an image analysis report. Return a concise patient-friendly summary AND a detailed analysis.
-Respond STRICTLY as compact JSON with this exact schema (no markdown, no explanations, no code fences):
-{"summary": string, "analysis": string, "keyFindings": string[], "recommendations": string[], "riskLevel": "low"|"normal"|"moderate"|"high"|"critical"}
-Rules:\n- summary: 3-6 sentences, layperson language, no markdown\n- analysis: full detailed analysis; paragraphs allowed, no markdown\n- keyFindings: 3-10 short bullet items\n- recommendations: 2-8 actionable items\n- riskLevel: one of: low, normal, moderate, high, critical\n`;
-
-        const contentForAI = (finalAnalysis || '').trim();
-        if (contentForAI.length > 0) {
-          const prompt = `${systemPrompt}\n\nAnalyze this content derived from the image: \n${contentForAI}`;
-          const result = await model.generateContent(prompt);
-          const raw = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const jsonText = extractJSON(raw);
-          if (jsonText) {
-            try {
-              const parsed = JSON.parse(jsonText);
-              finalSummary = typeof parsed.summary === 'string' ? parsed.summary.trim() : finalSummary;
-              finalAnalysis = typeof parsed.analysis === 'string' ? parsed.analysis.trim() : finalAnalysis;
-              finalFindings = Array.isArray(parsed.keyFindings) ? parsed.keyFindings.map((x: any) => String(x)).filter(Boolean) : finalFindings;
-              finalRecs = Array.isArray(parsed.recommendations) ? parsed.recommendations.map((x: any) => String(x)).filter(Boolean) : finalRecs;
-              finalRisk = typeof parsed.riskLevel === 'string' ? parsed.riskLevel.toLowerCase() : finalRisk;
-            } catch (e) {
-              // Fallback parsing below
-            }
-          }
-        }
-      } catch (e) {
-        // If AI call fails, continue with fallback extraction below
-      }
+    if (aiAnalysis && typeof aiAnalysis === 'string' && aiAnalysis.trim().length > 50) {
+      detailedAnalysis = aiAnalysis.trim();
+      console.log('✅ Using provided detailed analysis');
+    } else {
+      console.log('🔄 Step 1: Generating detailed analysis...');
+      detailedAnalysis = await generateDetailedAnalysis(imageData, imageMimeType);
+      console.log('✅ Step 1 complete: Generated detailed analysis');
     }
 
-    // FORCE generate completely different summary - IGNORE any existing summary
-    if (finalAnalysis) {
-      console.log('🔄 FORCING separate AI summary generation...');
-      finalSummary = null; // Reset any existing summary
-      
-      try {
-        const forcedSummary = await forceDistinctSummary(finalAnalysis);
-        if (forcedSummary && forcedSummary.length > 30) {
-          finalSummary = forcedSummary;
-          console.log('✅ FORCED distinct AI summary generated:', finalSummary.substring(0, 100));
-        } else {
-          console.log('❌ Forced summary failed, using manual construction');
-          finalSummary = createManualSummary(finalAnalysis);
-        }
-      } catch (error) {
-        console.log('❌ AI summary generation failed completely, using manual construction');
-        finalSummary = createManualSummary(finalAnalysis);
-      }
+    // STEP 2: Generate separate summary from the detailed analysis
+    console.log('🔄 Step 2: Generating separate summary...');
+    const summaryResult = await generateSeparateSummary(detailedAnalysis);
+    console.log('✅ Step 2 complete: Generated separate summary');
 
-      // Fallback extraction for other fields only
-      if (!finalFindings) finalFindings = extractKeyFindings(finalAnalysis);
-      if (!finalRecs) finalRecs = extractRecommendations(finalAnalysis);
-      if (!finalRisk) finalRisk = extractRiskLevel(finalAnalysis);
-    }
+    // Clean and format all content for PDF (remove markdown, support multi-language)
+    const finalAnalysis = cleanTextForPDF(detailedAnalysis);
+    const finalSummary = cleanTextForPDF(summaryResult.summary);
+    const finalFindings = summaryResult.keyFindings.map(f => cleanTextForPDF(f));
+    const finalRecs = summaryResult.recommendations.map(r => cleanTextForPDF(r));
+    const finalRisk = summaryResult.riskLevel || 'normal';
 
     // Create a health report entry for the image analysis
     const { data: healthReport, error } = await supabase
@@ -141,15 +63,15 @@ Rules:\n- summary: 3-6 sentences, layperson language, no markdown\n- analysis: f
         title: title || `Image Analysis - ${imageFilename}`,
         report_type: 'image_analysis',
         original_filename: imageFilename,
-        file_content: finalAnalysis || aiAnalysis, // Store the full AI analysis
-        file_size: imageData ? Math.round(imageData.length * 0.75) : 0, // Approximate size
+        file_content: finalAnalysis,
+        file_size: imageData ? Math.round(imageData.length * 0.75) : 0,
         mime_type: imageMimeType,
-        ai_analysis: finalAnalysis || aiAnalysis,
-        ai_summary: finalSummary || aiSummary,
-        key_findings: finalFindings || keyFindings,
-        recommendations: finalRecs || recommendations,
-        risk_level: (finalRisk || riskLevel || 'normal'),
-        image_data: imageData, // Store the base64 image data
+        ai_analysis: finalAnalysis,
+        ai_summary: finalSummary,
+        key_findings: finalFindings,
+        recommendations: finalRecs,
+        risk_level: finalRisk,
+        image_data: imageData,
         image_filename: imageFilename,
         image_mime_type: imageMimeType,
         analysis_type: 'image'
@@ -295,30 +217,200 @@ PATIENT SUMMARY:`;
   }
 }
 
-function createManualSummary(analysis: string): string {
-  // Extract key medical terms and create a completely different summary
+// NEW FUNCTIONS FOR TWO-STEP ANALYSIS
+
+async function generateDetailedAnalysis(imageData: string, imageMimeType: string): Promise<string> {
+  try {
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+    
+    if (!projectId || !credentialsBase64) {
+      throw new Error('AI configuration missing');
+    }
+
+    const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
+    const parsedCredentials = JSON.parse(credentialsJson);
+
+    const { VertexAI } = await import('@google-cloud/vertexai');
+    const vertexAI = new VertexAI({
+      project: projectId,
+      location,
+      googleAuthOptions: {
+        credentials: {
+          client_email: parsedCredentials.client_email,
+          private_key: parsedCredentials.private_key,
+        },
+      },
+    });
+
+    const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+    const prompt = `You are a medical AI analyzing a skin lesion image. Provide a comprehensive, detailed medical analysis.
+
+REQUIREMENTS:
+- Write in clear medical language
+- Include all visual observations
+- Discuss possible diagnoses
+- Note any concerning features
+- Provide detailed assessment
+- Use plain text only (no markdown symbols like ** or ### or *)
+- Support multiple languages if needed
+
+Analyze this skin lesion image thoroughly:`;
+
+    const result = await model.generateContent({
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              data: imageData.replace(/^data:image\/[a-z]+;base64,/, ''),
+              mimeType: imageMimeType
+            }
+          }
+        ]
+      }]
+    });
+    const analysis = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (!analysis || analysis.length < 100) {
+      throw new Error('Generated analysis too short');
+    }
+
+    return analysis.trim();
+  } catch (error) {
+    console.error('Error generating detailed analysis:', error);
+    throw new Error('Failed to generate detailed analysis');
+  }
+}
+
+async function generateSeparateSummary(detailedAnalysis: string): Promise<{
+  summary: string;
+  keyFindings: string[];
+  recommendations: string[];
+  riskLevel: string;
+}> {
+  try {
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+    
+    if (!projectId || !credentialsBase64) {
+      throw new Error('AI configuration missing');
+    }
+
+    const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
+    const parsedCredentials = JSON.parse(credentialsJson);
+
+    const { VertexAI } = await import('@google-cloud/vertexai');
+    const vertexAI = new VertexAI({
+      project: projectId,
+      location,
+      googleAuthOptions: {
+        credentials: {
+          client_email: parsedCredentials.client_email,
+          private_key: parsedCredentials.private_key,
+        },
+      },
+    });
+
+    const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+    const prompt = `You are creating a patient-friendly summary from a detailed medical analysis. 
+
+CRITICAL: Your response must be COMPLETELY DIFFERENT from the detailed analysis. Do not copy or paraphrase the analysis text.
+
+REQUIREMENTS:
+- Create a SHORT summary (3-4 sentences) that tells the patient what they need to know
+- Use simple, non-medical language
+- Focus on conclusions and next steps, NOT detailed descriptions
+- Remove all markdown symbols (no **, ###, *, etc.)
+- Support multiple languages (English, Spanish, Russian, Chinese)
+- Return as JSON with this exact structure:
+
+{
+  "summary": "Patient-friendly summary in simple language",
+  "keyFindings": ["Finding 1", "Finding 2", "Finding 3"],
+  "recommendations": ["Recommendation 1", "Recommendation 2"],
+  "riskLevel": "low|normal|moderate|high|critical"
+}
+
+Detailed medical analysis to summarize:
+${detailedAnalysis}
+
+JSON Response:`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    // Extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in AI response');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    return {
+      summary: parsed.summary || 'Summary not available',
+      keyFindings: Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [],
+      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+      riskLevel: parsed.riskLevel || 'normal'
+    };
+  } catch (error) {
+    console.error('Error generating separate summary:', error);
+    // Fallback manual summary
+    return createFallbackSummary(detailedAnalysis);
+  }
+}
+
+function cleanTextForPDF(text: string): string {
+  if (!text) return '';
+  
+  return text
+    // Remove markdown formatting
+    .replace(/\*\*([^*]+)\*\*/g, '$1')  // Bold
+    .replace(/\*([^*]+)\*/g, '$1')      // Italic
+    .replace(/#{1,6}\s+/g, '')          // Headers
+    .replace(/```[\s\S]*?```/g, '')     // Code blocks
+    .replace(/`([^`]+)`/g, '$1')        // Inline code
+    .replace(/^\s*[-*+]\s+/gm, '• ')    // Bullet points
+    .replace(/^\s*\d+\.\s+/gm, '')      // Numbered lists
+    // Clean up whitespace
+    .replace(/\n\s*\n/g, '\n')          // Multiple newlines
+    .replace(/\s+/g, ' ')               // Multiple spaces
+    .trim();
+}
+
+function createFallbackSummary(analysis: string): {
+  summary: string;
+  keyFindings: string[];
+  recommendations: string[];
+  riskLevel: string;
+} {
   const text = analysis.toLowerCase();
   
-  let condition = "skin growth";
-  let concern = "routine monitoring";
-  let action = "discuss with your doctor";
+  let summary = "This appears to be a skin growth that should be evaluated by a healthcare professional. ";
+  let riskLevel = "normal";
   
-  // Determine likely condition
-  if (text.includes("melanoma") || text.includes("malignant")) {
-    condition = "concerning skin mark";
-    concern = "immediate medical attention";
-    action = "see a dermatologist urgently";
-  } else if (text.includes("seborrheic keratosis") || text.includes("benign")) {
-    condition = "benign skin growth";
-    concern = "routine monitoring";
-    action = "monitor for changes";
-  } else if (text.includes("nevus") || text.includes("mole")) {
-    condition = "mole";
-    concern = "routine monitoring";
-    action = "check regularly for changes";
+  if (text.includes("melanoma") || text.includes("malignant") || text.includes("suspicious")) {
+    summary = "This skin lesion shows features that require immediate medical evaluation. ";
+    riskLevel = "high";
+  } else if (text.includes("benign") || text.includes("seborrheic keratosis")) {
+    summary = "This appears to be a benign skin growth that typically does not require treatment. ";
+    riskLevel = "low";
   }
   
-  return `This appears to be a ${condition} that requires ${concern}. You should ${action} to determine if any treatment is needed. Regular skin checks are recommended to monitor for any changes.`;
+  summary += "A dermatologist can provide a definitive diagnosis and recommend appropriate care.";
+  
+  return {
+    summary,
+    keyFindings: ["Skin lesion identified", "Professional evaluation recommended"],
+    recommendations: ["Consult with dermatologist", "Monitor for changes"],
+    riskLevel
+  };
 }
 
 function deriveSummaryHeuristic(analysis: string): string {

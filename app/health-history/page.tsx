@@ -32,6 +32,7 @@ export default function HealthHistoryPage() {
   const [filterType, setFilterType] = useState('all');
   const [filterRisk, setFilterRisk] = useState('all');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -103,6 +104,32 @@ export default function HealthHistoryPage() {
       toast.error('Error downloading PDF', { id: toastId });
     } finally {
       setDownloadingId(null);
+      toast.dismiss(toastId);
+    }
+  };
+
+  const deleteReport = async (reportId: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    const toastId = toast.loading('Deleting report...');
+    setDeletingId(reportId);
+    try {
+      const response = await fetch(`/api/health-reports/${reportId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setHealthReports(prev => prev.filter(report => report.id !== reportId));
+        toast.success('Report deleted successfully', { id: toastId });
+      } else {
+        toast.error('Failed to delete report', { id: toastId });
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast.error('Error deleting report', { id: toastId });
+    } finally {
+      setDeletingId(null);
       toast.dismiss(toastId);
     }
   };
@@ -245,7 +272,7 @@ export default function HealthHistoryPage() {
                         Original file: {report.original_filename}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        Uploaded: {new Date(report.created_at).toLocaleDateString()}
+                        Uploaded: {new Date(report.created_at).toLocaleDateString()} at {new Date(report.created_at).toLocaleTimeString()}
                       </p>
                       <p className="text-gray-700 dark:text-gray-300 text-sm line-clamp-2">
                         {report.ai_summary}
@@ -298,6 +325,27 @@ export default function HealthHistoryPage() {
                           Ask Questions
                         </Button>
                       </Link>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteReport(report.id, report.title)}
+                        className="w-full flex items-center justify-center"
+                        disabled={deletingId === report.id}
+                      >
+                        {deletingId === report.id ? (
+                          <>
+                            <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>

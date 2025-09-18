@@ -108,9 +108,22 @@ Rules:\n- summary: 3-6 sentences, layperson language, no markdown\n- analysis: f
       }
     }
 
-    // Fallback extraction from analysis text if any fields still missing
+    // If summary is still missing or redundant, try an AI-only concise summary, then a heuristic summarizer
     if (finalAnalysis) {
-      if (!finalSummary) finalSummary = extractSummary(finalAnalysis);
+      const needsBetterSummary = !finalSummary || (finalSummary && isSummaryRedundant(finalAnalysis, finalSummary));
+      if (needsBetterSummary) {
+        try {
+          const aiSummaryOnly = await summarizeWithAI(finalAnalysis);
+          if (aiSummaryOnly && !isSummaryRedundant(finalAnalysis, aiSummaryOnly)) {
+            finalSummary = aiSummaryOnly;
+          }
+        } catch {}
+        if (!finalSummary || isSummaryRedundant(finalAnalysis, finalSummary)) {
+          finalSummary = deriveSummaryHeuristic(finalAnalysis);
+        }
+      }
+
+      // Fallback extraction for other fields only (avoid substring summary fallback)
       if (!finalFindings) finalFindings = extractKeyFindings(finalAnalysis);
       if (!finalRecs) finalRecs = extractRecommendations(finalAnalysis);
       if (!finalRisk) finalRisk = extractRiskLevel(finalAnalysis);
@@ -217,6 +230,63 @@ function jaccardSimilarity(a: string, b: string): number {
   const intersectionCount = arrA.filter(x => arrB.indexOf(x) !== -1).length;
   const unionCount = Array.from(new Set(arrA.concat(arrB))).length;
   return unionCount === 0 ? 0 : intersectionCount / unionCount;
+}
+
+async function summarizeWithAI(analysis: string): Promise<string | null> {
+  try {
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+    if (!projectId || !credentialsBase64) return null;
+
+    const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
+    const parsedCredentials = JSON.parse(credentialsJson);
+    const { VertexAI } = await import('@google-cloud/vertexai');
+    const vertexAI = new VertexAI({
+      project: projectId,
+      location,
+      googleAuthOptions: { credentials: { client_email: parsedCredentials.client_email, private_key: parsedCredentials.private_key } },
+    });
+    const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const prompt = `Write a concise 3-5 sentence layperson summary of the following medical image analysis. No markdown, no lists, no repetition.\n\n${analysis}`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const cleaned = (text || '').replace(/[\*#`_~]/g, '').replace(/\s+/g, ' ').trim();
+    return cleaned || null;
+  } catch {
+    return null;
+  }
+}
+
+function deriveSummaryHeuristic(analysis: string): string {
+  const text = (analysis || '').replace(/[\*#`_~]/g, '').replace(/\s+/g, ' ').trim();
+  if (!text) return 'Summary not available';
+  // Split into sentences and pick 3-5 representative ones, avoiding the first 1:1 copy block
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 25 && s.length < 300);
+  if (sentences.length === 0) return text.slice(0, 300) + (text.length > 300 ? '...' : '');
+  // Prefer sentences that contain summary-like cues and avoid list-like fragments
+  const ranked = sentences
+    .map((s, i) => ({ s, i, score: scoreSentenceForSummary(s, i) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .sort((a, b) => a.i - b.i)
+    .map(x => x.s);
+  const summary = ranked.join(' ');
+  return summary.length > 200 ? summary : (text.slice(0, 400) + (text.length > 400 ? '...' : ''));
+}
+
+function scoreSentenceForSummary(s: string, index: number): number {
+  let score = 0;
+  const lower = s.toLowerCase();
+  if (index < 5) score += 1; // early sentences are often context
+  if (/[a-z]/i.test(s)) score += 1; // avoid weird tokens
+  if (!/[\:\;\-•\*]/.test(s)) score += 1; // avoid list-like
+  if (/(overall|in summary|suggests|likely|appears|consistent with|recommend|follow up|monitor)/.test(lower)) score += 2;
+  if (s.length >= 60 && s.length <= 220) score += 1; // good length
+  return score;
 }
 
 function extractSummary(analysis: string): string {

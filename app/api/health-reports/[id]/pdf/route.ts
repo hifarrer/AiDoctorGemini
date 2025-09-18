@@ -101,11 +101,23 @@ export async function GET(
       cjkBold: path.join(publicDir, 'NotoSansCJKsc-Bold.otf')
     } as const;
 
+    console.log('🔤 Font files to load:', {
+      noto: files.noto,
+      notoBold: files.notoBold,
+      cjk: files.cjk,
+      cjkBold: files.cjkBold
+    });
+
     const readFont = async (key: keyof typeof files): Promise<Uint8Array> => {
-      if (fontCache[key]) return fontCache[key];
+      if (fontCache[key]) {
+        console.log(`✅ Using cached font: ${key}`);
+        return fontCache[key];
+      }
       try {
+        console.log(`🔤 Loading local font: ${key} from ${files[key]}`);
         const bytes = await fs.readFile(files[key]);
         fontCache[key] = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        console.log(`✅ Successfully loaded local font: ${key} (${bytes.length} bytes)`);
         return fontCache[key];
       } catch (e) {
         // Fallback to remote fetch only if local files are missing
@@ -115,11 +127,13 @@ export async function GET(
           cjk: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
           cjkBold: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf'
         };
+        console.log(`⚠️ Local font ${key} not found, fetching from remote:`, remoteMap[key]);
         const url = remoteMap[key];
         const res = await fetch(url);
         const buf = await res.arrayBuffer();
         const bytes = new Uint8Array(buf);
         fontCache[key] = bytes;
+        console.log(`✅ Successfully loaded remote font: ${key} (${bytes.length} bytes)`);
         return bytes;
       }
     };
@@ -131,19 +145,41 @@ export async function GET(
       readFont('cjkBold')
     ]);
 
+    console.log('🔤 Loading fonts for PDF generation...');
     const unicodeFont: PDFFont = await pdfDoc.embedFont(notoSansBytes, { subset: false });
     const unicodeBoldFont: PDFFont = await pdfDoc.embedFont(notoSansBoldBytes, { subset: false });
     const cjkFont: PDFFont = await pdfDoc.embedFont(cjkBytes, { subset: false });
     const cjkBoldFont: PDFFont = await pdfDoc.embedFont(cjkBoldBytes, { subset: false });
+    console.log('✅ All fonts loaded successfully');
 
     // Base Latin/Cyrillic fonts; we will dynamically switch to CJK when needed
     let font: PDFFont = unicodeFont;
     let boldFont: PDFFont = unicodeBoldFont;
 
-    // Avoid the 'u' flag for environments targeting < ES6
+    // Enhanced Unicode detection for better multi-language support
     const containsCJK = (text: string): boolean => /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text);
-    const getFontFor = (text: string, isBold: boolean): PDFFont =>
-      containsCJK(text) ? (isBold ? cjkBoldFont : cjkFont) : (isBold ? boldFont : font);
+    const containsCyrillic = (text: string): boolean => /[\u0400-\u04FF]/.test(text);
+    const containsArabic = (text: string): boolean => /[\u0600-\u06FF]/.test(text);
+    
+    const getFontFor = (text: string, isBold: boolean): PDFFont => {
+      // CJK characters (Chinese, Japanese, Korean)
+      if (containsCJK(text)) {
+        console.log('🔤 Using CJK font for text:', text.substring(0, 50));
+        return isBold ? cjkBoldFont : cjkFont;
+      }
+      // Cyrillic characters (Russian, etc.) - use Noto Sans which supports Cyrillic
+      if (containsCyrillic(text)) {
+        console.log('🔤 Using Noto Sans for Cyrillic text:', text.substring(0, 50));
+        return isBold ? unicodeBoldFont : unicodeFont;
+      }
+      // Arabic characters
+      if (containsArabic(text)) {
+        console.log('🔤 Using Noto Sans for Arabic text:', text.substring(0, 50));
+        return isBold ? unicodeBoldFont : unicodeFont;
+      }
+      // Default to Noto Sans for Latin and other scripts
+      return isBold ? unicodeBoldFont : unicodeFont;
+    };
 
     const { width, height } = page.getSize();
     let yPosition = height - 50;
@@ -218,7 +254,8 @@ export async function GET(
 
     // Helper function to add text with word wrapping and page breaks
     const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12, isBold: boolean = false, isAIContent: boolean = false) => {
-      const fontToUse = isBold ? boldFont : font;
+      // Use dynamic font selection based on text content
+      const fontToUse = getFontFor(text, isBold);
       
       console.log('📊 Processing text for PDF:');
       console.log('Step 0 - Original:', text.substring(0, 100) + '...');

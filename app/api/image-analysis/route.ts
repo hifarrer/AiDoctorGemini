@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     let finalRecs: string[] | null = Array.isArray(recommendations) ? recommendations : null;
     let finalRisk: string | null = typeof riskLevel === 'string' ? riskLevel : null;
 
-    // If the summary is missing/weak, ask the AI to return JSON with both summary and analysis
-    if (!finalSummary || (finalSummary && finalSummary.length < 60)) {
+    // If the summary is missing/weak or clearly a trimmed copy of the analysis, ask the AI to return JSON with both
+    if (!finalSummary || (finalSummary && (finalSummary.length < 60 || (finalAnalysis && isSummaryRedundant(finalAnalysis, finalSummary))))) {
       try {
         // Validate environment variables for Vertex
         const projectId = process.env.GOOGLE_VERTEX_PROJECT;
@@ -165,6 +165,33 @@ function extractJSON(input: string): string | null {
   const end = cleaned.lastIndexOf('}');
   if (start !== -1 && end !== -1 && end > start) return cleaned.slice(start, end + 1);
   return null;
+}
+
+function isSummaryRedundant(analysis: string, summary: string): boolean {
+  if (!analysis || !summary) return false;
+  const a = sanitize(analysis).slice(0, 600);
+  const s = sanitize(summary);
+  if (s.length < 40) return true;
+  // If summary is mostly contained at the start of analysis or has high overlap, treat as redundant
+  const containment = a.includes(s);
+  const overlap = jaccardSimilarity(a, s) > 0.6; // 60% token overlap threshold
+  return containment || overlap;
+}
+
+function sanitize(text: string): string {
+  return (text || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[\*#`_~]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function jaccardSimilarity(a: string, b: string): number {
+  const arrA = Array.from(new Set(a.split(' ').filter(Boolean)));
+  const arrB = Array.from(new Set(b.split(' ').filter(Boolean)));
+  const intersectionCount = arrA.filter(x => arrB.indexOf(x) !== -1).length;
+  const unionCount = Array.from(new Set(arrA.concat(arrB))).length;
+  return unionCount === 0 ? 0 : intersectionCount / unionCount;
 }
 
 function extractSummary(analysis: string): string {

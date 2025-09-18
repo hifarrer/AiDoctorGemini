@@ -45,6 +45,43 @@ export async function GET(
       return NextResponse.json({ error: 'Health report not found' }, { status: 404 });
     }
 
+    // DEBUG: Check what data we're working with
+    console.log('🔍 PDF Generation Debug Info:');
+    console.log('Report ID:', params.id);
+    console.log('Analysis Type:', healthReport.analysis_type);
+    console.log('Summary Length:', healthReport.ai_summary?.length || 0);
+    console.log('Analysis Length:', healthReport.ai_analysis?.length || 0);
+    console.log('Summary Preview:', healthReport.ai_summary?.substring(0, 100) + '...');
+    console.log('Analysis Preview:', healthReport.ai_analysis?.substring(0, 100) + '...');
+
+    // Check if summary is still duplicate of analysis
+    const isDuplicate = checkIfSummaryIsDuplicate(healthReport.ai_summary, healthReport.ai_analysis);
+    console.log('🔍 Is Summary Duplicate?', isDuplicate);
+
+    let finalSummary = healthReport.ai_summary;
+    let finalAnalysis = healthReport.ai_analysis;
+
+    // If it's an image analysis with duplicate summary, regenerate it
+    if (isDuplicate && healthReport.analysis_type === 'image' && healthReport.ai_analysis) {
+      console.log('🔄 Regenerating summary for duplicate content...');
+      try {
+        const newSummary = await regenerateSummary(healthReport.ai_analysis);
+        if (newSummary && !checkIfSummaryIsDuplicate(newSummary, healthReport.ai_analysis)) {
+          finalSummary = newSummary;
+          console.log('✅ Generated new summary:', newSummary.substring(0, 100) + '...');
+          
+          // Update the database with the new summary
+          await supabase
+            .from('health_reports')
+            .update({ ai_summary: newSummary })
+            .eq('id', params.id);
+          console.log('✅ Updated database with new summary');
+        }
+      } catch (error) {
+        console.log('❌ Failed to regenerate summary:', error);
+      }
+    }
+
     // Create PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
@@ -310,10 +347,10 @@ export async function GET(
     yPosition -= 20;
 
     // Summary
-    if (healthReport.ai_summary) {
+    if (finalSummary) {
       yPosition = addText('SUMMARY', 50, yPosition, width - 100, 16, true);
       yPosition -= 10;
-      yPosition = addText(healthReport.ai_summary, 50, yPosition, width - 100, 12, false, true);
+      yPosition = addText(finalSummary, 50, yPosition, width - 100, 12, false, true);
       yPosition -= 20;
     }
 
@@ -344,11 +381,11 @@ export async function GET(
     }
 
     // Full Analysis
-    if (healthReport.ai_analysis) {
-      console.log('📄 Adding detailed analysis to PDF, length:', healthReport.ai_analysis.length);
+    if (finalAnalysis) {
+      console.log('📄 Adding detailed analysis to PDF, length:', finalAnalysis.length);
       yPosition = addText('DETAILED ANALYSIS', 50, yPosition, width - 100, 16, true);
       yPosition -= 10;
-      yPosition = addText(healthReport.ai_analysis, 50, yPosition, width - 100, 11, false, true);
+      yPosition = addText(finalAnalysis, 50, yPosition, width - 100, 11, false, true);
       console.log('📄 Detailed analysis added, final yPosition:', yPosition);
     }
 
@@ -386,5 +423,87 @@ export async function GET(
   } catch (error) {
     console.error('Error generating PDF:', error);
     return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
+  }
+}
+
+// Helper functions for duplicate detection and summary regeneration
+function checkIfSummaryIsDuplicate(summary: string | null, analysis: string | null): boolean {
+  if (!summary || !analysis) return false;
+  
+  const cleanSummary = summary.replace(/\s+/g, ' ').trim().toLowerCase();
+  const cleanAnalysis = analysis.replace(/\s+/g, ' ').trim().toLowerCase();
+  
+  // Check if summary is just a truncated version of analysis
+  const summaryWords = cleanSummary.split(' ').filter(w => w.length > 3);
+  const analysisStart = cleanAnalysis.substring(0, cleanSummary.length * 1.5);
+  const analysisWords = analysisStart.split(' ').filter(w => w.length > 3);
+  
+  // If more than 70% of summary words are in the analysis start, it's likely duplicate
+  const matchingWords = summaryWords.filter(word => analysisWords.includes(word));
+  const overlapRatio = summaryWords.length > 0 ? matchingWords.length / summaryWords.length : 0;
+  
+  const isDuplicate = overlapRatio > 0.7;
+  console.log('🔍 Duplicate check details:', {
+    summaryLength: cleanSummary.length,
+    analysisLength: cleanAnalysis.length,
+    overlapRatio: overlapRatio.toFixed(2),
+    isDuplicate
+  });
+  
+  return isDuplicate;
+}
+
+async function regenerateSummary(analysis: string): Promise<string | null> {
+  try {
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+    
+    if (!projectId || !credentialsBase64) {
+      throw new Error('AI configuration missing');
+    }
+
+    const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
+    const parsedCredentials = JSON.parse(credentialsJson);
+
+    const { VertexAI } = await import('@google-cloud/vertexai');
+    const vertexAI = new VertexAI({
+      project: projectId,
+      location,
+      googleAuthOptions: {
+        credentials: {
+          client_email: parsedCredentials.client_email,
+          private_key: parsedCredentials.private_key,
+        },
+      },
+    });
+
+    const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+    const prompt = `Create a patient-friendly summary that is COMPLETELY DIFFERENT from this medical analysis.
+
+CRITICAL REQUIREMENTS:
+- Write 3-4 sentences in simple language
+- Focus on what the patient should know and do
+- Use different words and phrases than the analysis
+- No medical jargon or technical descriptions
+- No markdown symbols (**, ###, *, etc.)
+- Support multiple languages
+
+Medical Analysis:
+${analysis}
+
+Patient Summary:`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    return text
+      .replace(/[\*#`_~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch (error) {
+    console.error('Error regenerating summary:', error);
+    return null;
   }
 }

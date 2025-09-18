@@ -98,7 +98,9 @@ export async function GET(
       noto: path.join(publicDir, 'NotoSans-Regular.ttf'),
       notoBold: path.join(publicDir, 'NotoSans-Bold.ttf'),
       cjk: path.join(publicDir, 'NotoSansCJKsc-Regular.otf'),
-      cjkBold: path.join(publicDir, 'NotoSansCJKsc-Bold.otf')
+      cjkBold: path.join(publicDir, 'NotoSansCJKsc-Bold.otf'),
+      cyrillic: path.join(publicDir, 'NotoSans-Regular.ttf'), // Noto Sans supports Cyrillic
+      cyrillicBold: path.join(publicDir, 'NotoSans-Bold.ttf')
     } as const;
 
     console.log('🔤 Font files to load:', {
@@ -125,7 +127,9 @@ export async function GET(
           noto: 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf',
           notoBold: 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf',
           cjk: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
-          cjkBold: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf'
+          cjkBold: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
+          cyrillic: 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf',
+          cyrillicBold: 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf'
         };
         console.log(`⚠️ Local font ${key} not found, fetching from remote:`, remoteMap[key]);
         const url = remoteMap[key];
@@ -138,11 +142,13 @@ export async function GET(
       }
     };
 
-    const [notoSansBytes, notoSansBoldBytes, cjkBytes, cjkBoldBytes] = await Promise.all([
+    const [notoSansBytes, notoSansBoldBytes, cjkBytes, cjkBoldBytes, cyrillicBytes, cyrillicBoldBytes] = await Promise.all([
       readFont('noto'),
       readFont('notoBold'),
       readFont('cjk'),
-      readFont('cjkBold')
+      readFont('cjkBold'),
+      readFont('cyrillic'),
+      readFont('cyrillicBold')
     ]);
 
     console.log('🔤 Loading fonts for PDF generation...');
@@ -150,6 +156,8 @@ export async function GET(
     const unicodeBoldFont: PDFFont = await pdfDoc.embedFont(notoSansBoldBytes, { subset: false });
     const cjkFont: PDFFont = await pdfDoc.embedFont(cjkBytes, { subset: false });
     const cjkBoldFont: PDFFont = await pdfDoc.embedFont(cjkBoldBytes, { subset: false });
+    const cyrillicFont: PDFFont = await pdfDoc.embedFont(cyrillicBytes, { subset: false });
+    const cyrillicBoldFont: PDFFont = await pdfDoc.embedFont(cyrillicBoldBytes, { subset: false });
     console.log('✅ All fonts loaded successfully');
 
     // Base Latin/Cyrillic fonts; we will dynamically switch to CJK when needed
@@ -158,7 +166,7 @@ export async function GET(
 
     // Enhanced Unicode detection for better multi-language support
     const containsCJK = (text: string): boolean => /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text);
-    const containsCyrillic = (text: string): boolean => /[\u0400-\u04FF]/.test(text);
+    const containsCyrillic = (text: string): boolean => /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]/.test(text);
     const containsArabic = (text: string): boolean => /[\u0600-\u06FF]/.test(text);
     
     const getFontFor = (text: string, isBold: boolean): PDFFont => {
@@ -167,10 +175,10 @@ export async function GET(
         console.log('🔤 Using CJK font for text:', text.substring(0, 50));
         return isBold ? cjkBoldFont : cjkFont;
       }
-      // Cyrillic characters (Russian, etc.) - use Noto Sans which supports Cyrillic
+      // Cyrillic characters (Russian, etc.) - use dedicated Cyrillic font
       if (containsCyrillic(text)) {
-        console.log('🔤 Using Noto Sans for Cyrillic text:', text.substring(0, 50));
-        return isBold ? unicodeBoldFont : unicodeFont;
+        console.log('🔤 Using dedicated Cyrillic font for text:', text.substring(0, 50));
+        return isBold ? cyrillicBoldFont : cyrillicFont;
       }
       // Arabic characters
       if (containsArabic(text)) {
@@ -228,11 +236,22 @@ export async function GET(
     // Helper function to sanitize text for PDF (supports Unicode including Cyrillic, Arabic, Chinese, etc.)
     const sanitizeText = (text: string): string => {
       if (!text) return '';
-      return text
+      const originalText = text;
+      const sanitized = text
         .replace(/[\r\n\t]/g, ' ') // Replace newlines, carriage returns, and tabs with spaces
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove only control characters, keep all Unicode
         .trim();
+      
+      // Debug logging for Cyrillic text
+      if (containsCyrillic(text)) {
+        console.log('🔤 Processing Cyrillic text:');
+        console.log('Original length:', originalText.length);
+        console.log('Sanitized length:', sanitized.length);
+        console.log('Sample:', sanitized.substring(0, 100));
+      }
+      
+      return sanitized;
     };
 
     // We no longer mutate non-Latin text. We rely on Unicode fonts instead.

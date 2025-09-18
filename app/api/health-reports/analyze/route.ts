@@ -125,7 +125,22 @@ Analyze the following content:`;
     }
 
     // If JSON parse failed, fall back to parsing text
-    const summary = aiSummary ?? extractSummary(aiAnalysis);
+    let summary: string = aiSummary || '';
+    if (!summary || isSummaryRedundant(aiAnalysis, summary)) {
+      const aiSum = await summarizeWithAI(aiAnalysis);
+      if (aiSum && !isSummaryRedundant(aiAnalysis, aiSum)) {
+        summary = normalizeSummary(aiSum);
+      } else {
+        const aiSum2 = await summarizeWithAI(aiAnalysis, true);
+        if (aiSum2 && !isSummaryRedundant(aiAnalysis, aiSum2)) {
+          summary = normalizeSummary(aiSum2);
+        } else {
+          summary = normalizeSummary(deriveSummaryHeuristic(aiAnalysis));
+        }
+      }
+    } else {
+      summary = normalizeSummary(summary);
+    }
     const keyFindings = aiKeyFindings ?? extractKeyFindings(aiAnalysis);
     const recommendations = aiRecommendations ?? extractRecommendations(aiAnalysis);
     const riskLevel = (aiRisk ?? extractRiskLevel(aiAnalysis)) as string;
@@ -179,14 +194,9 @@ function extractJSON(input: string): string | null {
 
 function extractSummary(analysis: string): string {
   if (!analysis || typeof analysis !== 'string') return 'Summary not available';
-  
-  const summaryMatch = analysis.match(/\*\*Report Summary\*\*:?\s*([^*]+?)(?=\*\*|$)/i);
-  if (summaryMatch && summaryMatch[1]) {
-    return summaryMatch[1].trim();
-  }
-  
-  // Fallback: take first 200 characters
-  return analysis.substring(0, 200).trim() + (analysis.length > 200 ? '...' : '');
+  const summaryMatch = analysis.match(/\*\*Report Summary\*\*:?:\s*([^*]+?)(?=\*\*|$)/i);
+  if (summaryMatch && summaryMatch[1]) return normalizeSummary(summaryMatch[1]);
+  return normalizeSummary(deriveSummaryHeuristic(analysis));
 }
 
 function extractKeyFindings(analysis: string): string[] {
@@ -233,4 +243,96 @@ function extractRiskLevel(analysis: string): string {
   if (lowerAnalysis.includes('low risk') || lowerAnalysis.includes('normal')) return 'low';
   
   return 'normal';
+}
+
+// --- Helpers to ensure distinct, paraphrased summaries ---
+function normalizeSummary(text: string): string {
+  const t = (text || '')
+    .replace(/[\*#`_~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return t
+    .replace(/^based on the (image|report) provided[,\s]*/i, '')
+    .replace(/^here is (an )?analysis of (the )?(skin )?lesion[,\s]*/i, '')
+    .replace(/^this (report|analysis) (shows|indicates|suggests)[,\s]*/i, '')
+    .trim();
+}
+
+function sanitize(text: string): string {
+  return (text || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[\*#`_~]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function isSummaryRedundant(analysis: string, summary: string): boolean {
+  if (!analysis || !summary) return false;
+  const a = sanitize(analysis);
+  const s = sanitize(summary);
+  if (s.length < 50) return true;
+  const analysisStart = a.slice(0, Math.max(s.length * 1.5, 400));
+  const containment = analysisStart.includes(s) || s.includes(analysisStart.slice(0, s.length));
+  const summaryWords = s.split(' ').filter(w => w.length > 2);
+  const analysisStartWords = analysisStart.split(' ').filter(w => w.length > 2);
+  const matchingWords = summaryWords.filter(word => analysisStartWords.includes(word));
+  const wordOverlap = summaryWords.length > 0 ? matchingWords.length / summaryWords.length : 0;
+  const endsAbruptly = s.endsWith('...') || /(textur|appear|surfac|color|lesion)$/i.test(s);
+  return containment || wordOverlap > 0.7 || endsAbruptly;
+}
+
+async function summarizeWithAI(analysis: string, strongerParaphrase: boolean = false): Promise<string | null> {
+  try {
+    const projectId = process.env.GOOGLE_VERTEX_PROJECT;
+    const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+    if (!projectId || !credentialsBase64) return null;
+    const credentialsJson = Buffer.from(credentialsBase64, 'base64').toString('utf-8');
+    const parsedCredentials = JSON.parse(credentialsJson);
+    const { VertexAI } = await import('@google-cloud/vertexai');
+    const vertexAI = new VertexAI({
+      project: projectId,
+      location,
+      googleAuthOptions: { credentials: { client_email: parsedCredentials.client_email, private_key: parsedCredentials.private_key } },
+    });
+    const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const baseInstr = 'Write a concise 3-5 sentence layperson summary. No markdown, no lists.';
+    const extra = strongerParaphrase ? ' Avoid phrasing overlap with the source. Do not start with "Based on".' : '';
+    const prompt = `${baseInstr}${extra}\n\nSource content:\n${analysis}`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const cleaned = (text || '').replace(/[\*#`_~]/g, '').replace(/\s+/g, ' ').trim();
+    return cleaned || null;
+  } catch {
+    return null;
+  }
+}
+
+function deriveSummaryHeuristic(analysis: string): string {
+  const text = (analysis || '').replace(/[\*#`_~]/g, '').replace(/\s+/g, ' ').trim();
+  if (!text) return 'Summary not available';
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 25 && s.length < 300);
+  if (sentences.length === 0) return text.slice(0, 400) + (text.length > 400 ? '...' : '');
+  const ranked = sentences
+    .map((s, i) => ({ s, i, score: scoreSentenceForSummary(s, i) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .sort((a, b) => a.i - b.i)
+    .map(x => x.s);
+  const summary = ranked.join(' ');
+  return summary.length >= 200 ? summary : (text.slice(0, 500) + (text.length > 500 ? '...' : ''));
+}
+
+function scoreSentenceForSummary(s: string, index: number): number {
+  let score = 0;
+  const lower = s.toLowerCase();
+  if (index < 5) score += 1;
+  if (/[a-z]/i.test(s)) score += 1;
+  if (!/[\:\;\-•\*]/.test(s)) score += 1;
+  if (/(overall|in summary|suggests|likely|appears|consistent with|recommend|follow up|monitor)/.test(lower)) score += 2;
+  if (s.length >= 60 && s.length <= 220) score += 1;
+  return score;
 }

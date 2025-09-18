@@ -108,24 +108,26 @@ Rules:\n- summary: 3-6 sentences, layperson language, no markdown\n- analysis: f
       }
     }
 
-    // ALWAYS generate a separate, distinct AI summary - never use analysis text
+    // FORCE generate completely different summary - IGNORE any existing summary
     if (finalAnalysis) {
-      console.log('🔄 Generating separate AI summary...');
+      console.log('🔄 FORCING separate AI summary generation...');
+      finalSummary = null; // Reset any existing summary
+      
       try {
-        const aiSummaryOnly = await generateDistinctSummary(finalAnalysis);
-        if (aiSummaryOnly && !isSummaryRedundant(finalAnalysis, aiSummaryOnly)) {
-          finalSummary = aiSummaryOnly;
-          console.log('✅ Generated distinct AI summary');
+        const forcedSummary = await forceDistinctSummary(finalAnalysis);
+        if (forcedSummary && forcedSummary.length > 30) {
+          finalSummary = forcedSummary;
+          console.log('✅ FORCED distinct AI summary generated:', finalSummary.substring(0, 100));
         } else {
-          console.log('⚠️ AI summary still redundant, using heuristic');
-          finalSummary = deriveSummaryHeuristic(finalAnalysis);
+          console.log('❌ Forced summary failed, using manual construction');
+          finalSummary = createManualSummary(finalAnalysis);
         }
       } catch (error) {
-        console.log('❌ AI summary generation failed, using heuristic');
-        finalSummary = deriveSummaryHeuristic(finalAnalysis);
+        console.log('❌ AI summary generation failed completely, using manual construction');
+        finalSummary = createManualSummary(finalAnalysis);
       }
 
-      // Fallback extraction for other fields only (avoid substring summary fallback)
+      // Fallback extraction for other fields only
       if (!finalFindings) finalFindings = extractKeyFindings(finalAnalysis);
       if (!finalRecs) finalRecs = extractRecommendations(finalAnalysis);
       if (!finalRisk) finalRisk = extractRiskLevel(finalAnalysis);
@@ -234,7 +236,7 @@ function jaccardSimilarity(a: string, b: string): number {
   return unionCount === 0 ? 0 : intersectionCount / unionCount;
 }
 
-async function generateDistinctSummary(analysis: string): Promise<string | null> {
+async function forceDistinctSummary(analysis: string): Promise<string | null> {
   try {
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
@@ -251,35 +253,72 @@ async function generateDistinctSummary(analysis: string): Promise<string | null>
     });
     const model = vertexAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
     
-    // STRICT instructions to create a completely different summary
-    const prompt = `You are a medical AI creating a patient-friendly summary. 
+    // EXTREMELY AGGRESSIVE prompt to force different content
+    const prompt = `IGNORE the detailed analysis format. Write a SHORT patient summary that is COMPLETELY DIFFERENT.
 
-CRITICAL REQUIREMENTS:
-- Write 3-4 sentences that are COMPLETELY DIFFERENT from the detailed analysis
-- Use different words, phrases, and sentence structure
-- Focus on the main conclusion and key takeaway
-- Write in simple, layperson language
-- Do NOT repeat any exact phrases from the analysis
-- Do NOT start with "Based on" or "The image shows"
-- Do NOT describe visual characteristics in detail
+FORBIDDEN WORDS/PHRASES - DO NOT USE:
+- "Based on"
+- "The image shows"  
+- "Analysis"
+- "lesion"
+- "raised"
+- "surface"
+- "texture"
+- "papular"
+- "exophytic"
+- "variegation"
 
-Create a summary that answers: "What should the patient know about this finding?"
+REQUIRED FORMAT:
+Write EXACTLY 2-3 sentences that tell a patient:
+1. What this likely is (use simple terms like "growth", "spot", "mark")
+2. What they should do about it
+3. How concerning it is
 
-Detailed analysis to summarize:
-${analysis}`;
+Use completely different vocabulary. Focus on ADVICE, not description.
+
+Medical findings: ${analysis}
+
+PATIENT SUMMARY:`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const cleaned = (text || '')
       .replace(/[\*#`_~]/g, '')
       .replace(/\s+/g, ' ')
+      .replace(/^(patient summary|summary):\s*/i, '')
       .trim();
     
     return cleaned || null;
   } catch (error) {
-    console.error('Error generating distinct summary:', error);
+    console.error('Error forcing distinct summary:', error);
     return null;
   }
+}
+
+function createManualSummary(analysis: string): string {
+  // Extract key medical terms and create a completely different summary
+  const text = analysis.toLowerCase();
+  
+  let condition = "skin growth";
+  let concern = "routine monitoring";
+  let action = "discuss with your doctor";
+  
+  // Determine likely condition
+  if (text.includes("melanoma") || text.includes("malignant")) {
+    condition = "concerning skin mark";
+    concern = "immediate medical attention";
+    action = "see a dermatologist urgently";
+  } else if (text.includes("seborrheic keratosis") || text.includes("benign")) {
+    condition = "benign skin growth";
+    concern = "routine monitoring";
+    action = "monitor for changes";
+  } else if (text.includes("nevus") || text.includes("mole")) {
+    condition = "mole";
+    concern = "routine monitoring";
+    action = "check regularly for changes";
+  }
+  
+  return `This appears to be a ${condition} that requires ${concern}. You should ${action} to determine if any treatment is needed. Regular skin checks are recommended to monitor for any changes.`;
 }
 
 function deriveSummaryHeuristic(analysis: string): string {

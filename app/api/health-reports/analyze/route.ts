@@ -65,20 +65,23 @@ export async function POST(request: NextRequest) {
       model: 'gemini-2.5-pro',
     });
 
-    const systemPrompt = `You are a medical AI assistant analyzing a health report. Please provide a comprehensive analysis including:
+    const systemPrompt = `You are a medical AI assistant analyzing a health report. Return a concise patient-friendly summary AND a detailed analysis.
 
-1. **Report Summary**: A clear, concise summary of the health report
-2. **Key Findings**: List the most important findings, values, or observations
-3. **Risk Assessment**: Assess the overall risk level (low, normal, moderate, high, critical)
-4. **Recommendations**: Provide actionable recommendations for the patient
-5. **Important Notes**: Any critical information that requires immediate attention
+Respond STRICTLY as compact JSON with this exact schema (no markdown, no explanations, no code fences):
+{"summary": string, "analysis": string, "keyFindings": string[], "recommendations": string[], "riskLevel": "low"|"normal"|"moderate"|"high"|"critical"}
 
-Format your response as a structured analysis that can be easily parsed. Be thorough but accessible to patients.
+Rules:
+- summary: 3-6 sentences, clear layperson language, no markdown
+- analysis: full detailed analysis; paragraphs allowed, but no markdown syntax
+- keyFindings: 3-10 bullet items, short phrases
+- recommendations: 2-8 actionable items
+- riskLevel: one of: low, normal, moderate, high, critical
 
+Context:
 Report Type: ${reportType || 'General Health Report'}
 Filename: ${filename || 'Unknown'}
 
-Please analyze the following health report content:`;
+Analyze the following content:`;
 
     const prompt = `${systemPrompt}\n\n${content}`;
 
@@ -90,20 +93,42 @@ Please analyze the following health report content:`;
     });
 
     let aiAnalysis: string;
+    let aiSummary: string | null = null;
+    let aiKeyFindings: string[] | null = null;
+    let aiRecommendations: string[] | null = null;
+    let aiRisk: string | null = null;
     try {
       const result = await model.generateContent(prompt);
-      aiAnalysis = result.response.candidates?.[0]?.content?.parts?.[0]?.text || 'Analysis not available';
-      console.log('AI analysis completed, length:', aiAnalysis.length);
+      const raw = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // Try to parse strict JSON first (strip code fences if present)
+      const jsonText = extractJSON(raw);
+      if (jsonText) {
+        try {
+          const parsed = JSON.parse(jsonText);
+          aiSummary = typeof parsed.summary === 'string' ? parsed.summary.trim() : null;
+          aiAnalysis = typeof parsed.analysis === 'string' ? parsed.analysis.trim() : '';
+          aiKeyFindings = Array.isArray(parsed.keyFindings) ? parsed.keyFindings.map((x: any) => String(x)).filter(Boolean) : null;
+          aiRecommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations.map((x: any) => String(x)).filter(Boolean) : null;
+          aiRisk = typeof parsed.riskLevel === 'string' ? parsed.riskLevel.toLowerCase() : null;
+          console.log('AI JSON parsed successfully');
+        } catch (e) {
+          console.warn('Failed to parse AI JSON, will fallback to text parsing:', e);
+          aiAnalysis = raw || 'Analysis not available';
+        }
+      } else {
+        aiAnalysis = raw || 'Analysis not available';
+      }
+      console.log('AI analysis completed, length:', (aiAnalysis || '').length);
     } catch (aiError) {
       console.error('VertexAI error:', aiError);
       throw new Error(`AI analysis failed: ${aiError instanceof Error ? aiError.message : 'Unknown AI error'}`);
     }
 
-    // Parse the analysis to extract structured data
-    const summary = extractSummary(aiAnalysis);
-    const keyFindings = extractKeyFindings(aiAnalysis);
-    const recommendations = extractRecommendations(aiAnalysis);
-    const riskLevel = extractRiskLevel(aiAnalysis);
+    // If JSON parse failed, fall back to parsing text
+    const summary = aiSummary ?? extractSummary(aiAnalysis);
+    const keyFindings = aiKeyFindings ?? extractKeyFindings(aiAnalysis);
+    const recommendations = aiRecommendations ?? extractRecommendations(aiAnalysis);
+    const riskLevel = (aiRisk ?? extractRiskLevel(aiAnalysis)) as string;
 
     return NextResponse.json({
       analysis: aiAnalysis,
@@ -127,6 +152,29 @@ Please analyze the following health report content:`;
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
+}
+
+// Extract a JSON object from a string that might contain extra text or code fences
+function extractJSON(input: string): string | null {
+  if (!input) return null;
+  // Remove code fences if present
+  const cleaned = input.trim()
+    .replace(/^```(json)?/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  // Try straightforward parse first
+  if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+    return cleaned;
+  }
+
+  // Fallback: find the first balanced JSON object
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    return cleaned.slice(start, end + 1);
+  }
+  return null;
 }
 
 function extractSummary(analysis: string): string {

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -44,26 +46,50 @@ export async function GET(
     // Enable embedding of Unicode fonts
     pdfDoc.registerFontkit(fontkit);
 
-    // Load Unicode-capable fonts (Latin + Cyrillic) and CJK font for Chinese
-    const NOTO_SANS_URL = 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf';
-    const NOTO_SANS_BOLD_URL = 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf';
-    const NOTO_CJK_SC_URL = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf';
-    const NOTO_CJK_SC_BOLD_URL = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf';
+    // Cache font bytes in module scope between requests
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    if (!global.__fontBytesCache) global.__fontBytesCache = {} as Record<string, Uint8Array>;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const fontCache: Record<string, Uint8Array> = global.__fontBytesCache;
 
-    const loadFontBytes = async (url: string): Promise<Uint8Array> => {
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch font at ${url}`);
+    const publicDir = path.join(process.cwd(), 'public', 'fonts');
+    const files = {
+      noto: path.join(publicDir, 'NotoSans-Regular.ttf'),
+      notoBold: path.join(publicDir, 'NotoSans-Bold.ttf'),
+      cjk: path.join(publicDir, 'NotoSansCJKsc-Regular.otf'),
+      cjkBold: path.join(publicDir, 'NotoSansCJKsc-Bold.otf')
+    } as const;
+
+    const readFont = async (key: keyof typeof files): Promise<Uint8Array> => {
+      if (fontCache[key]) return fontCache[key];
+      try {
+        const bytes = await fs.readFile(files[key]);
+        fontCache[key] = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        return fontCache[key];
+      } catch (e) {
+        // Fallback to remote fetch only if local files are missing
+        const remoteMap: Record<string, string> = {
+          noto: 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf',
+          notoBold: 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf',
+          cjk: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
+          cjkBold: 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf'
+        };
+        const url = remoteMap[key];
+        const res = await fetch(url);
+        const buf = await res.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        fontCache[key] = bytes;
+        return bytes;
       }
-      const buf = await res.arrayBuffer();
-      return new Uint8Array(buf);
     };
 
     const [notoSansBytes, notoSansBoldBytes, cjkBytes, cjkBoldBytes] = await Promise.all([
-      loadFontBytes(NOTO_SANS_URL),
-      loadFontBytes(NOTO_SANS_BOLD_URL),
-      loadFontBytes(NOTO_CJK_SC_URL),
-      loadFontBytes(NOTO_CJK_SC_BOLD_URL),
+      readFont('noto'),
+      readFont('notoBold'),
+      readFont('cjk'),
+      readFont('cjkBold')
     ]);
 
     const unicodeFont: PDFFont = await pdfDoc.embedFont(notoSansBytes, { subset: false });
@@ -335,6 +361,8 @@ export async function GET(
     });
 
     const pdfBytes = await pdfDoc.save();
+    // Convert to ArrayBuffer for Response on the server
+    const ab = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
 
     // Add history entry
     await supabase
@@ -346,7 +374,7 @@ export async function GET(
         details: { filename: `${healthReport.title}_summary.pdf` }
       });
 
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(ab as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${healthReport.title}_summary.pdf"`,

@@ -344,18 +344,22 @@ async function generateSeparateSummary(detailedAnalysis: string): Promise<{
 
 CRITICAL: Your response must be COMPLETELY DIFFERENT from the detailed analysis. Do not copy or paraphrase the analysis text.
 
-LANGUAGE REQUIREMENT: Respond ONLY in ${detectedLanguage}. Do not provide translations in other languages.
+🚨 ABSOLUTE LANGUAGE REQUIREMENT 🚨
+- You MUST respond ONLY in ${detectedLanguage}
+- DO NOT include any English text
+- DO NOT provide translations in other languages
+- DO NOT write "English:" or "Russian:" or any language labels
+- If the analysis is in ${detectedLanguage}, your summary must be ONLY in ${detectedLanguage}
 
 REQUIREMENTS:
 - Create a SHORT summary (3-4 sentences) that tells the patient what they need to know
 - Use simple, non-medical language
 - Focus on conclusions and next steps, NOT detailed descriptions
 - Remove all markdown symbols (no **, ###, *, etc.)
-- Respond ONLY in ${detectedLanguage} - do not include English translations or other languages
 - Return as JSON with this exact structure:
 
 {
-  "summary": "Patient-friendly summary in ${detectedLanguage} only",
+  "summary": "Patient-friendly summary in ${detectedLanguage} only - NO OTHER LANGUAGES",
   "keyFindings": ["Finding 1 in ${detectedLanguage}", "Finding 2 in ${detectedLanguage}", "Finding 3 in ${detectedLanguage}"],
   "recommendations": ["Recommendation 1 in ${detectedLanguage}", "Recommendation 2 in ${detectedLanguage}"],
   "riskLevel": "low|normal|moderate|high|critical"
@@ -369,6 +373,10 @@ JSON Response:`;
     const result = await model.generateContent(prompt);
     const response = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
+    console.log('🤖 AI Summary Response:');
+    console.log('Detected Language:', detectedLanguage);
+    console.log('Raw AI Response:', response.substring(0, 500));
+    
     // Extract JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -377,8 +385,34 @@ JSON Response:`;
 
     const parsed = JSON.parse(jsonMatch[0]);
     
+    // Post-process to ensure single language
+    let finalSummary = parsed.summary || 'Summary not available';
+    
+    // If summary contains multiple languages, extract only the detected language
+    if (detectedLanguage === 'Russian' && finalSummary.includes('English:')) {
+      const russianMatch = finalSummary.match(/Russian:\s*([^]*?)(?=English:|$)/);
+      if (russianMatch) {
+        finalSummary = russianMatch[1].trim();
+        console.log('🔧 Extracted Russian-only summary:', finalSummary.substring(0, 100));
+      }
+    } else if (detectedLanguage === 'Chinese' && finalSummary.includes('English:')) {
+      const chineseMatch = finalSummary.match(/Chinese:\s*([^]*?)(?=English:|$)/);
+      if (chineseMatch) {
+        finalSummary = chineseMatch[1].trim();
+        console.log('🔧 Extracted Chinese-only summary:', finalSummary.substring(0, 100));
+      }
+    }
+    
+    // Remove any language labels that might remain
+    finalSummary = finalSummary
+      .replace(/^(English|Russian|Chinese|Spanish|Arabic):\s*/i, '')
+      .replace(/\s*(English|Russian|Chinese|Spanish|Arabic):\s*/i, '')
+      .trim();
+    
+    console.log('✅ Final summary (single language):', finalSummary.substring(0, 100));
+    
     return {
-      summary: parsed.summary || 'Summary not available',
+      summary: finalSummary,
       keyFindings: Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [],
       recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
       riskLevel: parsed.riskLevel || 'normal'

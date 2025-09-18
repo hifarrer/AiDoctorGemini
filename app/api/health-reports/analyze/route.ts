@@ -325,7 +325,12 @@ async function generateDistinctSummary(analysis: string): Promise<string | null>
     // STRICT instructions to create a completely different summary
     const prompt = `You are a medical AI creating a patient-friendly summary. 
 
-LANGUAGE REQUIREMENT: Respond ONLY in ${detectedLanguage}. Do not provide translations in other languages.
+🚨 ABSOLUTE LANGUAGE REQUIREMENT 🚨
+- You MUST respond ONLY in ${detectedLanguage}
+- DO NOT include any English text
+- DO NOT provide translations in other languages
+- DO NOT write "English:" or "Russian:" or any language labels
+- If the analysis is in ${detectedLanguage}, your summary must be ONLY in ${detectedLanguage}
 
 CRITICAL REQUIREMENTS:
 - Write 3-4 sentences that are COMPLETELY DIFFERENT from the detailed analysis
@@ -335,7 +340,6 @@ CRITICAL REQUIREMENTS:
 - Do NOT repeat any exact phrases from the analysis
 - Do NOT start with "Based on" or "The image shows"
 - Do NOT describe visual characteristics in detail
-- Respond ONLY in ${detectedLanguage} - do not include English translations or other languages
 
 Create a summary that answers: "What should the patient know about this finding?"
 
@@ -344,10 +348,38 @@ ${analysis}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleaned = (text || '')
+    
+    console.log('🤖 AI Summary Response (Health Reports):');
+    console.log('Detected Language:', detectedLanguage);
+    console.log('Raw AI Response:', text.substring(0, 500));
+    
+    let cleaned = (text || '')
       .replace(/[\*#`_~]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+    
+    // Post-process to ensure single language
+    if (detectedLanguage === 'Russian' && cleaned.includes('English:')) {
+      const russianMatch = cleaned.match(/Russian:\s*([^]*?)(?=English:|$)/);
+      if (russianMatch) {
+        cleaned = russianMatch[1].trim();
+        console.log('🔧 Extracted Russian-only summary:', cleaned.substring(0, 100));
+      }
+    } else if (detectedLanguage === 'Chinese' && cleaned.includes('English:')) {
+      const chineseMatch = cleaned.match(/Chinese:\s*([^]*?)(?=English:|$)/);
+      if (chineseMatch) {
+        cleaned = chineseMatch[1].trim();
+        console.log('🔧 Extracted Chinese-only summary:', cleaned.substring(0, 100));
+      }
+    }
+    
+    // Remove any language labels that might remain
+    cleaned = cleaned
+      .replace(/^(English|Russian|Chinese|Spanish|Arabic):\s*/i, '')
+      .replace(/\s*(English|Russian|Chinese|Spanish|Arabic):\s*/i, '')
+      .trim();
+    
+    console.log('✅ Final summary (single language):', cleaned.substring(0, 100));
     
     return cleaned || null;
   } catch (error) {

@@ -142,7 +142,7 @@ export default function PrivacyPolicyPage() {
                       <li><strong>Customer Support Information:</strong> If you are a visitor to the Site, or a user of the Apps, we may collect information that you provide to us when you communicate with any of our departments such as customer service or technical services.</li>
                       <li><strong>Contact Information:</strong> When you sign up to create an account with some of our Apps, you will be required to provide an email address as part of the registration process. Alternatively, you can use your Facebook Account or other third party social network accounts (together, &quot;Social Media Account&quot;) to register for the Services.</li>
                       <li><strong>Profile Information:</strong> When using some of our Services, you may be able to add information to your profile, such as an avatar or profile picture, birthday, nickname or username, or country. You voluntarily provide this information to us.</li>
-                      <li><strong>Your Content:</strong> When using some of our Services, you can create, post, upload or share content by providing us with access to your photos, media and files, and your device's camera and microphone. You voluntarily provide this information to us.</li>
+                      <li><strong>Your Content:</strong> When using some of our Services, you can create, post, upload or share content by providing us with access to your photos, media and files, and your device&apos;s camera and microphone. You voluntarily provide this information to us.</li>
                     </ul>
                   </div>
                   
@@ -152,7 +152,7 @@ export default function PrivacyPolicyPage() {
                       We automatically collect information about you when you use the Services, such as:
                     </p>
                     <ul className="list-disc list-inside space-y-2 ml-4">
-                      <li><strong>Device Information:</strong> If you access the Services through a mobile device, we may be able to identify the general location of your mobile device (not precise geolocation data), your mobile device's brand, model, operating system, resolution, screen size, system version, Bluetooth settings, internet connection, random-access memory (&quot;RAM&quot;), the application you have installed, the applications you have running in the background, mobile device's advertising ID.</li>
+                      <li><strong>Device Information:</strong> If you access the Services through a mobile device, we may be able to identify the general location of your mobile device (not precise geolocation data), your mobile device&apos;s brand, model, operating system, resolution, screen size, system version, Bluetooth settings, internet connection, random-access memory (&quot;RAM&quot;), the application you have installed, the applications you have running in the background, mobile device&apos;s advertising ID.</li>
                       <li><strong>Cookies & Similar Tracking Information:</strong> We use cookies and similar tracking technologies to collect information about your interactions with our Services. The information we collect includes, but is not limited to, account activation time, content displayed to you and whether you clicked on it, advertisements displayed to you and whether you clicked on them, URLs you have visited, notifications that have appeared on your mobile device, your Internet Protocol (&quot;IP&quot;) address, your mobile country code, and your user ID.</li>
                       <li><strong>Content Sharing:</strong> When you choose to share content with us, we automatically collect information about your Wi-Fi connection, and call information.</li>
                     </ul>
@@ -236,7 +236,7 @@ export default function PrivacyPolicyPage() {
                   <div>
                     <h3 className="text-lg font-semibold mb-2 text-[#e7ecf5]">To engage in marketing activities.</h3>
                     <p className="leading-relaxed">
-                      We may process your contact information or information about your interactions on our Services to: send you marketing communications; deliver targeted marketing; inform you about events, webinars, or other materials, including those of our partners; and, keep you up-to-date with our relevant products and Services. Transactional communications about your account or our Services are not considered &quot;marketing&quot; communications. In addition, when you share your friends' contact information with us, we may reach out to them to invite them to our Services and to continue receiving our communications. You can opt-out of our marketing activities at any time.
+                      We may process your contact information or information about your interactions on our Services to: send you marketing communications; deliver targeted marketing; inform you about events, webinars, or other materials, including those of our partners; and, keep you up-to-date with our relevant products and Services. Transactional communications about your account or our Services are not considered &quot;marketing&quot; communications. In addition, when you share your friends&apos; contact information with us, we may reach out to them to invite them to our Services and to continue receiving our communications. You can opt-out of our marketing activities at any time.
                     </p>
                   </div>
                 </div>
@@ -377,7 +377,7 @@ export default function PrivacyPolicyPage() {
                       If you are located in the Designated Countries and are a current user, we will only contact you by electronic means (such as email or SMS) per your communication preferences and/or with information about our Services that are similar to the Services you previously purchased from us or negotiated to purchase from us.
                     </p>
                     <p className="leading-relaxed">
-                      For new users located in the Designated Countries, we will contact you by electronic means for marketing purposes only based on your consent or based on your friends' consent. You can always withdraw your consent or change your marketing communication preferences at any time and free of charge. To opt out of the emails, please click the &quot;unsubscribe&quot; link in the footer of marketing emails or contact us at <a href="mailto:support@healthconsultant.ai" className="text-[#7ae2ff] hover:text-[#6ae2ff] transition-colors">support@healthconsultant.ai</a>. Marketing communications are promotional in nature and do not include transactional or Service-related communications.
+                      For new users located in the Designated Countries, we will contact you by electronic means for marketing purposes only based on your consent or based on your friends&apos; consent. You can always withdraw your consent or change your marketing communication preferences at any time and free of charge. To opt out of the emails, please click the &quot;unsubscribe&quot; link in the footer of marketing emails or contact us at <a href="mailto:support@healthconsultant.ai" className="text-[#7ae2ff] hover:text-[#6ae2ff] transition-colors">support@healthconsultant.ai</a>. Marketing communications are promotional in nature and do not include transactional or Service-related communications.
                     </p>
                   </div>
                   
@@ -388,7 +388,7 @@ export default function PrivacyPolicyPage() {
                     </p>
                     <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
                       <li>Where denial of access is required or authorized by law;</li>
-                      <li>When granting access would have a negative impact on other's privacy;</li>
+                      <li>When granting access would have a negative impact on other&apos;s privacy;</li>
                       <li>To protect our rights and properties; and</li>
                       <li>Where the request is frivolous or burdensome.</li>
                     </ul>

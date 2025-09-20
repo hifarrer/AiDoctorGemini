@@ -17,7 +17,7 @@ export default function TermsOfServicePage() {
           const data = await response.json();
           setSiteName(data.siteName);
         }
-      } catch (error) {
+  } catch (error) {
         console.error('Error fetching settings:', error);
         setSiteName("Health Consultant AI");
       }
@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
           <Link href="/" className="flex items-center gap-3 font-extrabold text-xl hover:opacity-80 transition-opacity">
             <div className="w-[34px] h-[34px] rounded-[10px] bg-gradient-to-br from-[#8856ff] to-[#6ae2ff] text-[#08101b] font-black grid place-items-center">+</div>
             <span>Health<span className="text-[#7ae2ff]">Consultant</span></span>
-          </Link>
+        </Link>
           
           <div className="hidden sm:flex gap-6 text-[#a8b1c6]">
             <a href="/#features" className="hover:text-[#e7ecf5] transition-colors">Features</a>
@@ -252,7 +252,7 @@ export default function TermsOfServicePage() {
                   These Terms shall be governed by principles of fair use and good faith. In the event of any dispute arising from your use of the Services, we encourage you to first contact us directly so we can work together in good faith to resolve the issue informally.
                 </p>
                 <p className="leading-relaxed">
-                  If a formal resolution is required, both parties agree to seek a solution through appropriate and mutually acceptable channels, in accordance with applicable laws in the user's region or country of residence.
+                  If a formal resolution is required, both parties agree to seek a solution through appropriate and mutually acceptable channels, in accordance with applicable laws in the user&apos;s region or country of residence.
                 </p>
               </div>
               

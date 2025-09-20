@@ -1,0 +1,18 @@
+contact@healthconsultant.ai
+SMTPHealth2025!
+
+
+
+mail.healthconsultant.ai.
+v=spf1 +a +mx +ip4:15.204.59.244 ~al
+
+
+_dmarc.healthconsultant.ai.
+v=DMARC1; p=none; 
+
+
+
+SMTP_Server: mail.healthconsultant.ai
+SMTP_PORT: 587
+Username: contact@healthconsultant.ai
+Password: SMTPHealth2025!

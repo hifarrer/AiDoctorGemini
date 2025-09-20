@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Health Consultant AI",
+  description: "Contact us for support and inquiries about our AI-powered health analysis platform.",
+};
+
 "use client";
 
 import React, { useState } from 'react';

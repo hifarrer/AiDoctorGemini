@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Health Consultant AI",
+  description: "Privacy Policy for Health Consultant AI - Learn how we protect your health data and privacy.",
+};
+
 "use client";
 
 import Link from "next/link"

@@ -396,7 +396,7 @@ export default function ContactPage() {
               <div className="info-icon">📧</div>
               <h3 className="info-title">Email Support</h3>
               <p className="info-content">
-                Send us an email at support@healthconsultant.ai and we&apos;ll get back to you within 24 hours.
+                Send us an email at contact@healthconsultant.ai and we&apos;ll get back to you within 24 hours.
               </p>
             </div>
             

@@ -5,6 +5,33 @@ import { recordUserInteraction, canUserInteract } from '@/lib/server/user-intera
 import { findUserById } from '@/lib/server/users';
 import { getPlans } from '@/lib/server/plans';
 
+// CORS configuration for Expo development
+const getAllowedOrigin = (request: NextRequest): string => {
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'http://localhost:8081',
+    'https://*.exp.direct',
+    'https://*.exp.direct:443',
+    'https://*.exp.direct:80'
+  ];
+  
+  // Check if origin matches any allowed pattern
+  if (origin) {
+    // Check for localhost
+    if (origin?.includes('localhost:8081')) {
+      return origin;
+    }
+    
+    // Check for Expo tunnel URLs
+    if (origin?.includes('.exp.direct')) {
+      return origin;
+    }
+  }
+  
+  // Default fallback
+  return 'http://localhost:8081';
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Parse multipart/form-data
@@ -22,7 +49,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'user_id is required' }, { 
         status: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -32,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'prompt is required' }, { 
         status: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -44,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { 
         status: 404,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -58,7 +85,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User plan not found' }, { 
         status: 500,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -85,7 +112,7 @@ export async function POST(request: NextRequest) {
         }, { 
           status: 429,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -114,7 +141,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI service configuration error' }, { 
         status: 500,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -125,7 +152,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI service credentials not configured' }, { 
         status: 500,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -141,7 +168,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid server credentials format.' }, { 
         status: 500,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -177,7 +204,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid image file type' }, { 
           status: 400,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -188,7 +215,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Image file too large (max 10MB)' }, { 
           status: 400,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -214,7 +241,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid PDF file type' }, { 
           status: 400,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -225,7 +252,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'PDF file too large (max 10MB)' }, { 
           status: 400,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -392,11 +419,11 @@ IMPORTANT: Do not include any disclaimers about being an AI assistant, medical a
 }
 
 // Handle OPTIONS request for CORS
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': 'http://localhost:8081',
+      'Access-Control-Allow-Origin': getAllowedOrigin(request),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Credentials': 'true',

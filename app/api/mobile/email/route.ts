@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { findUserById } from '@/lib/server/users';
 
+// CORS configuration for Expo development
+const getAllowedOrigin = (request: NextRequest): string => {
+  const origin = request.headers.get('origin');
+  
+  // Check if origin matches any allowed pattern
+  if (origin) {
+    // Check for localhost
+    if (origin?.includes('localhost:8081')) {
+      return origin;
+    }
+    
+    // Check for Expo tunnel URLs
+    if (origin?.includes('.exp.direct')) {
+      return origin;
+    }
+  }
+  
+  // Default fallback
+  return 'http://localhost:8081';
+};
+
 // SMTP configuration from environment variables
 const smtpConfig = {
   host: process.env.SMTP_HOST,
@@ -26,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'user_id is required' }, { 
         status: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -36,7 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'email is required' }, { 
         status: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -46,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'message is required' }, { 
         status: 400,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -58,7 +79,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { 
         status: 404,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -70,7 +91,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Server configuration error." }, { 
         status: 500,
         headers: {
-          'Access-Control-Allow-Origin': 'http://localhost:8081',
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
           'Access-Control-Allow-Credentials': 'true',
         }
       });
@@ -164,7 +185,7 @@ You can reply directly to this email to respond to the user.
         }, { 
           status: 500,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -175,7 +196,7 @@ You can reply directly to this email to respond to the user.
         }, { 
           status: 500,
           headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:8081',
+            'Access-Control-Allow-Origin': getAllowedOrigin(request),
             'Access-Control-Allow-Credentials': 'true',
           }
         });
@@ -196,11 +217,11 @@ You can reply directly to this email to respond to the user.
 }
 
 // Handle OPTIONS request for CORS
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': 'http://localhost:8081',
+      'Access-Control-Allow-Origin': getAllowedOrigin(request),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Credentials': 'true',

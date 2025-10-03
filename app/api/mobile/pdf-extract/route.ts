@@ -2,12 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+// CORS configuration for Expo development
+const getAllowedOrigin = (request: NextRequest): string => {
+  const origin = request.headers.get('origin');
+  
+  // Check if origin matches any allowed pattern
+  if (origin) {
+    // Check for localhost
+    if (origin?.includes('localhost:8081')) {
+      return origin;
+    }
+    
+    // Check for Expo tunnel URLs
+    if (origin?.includes('.exp.direct')) {
+      return origin;
+    }
+  }
+  
+  // Default fallback - more permissive for PDF extract
+  return '*';
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     // Parse multipart/form-data
@@ -15,18 +42,36 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json({ error: 'No file provided' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     // Validate file type
     if (file.type !== 'application/pdf') {
-      return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
+      return NextResponse.json({ error: 'File must be a PDF' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File size must be less than 10MB' }, { status: 400 });
+      return NextResponse.json({ error: 'File size must be less than 10MB' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
+          'Access-Control-Allow-Credentials': 'true',
+        }
+      });
     }
 
     console.log(`📄 Processing PDF: ${file.name} (${file.size} bytes)`);
@@ -62,6 +107,11 @@ export async function POST(request: NextRequest) {
         pageCount: pageCount,
         extractedText: extractedText,
         characterCount: extractedText.length
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
+          'Access-Control-Allow-Credentials': 'true',
+        }
       });
 
     } catch (pdfLibError) {
@@ -80,6 +130,11 @@ export async function POST(request: NextRequest) {
           `Note: PDF text extraction is currently being configured for server-side compatibility. ` +
           `The file was successfully received and validated.`,
         characterCount: 150
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': getAllowedOrigin(request),
+          'Access-Control-Allow-Credentials': 'true',
+        }
       });
     }
 
@@ -90,18 +145,25 @@ export async function POST(request: NextRequest) {
       success: false,
       error: 'Failed to extract text from PDF',
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': getAllowedOrigin(request),
+        'Access-Control-Allow-Credentials': 'true',
+      }
+    });
   }
 }
 
 // Handle OPTIONS request for CORS
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getAllowedOrigin(request),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }

@@ -6,20 +6,25 @@ import { findUserById } from '@/lib/server/users';
 const getAllowedOrigin = (request: NextRequest): string => {
   const origin = request.headers.get('origin');
   
+  console.log('🔍 CORS Debug - Request origin:', origin);
+  
   // Check if origin matches any allowed pattern
   if (origin) {
     // Check for localhost
     if (origin?.includes('localhost:8081')) {
+      console.log('✅ CORS - Allowing localhost origin:', origin);
       return origin;
     }
     
     // Check for Expo tunnel URLs
     if (origin?.includes('.exp.direct')) {
+      console.log('✅ CORS - Allowing Expo tunnel origin:', origin);
       return origin;
     }
   }
   
   // Default fallback
+  console.log('⚠️ CORS - Using fallback origin for:', origin);
   return 'http://localhost:8081';
 };
 

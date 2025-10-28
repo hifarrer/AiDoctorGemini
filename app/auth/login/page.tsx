@@ -10,6 +10,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,6 +31,36 @@ export default function LoginPage() {
       toast.error(result.error);
     } else {
       router.push("/dashboard");
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message);
+        setShowForgotPassword(false);
+        setForgotPasswordEmail("");
+      } else {
+        toast.error(result.error || 'Failed to send reset email.');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred.');
+      console.error("Forgot password error:", error);
+    } finally {
+      setForgotPasswordLoading(false);
     }
   };
 
@@ -88,7 +121,13 @@ export default function LoginPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <label className="block text-sm mb-1 text-[#c9d2e2]" htmlFor="password">Password</label>
-                  <Link href="#" className="text-xs text-[#7ae2ff] hover:opacity-80">Forgot password?</Link>
+                  <button 
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-xs text-[#7ae2ff] hover:opacity-80"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
                 <input
                   id="password"
@@ -118,6 +157,58 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="rounded-2xl p-6 md:p-8 border shadow-lg max-w-md w-full mx-4" style={{ background: 'linear-gradient(180deg,#12182c,#0f1325)', borderColor: '#1e2541' }}>
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-[#e7ecf5]">Reset Password</h3>
+              <p className="text-sm text-[#9aa4b2] mt-2">Enter your email address and we'll send you a link to reset your password.</p>
+            </div>
+
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1 text-[#c9d2e2]" htmlFor="forgot-email">Email</label>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  disabled={forgotPasswordLoading}
+                  className="w-full rounded-md px-3 py-2 text-sm"
+                  style={{ background: '#0f1325', border: '1px solid #1e2541', color: '#e7ecf5' }}
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setForgotPasswordEmail("");
+                  }}
+                  disabled={forgotPasswordLoading}
+                  className="flex-1 rounded-lg py-2.5 text-sm font-semibold border"
+                  style={{ borderColor: '#1e2541', color: '#c9d2e2' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={forgotPasswordLoading}
+                  className="flex-1 rounded-lg py-2.5 text-sm font-semibold"
+                  style={{ background: 'linear-gradient(90deg,#8856ff,#a854ff)', color: '#fff' }}
+                >
+                  {forgotPasswordLoading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,8 @@ export interface User {
   stripeCustomerId?: string;
   subscriptionId?: string;
   subscriptionStatus?: string;
+  resetToken?: string;
+  resetTokenExpiry?: string;
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -75,6 +77,8 @@ function rowToUser(row: any): User {
     stripeCustomerId: row.stripe_customer_id ?? undefined,
     subscriptionId: row.subscription_id ?? undefined,
     subscriptionStatus: row.subscription_status ?? undefined,
+    resetToken: row.reset_token ?? undefined,
+    resetTokenExpiry: row.reset_token_expiry ?? undefined,
   };
 }
 
@@ -91,5 +95,7 @@ function userToRow(user: User): any {
     stripe_customer_id: user.stripeCustomerId,
     subscription_id: user.subscriptionId,
     subscription_status: user.subscriptionStatus,
+    reset_token: user.resetToken,
+    reset_token_expiry: user.resetTokenExpiry,
   };
 }

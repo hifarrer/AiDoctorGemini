@@ -42,11 +42,11 @@ export function removeResetToken(token: string): void {
 
 function cleanupExpiredTokens(): void {
   const now = new Date();
-  for (const [token, resetToken] of resetTokens.entries()) {
+  resetTokens.forEach((resetToken, token) => {
     if (now > resetToken.expiry) {
       resetTokens.delete(token);
     }
-  }
+  });
 }
 
 // Clean up expired tokens every 5 minutes

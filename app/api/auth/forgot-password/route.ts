@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     storeResetToken(user.email, resetToken, 60); // 60 minutes expiry
 
     // Create transporter
-    const transporter = nodemailer.createTransporter(smtpConfig);
+    const transporter = nodemailer.createTransport(smtpConfig);
 
     // Verify connection configuration
     await transporter.verify();

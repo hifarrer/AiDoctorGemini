@@ -164,7 +164,7 @@ export default function LoginPage() {
           <div className="rounded-2xl p-6 md:p-8 border shadow-lg max-w-md w-full mx-4" style={{ background: 'linear-gradient(180deg,#12182c,#0f1325)', borderColor: '#1e2541' }}>
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold text-[#e7ecf5]">Reset Password</h3>
-              <p className="text-sm text-[#9aa4b2] mt-2">Enter your email address and we'll send you a link to reset your password.</p>
+              <p className="text-sm text-[#9aa4b2] mt-2">Enter your email address and we&apos;ll send you a link to reset your password.</p>
             </div>
 
             <form onSubmit={handleForgotPassword} className="space-y-4">

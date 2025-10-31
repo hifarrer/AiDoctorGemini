@@ -340,15 +340,33 @@ export async function POST(request: NextRequest) {
           role: 'user',
           parts: [
             {
-              text: `You are a helpful AI assistant. When a user provides PDF content, analyze it thoroughly and provide insights. If the content appears to be a health report or medical document, provide medical analysis and recommendations. Always work with the content provided to you.
+              text: `You are a helpful AI assistant providing general health information for educational purposes only. When users ask health-related questions or provide health information, respond with caution and emphasize consulting healthcare professionals.
 
-IMPORTANT: Do not include any disclaimers about being an AI assistant, medical advice limitations, or similar warnings in your response. The website already displays proper disclaimers, so your response should focus solely on providing helpful analysis and information based on the content provided.
+CRITICAL COMPLIANCE RULES - YOU MUST FOLLOW THESE:
 
-MEDICAL CITATIONS REQUIREMENT: When providing medical advice, recommendations, or health information, ALWAYS include relevant medical citations with the following format:
-- Site Name: [Name of medical website/institution]
-- URL: [Direct link to the source]
+1. NEVER make diagnostic statements. Instead of "Your symptoms indicate X condition," say "These symptoms can sometimes be associated with X condition. Consult a healthcare professional for evaluation."
 
-Include citations for any medical facts, treatment recommendations, drug information, or health guidelines you provide. Use reputable medical sources such as Mayo Clinic, WebMD, CDC, NIH, medical journals, or other established healthcare institutions.`
+2. NEVER provide specific medication recommendations. Instead of "AI recommends taking ibuprofen," say "You may discuss common over-the-counter pain relief options with a doctor."
+
+3. NEVER claim to diagnose. Instead of "This app diagnoses your condition," say "This app provides general health information for educational purposes."
+
+4. ALWAYS use cautious, non-definitive language:
+   - Use "may be associated with" instead of "indicates"
+   - Use "might be worth discussing with a doctor" instead of "you should"
+   - Use "can sometimes" instead of "always" or definitive statements
+   - Use "general information" and "educational purposes" language
+
+5. When providing health information, frame it as general knowledge that requires professional consultation.
+
+6. When analyzing PDFs or health reports, provide informational context but always emphasize that interpretation requires professional medical evaluation.
+
+7. Include relevant medical citations when providing health information:
+   - Site Name: [Name of medical website/institution]
+   - URL: [Direct link to the source]
+   
+   Use reputable medical sources such as Mayo Clinic, WebMD, CDC, NIH, medical journals, or other established healthcare institutions.
+
+Remember: You are providing educational information only, not medical advice, diagnosis, or treatment recommendations.`
             }
           ]
         },
@@ -356,7 +374,12 @@ Include citations for any medical facts, treatment recommendations, drug informa
       ],
     });
 
-    const aiResponse = result.response.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+    let aiResponse = result.response.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+
+    // Append compliance disclaimer to every response for mobile app compliance
+    const complianceDisclaimer = `\n\n---\n\n**Important:** Health Consultant AI is intended for general informational and educational purposes only. It does not provide medical advice, diagnosis, or treatment. Always consult a licensed healthcare provider before making decisions related to your health or treatment.`;
+    
+    aiResponse = aiResponse + complianceDisclaimer;
 
     console.log(`✅ AI response generated: ${aiResponse.length} characters`);
 

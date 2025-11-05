@@ -511,14 +511,49 @@ export default function PlansPage() {
 
       {/* Footer */}
       <footer className="footer">
-        <div className="footer-content">
-          <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
-            © 2025 HealthConsultant. All rights reserved.
-          </p>
-          <div className="footer-links">
-            <Link href="/terms">Terms of Service</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/contact">Contact</Link>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* App Download Links */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+            <a 
+              href="https://apps.apple.com/us/app/health-consultant-ai/id6754229345" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ transition: 'opacity 0.2s ease' }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <img 
+                src="https://res.cloudinary.com/dqemas8ht/image/upload/v1762298292/applestore_nbfd12.png" 
+                alt="Download on the App Store" 
+                style={{ height: '40px', width: 'auto' }}
+              />
+            </a>
+            <a 
+              href="https://play.google.com/store/apps/details?id=ai.healthconsultant.mobile" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ transition: 'opacity 0.2s ease' }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <img 
+                src="https://res.cloudinary.com/dqemas8ht/image/upload/v1762298292/googleplay_oight1.png" 
+                alt="Get it on Google Play" 
+                style={{ height: '40px', width: 'auto' }}
+              />
+            </a>
+          </div>
+          
+          {/* Footer Links */}
+          <div className="footer-content">
+            <p style={{ color: '#9aa4b2', fontSize: '14px' }}>
+              © 2025 HealthConsultant. All rights reserved.
+            </p>
+            <div className="footer-links">
+              <Link href="/terms">Terms of Service</Link>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/contact">Contact</Link>
+            </div>
           </div>
         </div>
       </footer>

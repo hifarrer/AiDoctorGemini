@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { PublicChat } from "@/components/PublicChat";
 import { UserProfile } from "@/components/UserProfile";
 import SubscriptionStatus from "@/components/SubscriptionStatus";
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [logoUrl, setLogoUrl] = useState<string>("");
   const { data: session } = useSession();
   const isAdmin = !!(session as any)?.user?.isAdmin;
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const fetchSiteSettings = async () => {
@@ -34,6 +36,75 @@ export default function DashboardPage() {
 
     fetchSiteSettings();
   }, []);
+
+  // Handle Google Ads conversion tracking after successful payment
+  useEffect(() => {
+    const subscriptionSuccess = searchParams.get('subscription');
+    const sessionId = searchParams.get('session_id');
+
+    if (subscriptionSuccess === 'success' && sessionId) {
+      // Check if gtag is available
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        // Fetch session details to get transaction ID
+        fetch(`/api/stripe/session?session_id=${sessionId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.transactionId) {
+              // Fire conversion event
+              (window as any).gtag('event', 'conversion', {
+                'send_to': 'AW-17548478207/UEmACLiqy5kbEP-N4q9B',
+                'value': data.amountTotal || 1.0,
+                'currency': data.currency || 'USD',
+                'transaction_id': data.transactionId
+              });
+              console.log('Google Ads conversion event fired:', data.transactionId);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching session details for conversion tracking:', error);
+            // Fallback: fire conversion with session_id as transaction_id
+            (window as any).gtag('event', 'conversion', {
+              'send_to': 'AW-17548478207/UEmACLiqy5kbEP-N4q9B',
+              'value': 1.0,
+              'currency': 'USD',
+              'transaction_id': sessionId
+            });
+          });
+      } else {
+        // If gtag is not loaded yet, wait a bit and try again
+        const checkGtag = setInterval(() => {
+          if (typeof window !== 'undefined' && (window as any).gtag) {
+            clearInterval(checkGtag);
+            fetch(`/api/stripe/session?session_id=${sessionId}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.transactionId) {
+                  (window as any).gtag('event', 'conversion', {
+                    'send_to': 'AW-17548478207/UEmACLiqy5kbEP-N4q9B',
+                    'value': data.amountTotal || 1.0,
+                    'currency': data.currency || 'USD',
+                    'transaction_id': data.transactionId
+                  });
+                  console.log('Google Ads conversion event fired:', data.transactionId);
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching session details for conversion tracking:', error);
+                (window as any).gtag('event', 'conversion', {
+                  'send_to': 'AW-17548478207/UEmACLiqy5kbEP-N4q9B',
+                  'value': 1.0,
+                  'currency': 'USD',
+                  'transaction_id': sessionId
+                });
+              });
+          }
+        }, 100);
+
+        // Clear interval after 5 seconds if gtag still not loaded
+        setTimeout(() => clearInterval(checkGtag), 5000);
+      }
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen" style={{

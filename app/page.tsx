@@ -559,14 +559,45 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-[#0a0e1a] border-t border-[#1e2541] py-6">
         <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center">
-            <p className="text-[#9aa4b2] text-sm">
-              © 2025 HealthConsultant. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link href="/terms" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Privacy Policy</Link>
-              <Link href="/contact" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Contact</Link>
+          <div className="flex flex-col gap-6">
+            {/* App Download Links */}
+            <div className="flex justify-center gap-4">
+              <a 
+                href="https://apps.apple.com/us/app/health-consultant-ai/id6754229345" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <img 
+                  src="https://res.cloudinary.com/dqemas8ht/image/upload/v1762298292/applestore_nbfd12.png" 
+                  alt="Download on the App Store" 
+                  className="h-10 w-auto"
+                />
+              </a>
+              <a 
+                href="https://play.google.com/store/apps/details?id=ai.healthconsultant.mobile" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <img 
+                  src="https://res.cloudinary.com/dqemas8ht/image/upload/v1762298292/googleplay_oight1.png" 
+                  alt="Get it on Google Play" 
+                  className="h-10 w-auto"
+                />
+              </a>
+            </div>
+            
+            {/* Footer Links */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-[#9aa4b2] text-sm">
+                © 2025 HealthConsultant. All rights reserved.
+              </p>
+              <div className="flex gap-6">
+                <Link href="/terms" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Terms of Service</Link>
+                <Link href="/privacy" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Privacy Policy</Link>
+                <Link href="/contact" className="text-[#9aa4b2] text-sm hover:text-[#e7ecf5] transition-colors">Contact</Link>
+              </div>
             </div>
           </div>
         </div>

@@ -37,6 +37,7 @@ export default function AdminHealthReports() {
   const [isLoadingReports, setIsLoadingReports] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showReportsModal, setShowReportsModal] = useState(false);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -105,6 +106,32 @@ export default function AdminHealthReports() {
 
   const getTypeDisplayName = (type: string) => {
     return type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const viewPDF = async (reportId: string, title: string) => {
+    setDownloadingPdfId(reportId);
+    try {
+      const response = await fetch(`/api/admin/health-reports/${reportId}/pdf`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title}_summary.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('PDF downloaded successfully');
+      } else {
+        toast.error('Failed to generate PDF');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Error downloading PDF');
+    } finally {
+      setDownloadingPdfId(null);
+    }
   };
 
   return (
@@ -321,6 +348,29 @@ export default function AdminHealthReports() {
                               </div>
                             </div>
                           )}
+                        </div>
+                        <div className="mt-4 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => viewPDF(report.id, report.title)}
+                            disabled={downloadingPdfId === report.id}
+                            className="flex items-center"
+                          >
+                            {downloadingPdfId === report.id ? (
+                              <>
+                                <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                View PDF
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
                     </div>

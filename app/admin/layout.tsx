@@ -66,6 +66,10 @@ export default function AdminLayout({
                   <UsersIcon className="w-5 h-5 mr-3" />
                   Users
                 </Link>
+                <Link href="/admin/health-reports" onClick={() => setMobileSidebarOpen(false)} className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <HealthReportsIcon className="w-5 h-5 mr-3" />
+                  Health Reports
+                </Link>
                 <Link href="/admin/faq" onClick={() => setMobileSidebarOpen(false)} className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                   <DashboardIcon className="w-5 h-5 mr-3" />
                   FAQ
@@ -107,6 +111,10 @@ export default function AdminLayout({
             <Link href="/admin/users" className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <UsersIcon className="w-5 h-5 mr-3" />
               Users
+            </Link>
+            <Link href="/admin/health-reports" className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <HealthReportsIcon className="w-5 h-5 mr-3" />
+              Health Reports
             </Link>
             <Link href="/admin/faq" className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <DashboardIcon className="w-5 h-5 mr-3" />
@@ -259,6 +267,25 @@ function WrenchIcon(props: React.SVGProps<SVGSVGElement>) {
         strokeLinejoin="round"
         strokeWidth={2}
         d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"
+      />
+    </svg>
+  );
+}
+
+function HealthReportsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
       />
     </svg>
   );

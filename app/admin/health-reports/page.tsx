@@ -9,7 +9,6 @@ interface User {
   id: string;
   email: string;
   plan: string;
-  firstName?: string;
   reportsCount: number;
 }
 
@@ -86,8 +85,7 @@ export default function AdminHealthReports() {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getRiskColor = (riskLevel: string) => {
@@ -171,14 +169,11 @@ export default function AdminHealthReports() {
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                           <span className="text-white font-medium">
-                            {user.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                            {user.email.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {user.firstName || "No Name"}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {user.email}
                           </div>
                         </div>
@@ -227,10 +222,10 @@ export default function AdminHealthReports() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Health Reports for {selectedUser.firstName || selectedUser.email}
+                    Health Reports for {selectedUser.email}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {selectedUser.email} • Plan: {selectedUser.plan}
+                    Plan: {selectedUser.plan}
                   </p>
                 </div>
                 <Button

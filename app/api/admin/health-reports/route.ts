@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Otherwise, get all users with their health reports count
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, email, plan, firstName')
+      .select('id, email, plan')
       .order('created_at', { ascending: false });
 
     if (usersError) {
@@ -87,7 +87,6 @@ export async function GET(request: NextRequest) {
           id: user.id,
           email: user.email,
           plan: user.plan || 'Free',
-          firstName: user.firstName,
           reportsCount: count || 0,
         };
       })

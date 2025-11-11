@@ -495,8 +495,94 @@ function checkIfSummaryIsDuplicate(summary: string | null, analysis: string | nu
   return isDuplicate;
 }
 
+// Helper function to detect the primary language of text
+function detectLanguage(text: string): string {
+  if (!text || text.length === 0) return 'English';
+  
+  const cyrillicCount = (text.match(/[\u0400-\u04FF]/g) || []).length;
+  const chineseCount = (text.match(/[\u4E00-\u9FFF]/g) || []).length;
+  const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const spanishCount = (text.match(/[ñáéíóúüÑÁÉÍÓÚÜ]/g) || []).length;
+  const frenchCount = (text.match(/[àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ]/g) || []).length;
+  const germanCount = (text.match(/[äöüßÄÖÜ]/g) || []).length;
+  const portugueseCount = (text.match(/[ãõáéíóúâêôçÃÕÁÉÍÓÚÂÊÔÇ]/g) || []).length;
+  
+  const totalChars = text.length;
+  if (cyrillicCount > totalChars * 0.2) return 'Russian';
+  if (chineseCount > totalChars * 0.2) return 'Chinese';
+  if (arabicCount > totalChars * 0.2) return 'Arabic';
+  if (spanishCount > totalChars * 0.1) return 'Spanish';
+  if (frenchCount > totalChars * 0.1) return 'French';
+  if (germanCount > totalChars * 0.1) return 'German';
+  if (portugueseCount > totalChars * 0.1) return 'Portuguese';
+  
+  return 'English';
+}
+
+// Extract only the detected language from multi-language text
+function extractSingleLanguage(text: string, detectedLanguage: string): string {
+  if (!text) return '';
+  
+  const languageLabels: Record<string, RegExp[]> = {
+    'English': [/^English\s*:?\s*/i, /English\s*:?\s*/i],
+    'Spanish': [/^Español\s*:?\s*/i, /^Spanish\s*:?\s*/i, /Español\s*:?\s*/i],
+    'French': [/^Français\s*:?\s*/i, /^French\s*:?\s*/i, /Français\s*:?\s*/i],
+    'German': [/^Deutsch\s*:?\s*/i, /^German\s*:?\s*/i, /Deutsch\s*:?\s*/i],
+    'Portuguese': [/^Português\s*:?\s*/i, /^Portuguese\s*:?\s*/i, /Português\s*:?\s*/i],
+    'Russian': [/^Русский\s*:?\s*/i, /^Russian\s*:?\s*/i, /Русский\s*:?\s*/i],
+    'Chinese': [/^简体中文\s*:?\s*/i, /^中文\s*:?\s*/i, /^Chinese\s*:?\s*/i, /简体中文\s*:?\s*/i],
+    'Arabic': [/^العربية\s*:?\s*/i, /^Arabic\s*:?\s*/i, /العربية\s*:?\s*/i],
+  };
+  
+  const hasMultipleLanguages = Object.values(languageLabels).some(patterns => 
+    patterns.some(pattern => pattern.test(text))
+  );
+  
+  if (!hasMultipleLanguages) {
+    return text
+      .replace(/^(English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية):\s*/i, '')
+      .trim();
+  }
+  
+  const detectedPatterns = languageLabels[detectedLanguage] || [];
+  if (detectedPatterns.length === 0) return text;
+  
+  for (const pattern of detectedPatterns) {
+    const regex = new RegExp(`${pattern.source}([\\s\\S]*?)(?=\\s*(?:English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية)\\s*:|$)`, 'i');
+    const match = text.match(regex);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  const parts = text.split(/\s*(?:English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية)\s*:/i);
+  if (parts.length > 1) {
+    const languageIndex = text.search(new RegExp(detectedPatterns[0].source, 'i'));
+    if (languageIndex !== -1) {
+      let currentIndex = 0;
+      for (let i = 0; i < parts.length; i++) {
+        const partStart = text.indexOf(parts[i], currentIndex);
+        if (partStart <= languageIndex && languageIndex < partStart + parts[i].length) {
+          return parts[i].trim();
+        }
+        currentIndex = partStart + parts[i].length;
+      }
+    }
+    const longestPart = parts.reduce((a, b) => a.length > b.length ? a : b);
+    return longestPart.trim();
+  }
+  
+  return text
+    .replace(/^(English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية):\s*/i, '')
+    .replace(/\s*(English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية):\s*/gi, ' ')
+    .trim();
+}
+
 async function regenerateSummary(analysis: string): Promise<string | null> {
   try {
+    const detectedLanguage = detectLanguage(analysis);
+    console.log(`🌍 Detected language for regenerated summary: ${detectedLanguage}`);
+    
     const projectId = process.env.GOOGLE_VERTEX_PROJECT;
     const location = process.env.GOOGLE_VERTEX_LOCATION || 'us-central1';
     const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
@@ -524,13 +610,22 @@ async function regenerateSummary(analysis: string): Promise<string | null> {
 
     const prompt = `Create a patient-friendly summary that is COMPLETELY DIFFERENT from this medical analysis.
 
+🚨 CRITICAL LANGUAGE REQUIREMENT 🚨
+- You MUST respond ONLY in ${detectedLanguage}
+- DO NOT include any English text unless ${detectedLanguage} is English
+- DO NOT provide translations in other languages
+- DO NOT write "English:", "Español:", "Français:", "Deutsch:", "Português:", "简体中文:", or any language labels
+- DO NOT provide multiple language versions
+- Your ENTIRE response must be in ${detectedLanguage} ONLY
+
 CRITICAL REQUIREMENTS:
 - Write 3-4 sentences in simple language
 - Focus on what the patient should know and do
 - Use different words and phrases than the analysis
 - No medical jargon or technical descriptions
 - No markdown symbols (**, ###, *, etc.)
-- Support multiple languages
+
+IMPORTANT: Respond ONLY in ${detectedLanguage}. Do not include any other languages.
 
 Medical Analysis:
 ${analysis}
@@ -538,12 +633,17 @@ ${analysis}
 Patient Summary:`;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    return text
+    text = text
       .replace(/[\*#`_~]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+    
+    // Filter to ensure single language
+    text = extractSingleLanguage(text, detectedLanguage);
+    
+    return text || null;
   } catch (error) {
     console.error('Error regenerating summary:', error);
     return null;

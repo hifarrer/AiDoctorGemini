@@ -221,11 +221,16 @@ PATIENT SUMMARY:`;
 
 // Helper function to detect the primary language of text
 function detectLanguage(text: string): string {
+  if (!text || text.length === 0) return 'English';
+  
   // Count characters from different language families
   const cyrillicCount = (text.match(/[\u0400-\u04FF]/g) || []).length;
   const chineseCount = (text.match(/[\u4E00-\u9FFF]/g) || []).length;
   const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length;
-  const spanishCount = (text.match(/[ñáéíóúü]/gi) || []).length;
+  const spanishCount = (text.match(/[ñáéíóúüÑÁÉÍÓÚÜ]/g) || []).length;
+  const frenchCount = (text.match(/[àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ]/g) || []).length;
+  const germanCount = (text.match(/[äöüßÄÖÜ]/g) || []).length;
+  const portugueseCount = (text.match(/[ãõáéíóúâêôçÃÕÁÉÍÓÚÂÊÔÇ]/g) || []).length;
   
   // If more than 20% of characters are from a specific language family, use that language
   const totalChars = text.length;
@@ -233,9 +238,86 @@ function detectLanguage(text: string): string {
   if (chineseCount > totalChars * 0.2) return 'Chinese';
   if (arabicCount > totalChars * 0.2) return 'Arabic';
   if (spanishCount > totalChars * 0.1) return 'Spanish';
+  if (frenchCount > totalChars * 0.1) return 'French';
+  if (germanCount > totalChars * 0.1) return 'German';
+  if (portugueseCount > totalChars * 0.1) return 'Portuguese';
   
   // Default to English
   return 'English';
+}
+
+// Extract only the detected language from multi-language text
+function extractSingleLanguage(text: string, detectedLanguage: string): string {
+  if (!text) return '';
+  
+  // Language label patterns (case-insensitive)
+  const languageLabels: Record<string, RegExp[]> = {
+    'English': [/^English\s*:?\s*/i, /English\s*:?\s*/i],
+    'Spanish': [/^Español\s*:?\s*/i, /^Spanish\s*:?\s*/i, /Español\s*:?\s*/i],
+    'French': [/^Français\s*:?\s*/i, /^French\s*:?\s*/i, /Français\s*:?\s*/i],
+    'German': [/^Deutsch\s*:?\s*/i, /^German\s*:?\s*/i, /Deutsch\s*:?\s*/i],
+    'Portuguese': [/^Português\s*:?\s*/i, /^Portuguese\s*:?\s*/i, /Português\s*:?\s*/i],
+    'Russian': [/^Русский\s*:?\s*/i, /^Russian\s*:?\s*/i, /Русский\s*:?\s*/i],
+    'Chinese': [/^简体中文\s*:?\s*/i, /^中文\s*:?\s*/i, /^Chinese\s*:?\s*/i, /简体中文\s*:?\s*/i],
+    'Arabic': [/^العربية\s*:?\s*/i, /^Arabic\s*:?\s*/i, /العربية\s*:?\s*/i],
+  };
+  
+  // Check if text contains multiple language labels
+  const hasMultipleLanguages = Object.values(languageLabels).some(patterns => 
+    patterns.some(pattern => pattern.test(text))
+  );
+  
+  if (!hasMultipleLanguages) {
+    // No language labels found, return as-is (but clean up any stray labels)
+    return text
+      .replace(/^(English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية):\s*/i, '')
+      .trim();
+  }
+  
+  // Extract the section for the detected language
+  const detectedPatterns = languageLabels[detectedLanguage] || [];
+  if (detectedPatterns.length === 0) {
+    // Language not in our map, try to extract by detecting language characters
+    return text;
+  }
+  
+  // Try to find the section for the detected language
+  for (const pattern of detectedPatterns) {
+    // Match from the label to the next language label or end of text
+    const regex = new RegExp(`${pattern.source}([\\s\\S]*?)(?=\\s*(?:English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية)\\s*:|$)`, 'i');
+    const match = text.match(regex);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  // If we can't find the detected language section, try to extract the first substantial block
+  // Split by language labels and take the longest non-empty block
+  const parts = text.split(/\s*(?:English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية)\s*:/i);
+  if (parts.length > 1) {
+    // Find the part that matches the detected language
+    const languageIndex = text.search(new RegExp(detectedPatterns[0].source, 'i'));
+    if (languageIndex !== -1) {
+      // Find which part corresponds to this language
+      let currentIndex = 0;
+      for (let i = 0; i < parts.length; i++) {
+        const partStart = text.indexOf(parts[i], currentIndex);
+        if (partStart <= languageIndex && languageIndex < partStart + parts[i].length) {
+          return parts[i].trim();
+        }
+        currentIndex = partStart + parts[i].length;
+      }
+    }
+    // Fallback: return the longest part
+    const longestPart = parts.reduce((a, b) => a.length > b.length ? a : b);
+    return longestPart.trim();
+  }
+  
+  // Last resort: remove all language labels and return
+  return text
+    .replace(/^(English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية):\s*/i, '')
+    .replace(/\s*(English|Español|Français|Deutsch|Português|Russian|简体中文|中文|Chinese|Arabic|العربية):\s*/gi, ' ')
+    .trim();
 }
 
 async function generateDetailedAnalysis(imageData: string, imageMimeType: string): Promise<string> {
@@ -267,6 +349,13 @@ async function generateDetailedAnalysis(imageData: string, imageMimeType: string
 
     const prompt = `You are a medical AI analyzing a skin lesion image. Provide a comprehensive, detailed medical analysis.
 
+🚨 CRITICAL LANGUAGE REQUIREMENT 🚨
+- You MUST respond in a SINGLE language only
+- DO NOT include translations in other languages
+- DO NOT write "English:", "Español:", "Français:", "Deutsch:", "Português:", "简体中文:", or any language labels
+- DO NOT provide multiple language versions
+- Your ENTIRE response must be in ONE language ONLY
+
 REQUIREMENTS:
 - Write in clear medical language
 - Include all visual observations
@@ -274,7 +363,7 @@ REQUIREMENTS:
 - Note any concerning features
 - Provide detailed assessment
 - Use plain text only (no markdown symbols like ** or ### or *)
-- Support multiple languages if needed
+- Respond in ONE language only - do not provide translations
 
 Analyze this skin lesion image thoroughly:`;
 
@@ -292,13 +381,17 @@ Analyze this skin lesion image thoroughly:`;
         ]
       }]
     });
-    const analysis = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let analysis = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     if (!analysis || analysis.length < 100) {
       throw new Error('Generated analysis too short');
     }
 
-    return analysis.trim();
+    // Filter analysis to ensure single language
+    const detectedLang = detectLanguage(analysis);
+    analysis = extractSingleLanguage(analysis.trim(), detectedLang);
+
+    return analysis;
   } catch (error) {
     console.error('Error generating detailed analysis:', error);
     throw new Error('Failed to generate detailed analysis');
@@ -344,12 +437,14 @@ async function generateSeparateSummary(detailedAnalysis: string): Promise<{
 
 CRITICAL: Your response must be COMPLETELY DIFFERENT from the detailed analysis. Do not copy or paraphrase the analysis text.
 
-🚨 ABSOLUTE LANGUAGE REQUIREMENT 🚨
+🚨 ABSOLUTE LANGUAGE REQUIREMENT - CRITICAL 🚨
 - You MUST respond ONLY in ${detectedLanguage}
-- DO NOT include any English text
+- DO NOT include any English text unless ${detectedLanguage} is English
 - DO NOT provide translations in other languages
-- DO NOT write "English:" or "Russian:" or any language labels
-- If the analysis is in ${detectedLanguage}, your summary must be ONLY in ${detectedLanguage}
+- DO NOT write "English:", "Español:", "Français:", "Deutsch:", "Português:", "简体中文:", or any language labels
+- DO NOT provide multiple language versions
+- Your ENTIRE response must be in ${detectedLanguage} ONLY
+- If you include multiple languages, you will have FAILED this task
 
 REQUIREMENTS:
 - Create a SHORT summary (3-4 sentences) that tells the patient what they need to know
@@ -364,6 +459,8 @@ REQUIREMENTS:
   "recommendations": ["Recommendation 1 in ${detectedLanguage}", "Recommendation 2 in ${detectedLanguage}"],
   "riskLevel": "low|normal|moderate|high|critical"
 }
+
+IMPORTANT: All text in your JSON response must be in ${detectedLanguage} only. Do not include any other languages.
 
 Detailed medical analysis to summarize:
 ${detailedAnalysis}
@@ -385,36 +482,22 @@ JSON Response:`;
 
     const parsed = JSON.parse(jsonMatch[0]);
     
-    // Post-process to ensure single language
+    // Post-process to ensure single language using the robust extraction function
     let finalSummary = parsed.summary || 'Summary not available';
+    finalSummary = extractSingleLanguage(finalSummary, detectedLanguage);
     
-    // If summary contains multiple languages, extract only the detected language
-    if (detectedLanguage === 'Russian' && finalSummary.includes('English:')) {
-      const russianMatch = finalSummary.match(/Russian:\s*([^]*?)(?=English:|$)/);
-      if (russianMatch) {
-        finalSummary = russianMatch[1].trim();
-        console.log('🔧 Extracted Russian-only summary:', finalSummary.substring(0, 100));
-      }
-    } else if (detectedLanguage === 'Chinese' && finalSummary.includes('English:')) {
-      const chineseMatch = finalSummary.match(/Chinese:\s*([^]*?)(?=English:|$)/);
-      if (chineseMatch) {
-        finalSummary = chineseMatch[1].trim();
-        console.log('🔧 Extracted Chinese-only summary:', finalSummary.substring(0, 100));
-      }
-    }
+    let finalKeyFindings = Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [];
+    finalKeyFindings = finalKeyFindings.map(f => extractSingleLanguage(String(f), detectedLanguage));
     
-    // Remove any language labels that might remain
-    finalSummary = finalSummary
-      .replace(/^(English|Russian|Chinese|Spanish|Arabic):\s*/i, '')
-      .replace(/\s*(English|Russian|Chinese|Spanish|Arabic):\s*/i, '')
-      .trim();
+    let finalRecommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
+    finalRecommendations = finalRecommendations.map(r => extractSingleLanguage(String(r), detectedLanguage));
     
     console.log('✅ Final summary (single language):', finalSummary.substring(0, 100));
     
     return {
       summary: finalSummary,
-      keyFindings: Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [],
-      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+      keyFindings: finalKeyFindings,
+      recommendations: finalRecommendations,
       riskLevel: parsed.riskLevel || 'normal'
     };
   } catch (error) {

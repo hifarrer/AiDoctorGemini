@@ -487,10 +487,10 @@ JSON Response:`;
     finalSummary = extractSingleLanguage(finalSummary, detectedLanguage);
     
     let finalKeyFindings = Array.isArray(parsed.keyFindings) ? parsed.keyFindings : [];
-    finalKeyFindings = finalKeyFindings.map(f => extractSingleLanguage(String(f), detectedLanguage));
+    finalKeyFindings = finalKeyFindings.map((f: any) => extractSingleLanguage(String(f), detectedLanguage));
     
     let finalRecommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
-    finalRecommendations = finalRecommendations.map(r => extractSingleLanguage(String(r), detectedLanguage));
+    finalRecommendations = finalRecommendations.map((r: any) => extractSingleLanguage(String(r), detectedLanguage));
     
     console.log('✅ Final summary (single language):', finalSummary.substring(0, 100));
     

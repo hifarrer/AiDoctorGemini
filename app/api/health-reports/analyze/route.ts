@@ -128,8 +128,8 @@ Analyze the following content:`;
           const detectedLang = detectLanguage(aiAnalysis || content);
           if (aiAnalysis) aiAnalysis = extractSingleLanguage(aiAnalysis, detectedLang);
           if (aiSummary) aiSummary = extractSingleLanguage(aiSummary, detectedLang);
-          if (aiKeyFindings) aiKeyFindings = aiKeyFindings.map(f => extractSingleLanguage(f, detectedLang));
-          if (aiRecommendations) aiRecommendations = aiRecommendations.map(r => extractSingleLanguage(r, detectedLang));
+          if (aiKeyFindings) aiKeyFindings = aiKeyFindings.map((f: string) => extractSingleLanguage(f, detectedLang));
+          if (aiRecommendations) aiRecommendations = aiRecommendations.map((r: string) => extractSingleLanguage(r, detectedLang));
           
           console.log('AI JSON parsed successfully');
         } catch (e) {
@@ -173,8 +173,8 @@ Analyze the following content:`;
     const finalDetectedLang = detectLanguage(aiAnalysis || content);
     const finalAnalysis = extractSingleLanguage(aiAnalysis, finalDetectedLang);
     const finalSummary = extractSingleLanguage(summary, finalDetectedLang);
-    const finalKeyFindings = keyFindings.map(f => extractSingleLanguage(f, finalDetectedLang));
-    const finalRecommendations = recommendations.map(r => extractSingleLanguage(r, finalDetectedLang));
+    const finalKeyFindings = keyFindings.map((f: string) => extractSingleLanguage(f, finalDetectedLang));
+    const finalRecommendations = recommendations.map((r: string) => extractSingleLanguage(r, finalDetectedLang));
 
     return NextResponse.json({
       analysis: finalAnalysis,

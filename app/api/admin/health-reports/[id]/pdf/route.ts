@@ -41,12 +41,10 @@ export async function GET(
       return NextResponse.json({ error: 'Health report not found' }, { status: 404 });
     }
 
-    // Use the saved summary and analysis - do not regenerate
-    const finalSummary = healthReport.ai_summary || '';
+    // Use the saved analysis - do not regenerate
     const finalAnalysis = healthReport.ai_analysis || '';
     
     console.log('📄 Using saved data for PDF:');
-    console.log('Summary Length:', finalSummary.length);
     console.log('Analysis Length:', finalAnalysis.length);
 
     // Create PDF
@@ -368,14 +366,6 @@ export async function GET(
     yPosition = addText(`Date: ${healthReport.created_at ? new Date(healthReport.created_at).toLocaleDateString() : 'N/A'}`, 50, yPosition, width - 100, 12);
     yPosition = addText(`Risk Level: ${(healthReport.risk_level || 'normal').toUpperCase()}`, 50, yPosition, width - 100, 12, true);
     yPosition -= 20;
-
-    // Summary
-    if (finalSummary) {
-      yPosition = addText('SUMMARY', 50, yPosition, width - 100, 16, true);
-      yPosition -= 10;
-      yPosition = addText(finalSummary, 50, yPosition, width - 100, 12, false, true);
-      yPosition -= 20;
-    }
 
     // Key Findings
     if (healthReport.key_findings && healthReport.key_findings.length > 0) {

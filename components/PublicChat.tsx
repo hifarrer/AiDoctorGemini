@@ -67,9 +67,11 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
       const displayMessage = `An error occurred. Please check the console for details.`;
       toast.error(displayMessage);
     },
-    onFinish: () => {
+    onFinish: (message) => {
       // Refresh stats after each completed assistant message
       void fetchInteractionStats();
+      // Note: We'll save conversations via useEffect watching messages changes
+      // because onFinish might be called before messages array is fully updated
     },
   });
 
@@ -87,6 +89,8 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const currentConversationIdRef = useRef<string | null>(null);
+  const lastSavedMessageCountRef = useRef<number>(0);
 
   const [stats, setStats] = useState<InteractionStats | null>(null);
   const hasUnlimited = !!stats?.hasUnlimited;
@@ -105,12 +109,98 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
     }
   };
 
+  const saveConversation = async () => {
+    try {
+      // Filter out the initial greeting message if it's just the default one
+      const conversationMessages = messages.filter(msg => {
+        // Keep all messages except the initial greeting if it's the default one
+        if (msg.role === 'assistant' && msg.content === 'Hi there! Ask me a medical question to see how I can help.') {
+          return false;
+        }
+        return true;
+      });
+
+      // Only save if there are actual conversation messages
+      if (conversationMessages.length === 0) {
+        return;
+      }
+
+      // Don't save if we've already saved this number of messages (avoid duplicate saves)
+      if (conversationMessages.length === lastSavedMessageCountRef.current) {
+        return;
+      }
+
+      // Prepare messages for saving (remove any image data URLs to save space)
+      const messagesToSave = conversationMessages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        // Optionally include image/document metadata but not full data
+        ...(msg.image && { hasImage: true }),
+        ...(msg.document && { document: { name: msg.document.name } }),
+        ...(msg.healthReport && { healthReport: msg.healthReport })
+      }));
+
+      console.log('Saving conversation:', {
+        messageCount: conversationMessages.length,
+        conversationId: currentConversationIdRef.current || 'new'
+      });
+
+      const response = await fetch('/api/chat-conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messagesToSave,
+          conversationId: currentConversationIdRef.current || undefined
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Conversation saved successfully:', data.conversation?.id);
+        if (data.conversation?.id) {
+          currentConversationIdRef.current = data.conversation.id;
+        }
+        lastSavedMessageCountRef.current = conversationMessages.length;
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to save conversation:', response.status, errorData);
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      // Silently fail - don't interrupt user experience
+    }
+  };
+
   // Auto-scroll to the bottom of the chat on new messages
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Save conversation when messages change (after assistant finishes)
+  useEffect(() => {
+    // Only save if user is authenticated, has actual conversation, and not currently loading
+    if (session?.user?.email && !isLoading && messages.length > 1) {
+      // Only save if there's at least one user message and one assistant message
+      const userMessages = messages.filter(msg => msg.role === 'user');
+      const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+      
+      if (userMessages.length > 0 && assistantMessages.length > 0) {
+        // Only save if we haven't already saved this number of messages
+        const totalMessages = messages.length;
+        if (totalMessages !== lastSavedMessageCountRef.current) {
+          // Debounce: wait a bit to ensure the message is fully processed
+          const timeoutId = setTimeout(() => {
+            void saveConversation();
+          }, 500);
+          
+          return () => clearTimeout(timeoutId);
+        }
+      }
+    }
+  }, [messages, isLoading, session]);
 
   // Record chat session start and load interaction stats
   useEffect(() => {

@@ -160,9 +160,14 @@ export default function HealthHistoryPage() {
                 Track and manage your health reports and analysis history
               </p>
             </div>
-            <Link href="/dashboard">
-              <Button variant="outline">Back to Dashboard</Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/chat-history">
+                <Button variant="outline">Chat History</Button>
+              </Link>
+              <Link href="/dashboard">
+                <Button variant="outline">Back to Dashboard</Button>
+              </Link>
+            </div>
           </div>
         </div>
 

@@ -326,6 +326,9 @@ export default function DashboardPage() {
             <Link href="/health-history" className="btn" style={{ padding: '10px 12px' }}>
               Health History
             </Link>
+            <Link href="/chat-history" className="btn" style={{ padding: '10px 12px' }}>
+              Chat History
+            </Link>
             {isAdmin && (
               <Link href="/admin" className="btn admin" style={{ padding: '10px 12px' }}>
                 Admin Panel
@@ -345,6 +348,7 @@ export default function DashboardPage() {
             <button onClick={() => { setActiveSection('chat'); setIsMenuOpen(false); }}>Chat</button>
             <button onClick={() => { setActiveSection('profile'); setIsMenuOpen(false); }}>Profile</button>
             <Link href="/health-history" onClick={() => setIsMenuOpen(false)}>Health History</Link>
+            <Link href="/chat-history" onClick={() => setIsMenuOpen(false)}>Chat History</Link>
             {isAdmin && (
               <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin Panel</Link>
             )}

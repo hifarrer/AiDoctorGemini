@@ -131,7 +131,8 @@ export function PublicChat({ chatTheme = 'light' }: { chatTheme?: ChatTheme }) {
       }
 
       // Prepare messages for saving (remove any image data URLs to save space)
-      const messagesToSave = conversationMessages.map(msg => ({
+      // Cast to Message type to access custom properties
+      const messagesToSave = (conversationMessages as Message[]).map(msg => ({
         id: msg.id,
         role: msg.role,
         content: msg.content,

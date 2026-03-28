@@ -248,6 +248,7 @@ export default function LandingPage() {
           </Link>
           
           <div className={`hidden sm:flex gap-6 ${bgClasses.textSecondary}`}>
+            <a href="https://sunscreens.store/" target="_blank" rel="noopener noreferrer" className={`hover:${bgClasses.text} transition-colors`}>Sunscreens</a>
             <a href="#features" className={`hover:${bgClasses.text} transition-colors`}>Features</a>
             <a href="#how-it-works" className={`hover:${bgClasses.text} transition-colors`}>How it Works</a>
             <a href="#faq" className={`hover:${bgClasses.text} transition-colors`}>FAQ</a>
@@ -283,6 +284,7 @@ export default function LandingPage() {
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="sm:hidden absolute right-6 top-16 z-20 bg-[#0f1325] border border-[#1e2541] rounded-xl p-2 min-w-[200px]">
+            <a href="https://sunscreens.store/" target="_blank" rel="noopener noreferrer" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Sunscreens</a>
             <a href="#features" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>Features</a>
             <a href="#how-it-works" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>How it Works</a>
             <a href="#faq" className="block w-full px-3 py-2 rounded-lg text-[#c9d2e2] hover:bg-[#1e2541] hover:text-white" onClick={() => setIsMenuOpen(false)}>FAQ</a>
